@@ -1,0 +1,71 @@
+{{template "app.html" .}}
+
+{{define "content"}}
+<div class="min-h-screen flex items-center justify-center px-4">
+  <div class="w-full max-w-md">
+    <div class="text-center mb-8">
+      <i data-lucide="tractor" class="w-12 h-12 text-[#2E7D32] mx-auto mb-3"></i>
+      <h1 class="text-2xl font-bold text-[#1F2937]">Welcome Back</h1>
+      <p class="text-[#6B7280] mt-1">Sign in to your AgriConnect account</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6">
+      <form id="login-form" onsubmit="return handleLogin(event)">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-[#374151] mb-1">Phone Number</label>
+          <input type="tel" name="phone_number" required
+            class="w-full px-3 py-2 border border-[#D1D5DB] rounded-xl text-sm focus:ring-2 focus:ring-[#2E7D32]/20 focus:border-[#2E7D32] outline-none"
+            placeholder="+232 XX XXX XXX">
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-[#374151] mb-1">Password</label>
+          <input type="password" name="password" required
+            class="w-full px-3 py-2 border border-[#D1D5DB] rounded-xl text-sm focus:ring-2 focus:ring-[#2E7D32]/20 focus:border-[#2E7D32] outline-none">
+        </div>
+
+        <div id="login-error" class="text-red-600 text-sm mb-3 hidden"></div>
+
+        <button type="submit" class="w-full bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
+          Sign In
+        </button>
+      </form>
+
+      <p class="text-center text-sm text-[#6B7280] mt-4">
+        Don't have an account? <a href="/register" class="text-[#2E7D32] hover:underline font-medium">Register</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+async function handleLogin(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = new FormData(form);
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone_number: data.get('phone_number'),
+        password: data.get('password')
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      errEl.textContent = err.error || 'Login failed';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    window.location.href = '/assistant';
+  } catch (e) {
+    errEl.textContent = 'Network error';
+    errEl.classList.remove('hidden');
+  }
+}
+</script>
+{{end}}

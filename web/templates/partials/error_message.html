@@ -1,0 +1,8 @@
+{{define "error_message"}}
+<div class="flex justify-center">
+  <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 flex items-center gap-2 max-w-sm">
+    <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+    <span>{{.Error}}</span>
+  </div>
+</div>
+{{end}}

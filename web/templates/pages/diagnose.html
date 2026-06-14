@@ -1,0 +1,172 @@
+{{template "app.html" .}}
+
+{{define "content"}}
+<div class="max-w-3xl mx-auto p-4 md:p-8">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-[#2E7D32] flex items-center justify-center">
+      <i data-lucide="search" class="w-5 h-5 text-white"></i>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-[#1F2937]">Crop Image Diagnosis</h1>
+      <p class="text-sm text-[#6B7280]">AI-powered preliminary crop health screening</p>
+    </div>
+  </div>
+
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+    <div class="flex items-start gap-3">
+      <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
+      <div>
+        <p class="text-sm font-semibold text-amber-800">Preliminary AI Assessment</p>
+        <p class="text-xs text-amber-700 mt-1">This is a preliminary AI assessment and may be incorrect. Confirm serious or uncertain crop problems with a qualified agricultural extension officer.</p>
+      </div>
+    </div>
+  </div>
+
+  {{if not .AIAvailable}}
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+    <p class="text-sm text-amber-700">AI service is not configured. Please set GROQ_API_KEY to enable diagnosis.</p>
+  </div>
+  {{else}}
+
+  <form id="diagnosis-form" enctype="multipart/form-data" class="space-y-6">
+    <div class="bg-white rounded-xl border border-[#E5E7EB] p-5 space-y-4">
+      <h2 class="font-semibold text-[#1F2937]">Field Information</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-[#374151] mb-1">Crop *</label>
+          <select id="crop" name="crop" required class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30">
+            <option value="">Select crop...</option>
+            <option value="rice">Rice</option>
+            <option value="cassava">Cassava</option>
+            <option value="maize">Maize</option>
+            <option value="groundnut">Groundnut</option>
+            <option value="cocoa">Cocoa</option>
+            <option value="coffee">Coffee</option>
+            <option value="oil palm">Oil Palm</option>
+            <option value="tomato">Tomato</option>
+            <option value="pepper">Pepper</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-[#374151] mb-1">District</label>
+          <select id="district" name="district" class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30">
+            <option value="">Select district...</option>
+            {{range .Districts}}
+            <option value="{{.}}">{{.}}</option>
+            {{end}}
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-[#374151] mb-1">Language</label>
+          <select id="preferred_language" name="preferred_language" class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30">
+            <option value="english">English</option>
+            <option value="krio">Krio</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-[#374151] mb-1">Plant Part Affected</label>
+          <select id="plant_part" name="plant_part" class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30">
+            <option value="">Select plant part...</option>
+            {{range .PlantParts}}
+            <option value="{{.}}">{{.}}</option>
+            {{end}}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#374151] mb-1">Symptom Description *</label>
+        <textarea id="symptom_description" name="symptom_description" rows="3" required
+          class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30"
+          placeholder="Describe the symptoms you see on the crop..."></textarea>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-[#374151] mb-1">Symptoms Started</label>
+          <input type="date" id="symptoms_started_at" name="symptoms_started_at"
+            class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-[#374151] mb-1">Affected Percentage</label>
+          <input type="number" id="affected_percentage" name="affected_percentage" min="0" max="100" step="0.1"
+            class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30"
+            placeholder="e.g. 25">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#374151] mb-1">Recent Weather Conditions</label>
+        <input type="text" id="recent_weather" name="recent_weather"
+          class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30"
+          placeholder="e.g. heavy rain last week, hot and dry">
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-[#374151] mb-1">Fertiliser History</label>
+          <input type="text" id="fertiliser_history" name="fertiliser_history"
+            class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30"
+            placeholder="e.g. applied NPK 2 weeks ago">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-[#374151] mb-1">Pesticide History</label>
+          <input type="text" id="pesticide_history" name="pesticide_history"
+            class="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30"
+            placeholder="e.g. sprayed insecticide 1 week ago">
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-[#E5E7EB] p-5">
+      <h2 class="font-semibold text-[#1F2937] mb-4">Crop Image</h2>
+
+      <div id="image-drop-zone" class="border-2 border-dashed border-[#E5E7EB] rounded-xl p-8 text-center cursor-pointer hover:border-[#2E7D32]/40 transition-colors">
+        <div id="upload-prompt">
+          <i data-lucide="image-plus" class="w-10 h-10 text-[#6B7280] mx-auto mb-3"></i>
+          <p class="text-sm text-[#6B7280]">Drag and drop an image here, or click to browse</p>
+          <p class="text-xs text-[#6B7280] mt-1">JPEG, PNG, or WebP (max {{.MaxImageSizeMB}}MB)</p>
+        </div>
+        <div id="image-preview" class="hidden relative">
+          <img id="preview-img" class="max-h-64 mx-auto rounded-lg" alt="Preview">
+          <div class="flex gap-2 justify-center mt-3">
+            <button type="button" id="replace-image-btn" class="text-sm text-[#2E7D32] hover:underline">Replace</button>
+            <button type="button" id="remove-image-btn" class="text-sm text-red-500 hover:underline">Remove</button>
+          </div>
+        </div>
+        <input type="file" id="image-input" name="image" accept="image/jpeg,image/png,image/webp" class="hidden">
+      </div>
+      <p id="image-error" class="text-sm text-red-500 mt-2 hidden"></p>
+    </div>
+
+    <div id="upload-progress" class="hidden bg-white rounded-xl border border-[#E5E7EB] p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-5 h-5 border-2 border-[#2E7D32] border-t-transparent rounded-full animate-spin"></div>
+        <span id="progress-text" class="text-sm text-[#6B7280]">Uploading image...</span>
+      </div>
+    </div>
+
+    <button type="submit" id="submit-btn"
+      class="w-full bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl py-3 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+      Submit for Diagnosis
+    </button>
+  </form>
+  {{end}}
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  });
+</script>
+<script src="/static/js/diagnosis.js"></script>
+{{end}}

@@ -1,0 +1,41 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+cmd/server/server
+cmd/server/main.exe
+tmp/
+
+# Go
+vendor/
+go.work*
+
+# Node
+node_modules/
+package-lock.json
+
+# Tailwind output
+web/static/css/app.css
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+.env
+.env.local
+.env.production
+# Docker
+docker-data/

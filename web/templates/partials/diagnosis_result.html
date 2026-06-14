@@ -1,0 +1,50 @@
+{{define "diagnosis_result"}}
+{{if eq .Status "processing"}}
+<div class="text-center py-8">
+  <div class="w-8 h-8 border-2 border-[#2E7D32] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+  <p class="text-sm text-[#6B7280]">AI analysis in progress...</p>
+  <meta http-equiv="refresh" content="5">
+</div>
+{{else if eq .Status "failed"}}
+<div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+  <i data-lucide="x-circle" class="w-8 h-8 text-red-500 mx-auto mb-3"></i>
+  <p class="text-sm text-red-700 font-medium">Analysis Failed</p>
+  <p class="text-xs text-red-600 mt-1">{{.ErrorMessage}}</p>
+  <a href="/diagnose" class="inline-block mt-4 text-[#2E7D32] hover:underline text-sm">Try Again</a>
+</div>
+{{else}}
+<div class="space-y-4">
+  <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
+    <div class="flex items-start gap-3">
+      <div class="font-bold text-lg text-[#1F2937]">{{.ProbableCondition}}</div>
+      <span class="ml-auto text-xs px-2 py-1 rounded-full {{if eq .ConfidenceLabel "high"}}bg-green-100 text-green-700{{else if eq .ConfidenceLabel "medium"}}bg-amber-100 text-amber-700{{else}}bg-red-100 text-red-700{{end}}">
+        {{printf "%.0f" .Confidence}}% confidence
+      </span>
+    </div>
+    <p class="text-sm text-[#4B5563] mt-2">{{.Description}}</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
+      <h4 class="font-semibold text-sm text-[#1F2937] mb-2">Observed Signs</h4>
+      <ul class="text-sm text-[#4B5563] space-y-1">
+        {{range .ObservedSigns}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None identified</li>{{end}}
+      </ul>
+    </div>
+    <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
+      <h4 class="font-semibold text-sm text-[#1F2937] mb-2">Possible Alternatives</h4>
+      <ul class="text-sm text-[#4B5563] space-y-1">
+        {{range .PossibleAlternatives}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None identified</li>{{end}}
+      </ul>
+    </div>
+  </div>
+
+  <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
+    <h4 class="font-semibold text-sm text-[#1F2937] mb-2">Recommended Actions</h4>
+    <ul class="text-sm text-[#4B5563] space-y-1">
+      {{range .RecommendedActions}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
+    </ul>
+  </div>
+</div>
+{{end}}
+{{end}}

@@ -1,0 +1,106 @@
+[
+  {
+    "crop": "rice",
+    "category": "planting",
+    "title": "Rice Planting Guide for Sierra Leone",
+    "content": "Rice is the staple food crop of Sierra Leone. The main varieties grown are upland rice (on hillsides without irrigation) and lowland rice (in valleys and swamps). Optimal planting time: Upland rice should be planted at the start of the rainy season, typically May to June. Lowland rice can be planted in June to July. Seed rate: Broadcast sowing requires 80-100 kg/ha. Row planting uses 40-60 kg/ha with 20cm x 20cm spacing. Seed treatment: Soak seeds in water for 24 hours before planting to improve germination. Remove floating seeds as they are not viable. Land preparation: Clear and burn debris if using upland fields. Lowland fields should be ploughed and puddled to retain water. Nursery: For transplanted lowland rice, raise seedlings in a nursery for 21-28 days before transplanting.",
+    "source": "Sierra Leone Ministry of Agriculture, Forestry and Food Security - Rice Production Guide",
+    "reviewed": false
+  },
+  {
+    "crop": "rice",
+    "category": "disease",
+    "title": "Common Rice Diseases in Sierra Leone",
+    "content": "Rice blast (Pyricularia oryzae): Most serious rice disease. Symptoms include diamond-shaped lesions with grey centres on leaves. Affects both leaves and necks of plants. Control: Use resistant varieties, avoid excessive nitrogen, apply fungicide if available. Rice yellow mottle virus (RYMV): Transmitted by insects. Causes yellowing and mottling of leaves, stunted growth, and poor grain filling. Control: Remove infected plants, control insect vectors, use resistant varieties. Bacterial leaf blight: Yellow to white lesions along leaf margins. Most severe in wet conditions. Control: Avoid excessive nitrogen, use resistant varieties, ensure good drainage. Brown spot disease: Brown oval spots on leaves. Often indicates poor soil fertility or drought stress. Control: Improve soil fertility, apply balanced fertiliser.",
+    "source": "WARDA/AfricaRice - Rice Disease Identification in West Africa (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "rice",
+    "category": "fertiliser",
+    "title": "Rice Fertiliser Recommendations for Sierra Leone",
+    "content": "Rice responds well to balanced fertilisation. Nitrogen (N): Apply 60-90 kg N/ha split into two applications. First application at planting or 2 weeks after transplanting. Second application at tillering stage (4-6 weeks). Phosphorus (P): Apply 30-40 kg P2O5/ha at planting. Important for root development and early growth. Potassium (K): Apply 30-40 kg K2O/ha at planting. Helps with disease resistance and grain quality. Organic matter: Incorporate crop residues and compost where available to improve soil structure. Caution: Always follow registered product label instructions. Wear protective equipment when handling fertilisers. Consult your local agricultural extension officer for soil-specific recommendations.",
+    "source": "SLARI (Sierra Leone Agricultural Research Institute) - Crop Nutrition Guidelines (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "rice",
+    "category": "pests",
+    "title": "Rice Pest Management in Sierra Leone",
+    "content": "Stem borers: Yellow stem borer (Scirpophaga incertulas) is the most damaging. Larvae bore into stems causing dead hearts in vegetative stage and white ears at flowering. Control: Remove and destroy infested stems, use light traps, apply recommended insecticides following label instructions. Rice gall midge: Maggots cause silvery shoots. Most severe in waterlogged conditions. Control: Drain fields periodically, use resistant varieties. Birds: Weaver birds cause significant losses at grain ripening. Control: Use bird scarers, net small plots, harvest promptly when mature. African rice gall midge: Causes tubular galls on young tillers. Control: Drain fields for 1-2 weeks after transplanting. WARNING: Always consult an extension officer before applying any pesticide. Follow label instructions and use protective clothing.",
+    "source": "FAO - Integrated Pest Management for Rice in Sub-Saharan Africa (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "cassava",
+    "category": "planting",
+    "title": "Cassava Planting Guide for Sierra Leone",
+    "content": "Cassava is highly adaptable and drought-tolerant, making it ideal for Sierra Leone's variable rainfall. Planting material: Use stem cuttings 25-30 cm long with at least 5 nodes from healthy mature plants (8-12 months old). Avoid using stems from diseased plants. Spacing: Recommended spacing is 1m x 1m for food production, giving 10,000 plants/ha. For mixed cropping, use 1.5m x 1m. Planting time: Can be planted at any time during the rainy season. Best results when planted at the start of rains (May-June). Planting method: Plant cuttings at a 45-degree angle, 2/3 of the cutting in the soil. Alternatively, plant horizontally 5-10 cm deep in dry conditions. Variety selection: Improved varieties like TME 419 and IITA-TMS are high-yielding and disease-resistant.",
+    "source": "IITA - Cassava Production Guide for West Africa (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "cassava",
+    "category": "disease",
+    "title": "Cassava Disease Management in Sierra Leone",
+    "content": "Cassava Mosaic Disease (CMD): Most important cassava disease in Sierra Leone. Caused by a virus transmitted by whiteflies. Symptoms: Yellow-green mosaic patterns on leaves, distorted leaflets, stunted growth. Control: Plant CMD-resistant varieties (TME 419 is highly resistant), remove and burn infected plants early, control whitefly populations. Cassava Brown Streak Disease (CBSD): Increasingly common. Causes brown streaks on stems and root necrosis. Infected roots have yellow-brown patches making them inedible. Control: Use certified disease-free planting material, remove infected plants immediately. Cassava Bacterial Blight (CBB): Water-soaked spots on leaves that turn brown. Angular leaf spots with yellow halos. Stem dieback. Control: Use disease-free planting material, avoid planting during heavy rains, improve drainage. WARNING: If you see unusual symptoms on many plants, contact your district agricultural extension office immediately.",
+    "source": "CABI - Cassava Disease Management in Sub-Saharan Africa (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "cassava",
+    "category": "harvesting",
+    "title": "Cassava Harvesting and Post-Harvest Handling",
+    "content": "Harvest timing: Most varieties are ready 9-12 months after planting for fresh consumption. For starch or flour processing, harvest at 12-18 months. Signs of maturity: Leaves begin to yellow and fall, stems become woodier, outer skin of roots turns rough. Harvesting method: Cut stems to 30-40 cm before harvest to reduce moisture loss. Use a hoe or digging fork to loosen soil around the plant. Pull roots carefully to avoid bruising. Fresh cassava: Roots deteriorate quickly (2-3 days) after harvest due to post-harvest physiological deterioration (PPD). Process or consume quickly. Storage: Bury roots in sand for up to 2 weeks. Coat with wax or paraffin to extend shelf life. For longer storage, dry into chips or process into gari or flour.",
+    "source": "FAO - Cassava Post-Harvest Practices (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "maize",
+    "category": "planting",
+    "title": "Maize Planting Guide for Sierra Leone",
+    "content": "Maize (corn) is widely grown in Sierra Leone both for food and income. Varieties: Open-pollinated varieties (OPVs) like Obatanpa are suitable for smallholders. Hybrid varieties give higher yields but seeds must be purchased each season. Planting time: First season: April-May with the onset of rains. Second season: August-September where rainfall allows. Spacing: Plant in rows 75 cm apart with 25-30 cm between plants. This gives approximately 50,000-55,000 plants/ha. Depth: Plant 3-5 cm deep. Plant 2 seeds per hole and thin to 1 plant after germination. Seed rate: Approximately 20-25 kg/ha. Intercropping: Maize can be grown with legumes (cowpea, groundnut) to improve soil fertility and increase income.",
+    "source": "SLARI - Maize Production Handbook Sierra Leone (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "maize",
+    "category": "disease",
+    "title": "Maize Disease Identification and Control",
+    "content": "Maize streak virus (MSV): Transmitted by leafhoppers. Causes yellow streaks along leaf veins. Severe in dry conditions. Control: Plant early to avoid peak leafhopper populations, use MSV-resistant varieties. Maize lethal necrosis (MLN): Combination of maize streak virus and other viruses. Very destructive. Symptoms: Yellowing and browning of leaves, premature plant death. Control: Use certified seed, control insect vectors, remove infected plants. Grey leaf spot: Greyish rectangular lesions on leaves. Favoured by warm, humid conditions. Control: Plant resistant varieties, ensure good air circulation. Ear rots (Fusarium, Diplodia): Fungal infections of ears. May produce mycotoxins dangerous to humans and animals. Control: Harvest promptly, dry grain quickly to below 13% moisture, store properly. WARNING: Do not consume mouldy maize. It may contain harmful mycotoxins.",
+    "source": "CIMMYT - Maize Disease Identification Guide for Africa (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "maize",
+    "category": "fertiliser",
+    "title": "Maize Fertiliser Application Guide",
+    "content": "Maize requires good nutrition for high yields. Baseline recommendation for Sierra Leone soils: Nitrogen (N): 90-120 kg N/ha. Split into 2-3 applications: 1/3 at planting, 1/3 at 3-4 weeks, 1/3 at tasseling. Phosphorus (P): 40-60 kg P2O5/ha at planting. Potassium (K): 40-60 kg K2O/ha at planting. Practical guide: Apply one 50 kg bag of NPK 15:15:15 per 0.5 ha at planting. Top-dress with urea (46% N) at 3-4 weeks and at knee-high stage. Organic matter: Apply 2-3 tonnes of compost or well-decomposed manure per hectare before planting. Important: Soil test where possible to adjust recommendations. Avoid applying fertiliser to dry soil. Wear gloves and wash hands after handling. Consult extension officer for specific recommendations.",
+    "source": "Ministry of Agriculture Sierra Leone - Fertiliser Use Recommendations (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "groundnut",
+    "category": "planting",
+    "title": "Groundnut Production Guide for Sierra Leone",
+    "content": "Groundnut (peanut) is an important food and cash crop in Sierra Leone. Varieties: Spanish types (erect, early maturing) and Valencia types are suitable. Virginia types have larger pods but take longer to mature. Land preparation: Groundnuts prefer well-drained sandy loam soils. Avoid waterlogged or clay soils. Plough to 15-20 cm depth. Planting time: Plant at start of rains, May to June. Planting: Use shelled seeds. Space rows 45-60 cm apart with 15-20 cm between plants. Plant 3-5 cm deep. Do not shell seeds more than 2-3 days before planting to avoid fungal infection. Inoculation: Apply rhizobium inoculant to seeds before planting to improve nitrogen fixation. This reduces the need for nitrogen fertiliser. Rotation: Do not plant groundnuts in the same field for consecutive years. Rotate with cereals.",
+    "source": "ICRISAT - Groundnut Production in West Africa (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "groundnut",
+    "category": "pests",
+    "title": "Groundnut Pest Management",
+    "content": "Groundnut rosette virus: Most serious disease/pest problem in Sierra Leone. Transmitted by aphids. Symptoms: Yellow mosaic, stunted growth, green rosette. Can destroy entire crop if infection is early. Control: Plant early at high density (early planting avoids peak aphid season), remove infected plants, use tolerant varieties. Leaf miners: Larvae create tunnels in leaves. Generally not serious unless infestation is heavy. Control: Spray with approved insecticide if more than 30% of plants are affected. Termites: Attack plants underground, causing wilting and death. More common in dry areas. Control: Avoid leaving crop residues that attract termites, apply approved termiticide to soil if necessary. Larger grain borer in storage: Red-brown beetle that destroys stored groundnuts. Control: Clean storage facilities, use airtight containers, dry nuts thoroughly before storage. WARNING: Consult extension officer before applying any pesticide. Always follow label directions.",
+    "source": "FAO - Integrated Pest Management for Groundnuts (sample content, requires expert review)",
+    "reviewed": false
+  },
+  {
+    "crop": "groundnut",
+    "category": "storage",
+    "title": "Groundnut Storage and Aflatoxin Prevention",
+    "content": "Groundnut storage is critical because poorly stored nuts develop aflatoxins, which are poisonous to humans and animals. Harvesting correctly: Harvest when most pods are mature. Avoid leaving pods in soil too long after maturity as this encourages fungal growth. Drying: Dry pods in the sun to below 9% moisture content before storage. This is critical. Spread on clean mats or tarpaulins. Avoid drying on bare soil. Storage: Store in clean, dry, well-ventilated structures. Use hermetic bags or airtight containers for small quantities. Inspect regularly for signs of mould or pests. Avoiding aflatoxin: Only store clean, dry, undamaged pods. Remove any mouldy, shrivelled or discoloured nuts before storage. Never consume mouldy groundnuts - they may contain aflatoxins which can cause liver damage and cancer. Market quickly: Sell within 3-4 months of harvest if possible. WARNING: Mouldy groundnuts must be discarded and must NOT be given to children or animals. Aflatoxins are serious health hazards.",
+    "source": "USAID - Aflatoxin Prevention in Groundnuts, West Africa (sample content, requires expert review)",
+    "reviewed": false
+  }
+]

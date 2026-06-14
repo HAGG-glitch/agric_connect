@@ -1,0 +1,197 @@
+{{template "app.html" .}}
+
+{{define "content"}}
+<div class="max-w-4xl mx-auto p-4 md:p-8">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/officer/diagnoses" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
+      <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-[#1F2937]">Review Diagnosis</h1>
+      <p class="text-sm text-[#6B7280]" id="diagnosis-meta">Loading...</p>
+    </div>
+  </div>
+
+  <div id="loading" class="text-center py-8">
+    <div class="w-8 h-8 border-2 border-[#2E7D32] border-t-transparent rounded-full animate-spin mx-auto"></div>
+    <p class="text-sm text-[#6B7280] mt-2">Loading diagnosis...</p>
+  </div>
+
+  <div id="content" class="hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div>
+        <div class="bg-white rounded-xl border border-[#E5E7EB] p-5 mb-4">
+          <h2 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+            <i data-lucide="bot" class="w-5 h-5 text-[#2E7D32]"></i> AI Assessment
+          </h2>
+          <div id="ai-assessment">
+            <p class="text-[#6B7280] text-sm">Loading...</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-[#E5E7EB] p-5 mb-4">
+          <h2 class="font-semibold text-[#1F2937] mb-3">Farmer Information</h2>
+          <div id="farmer-info">
+            <p class="text-[#6B7280] text-sm">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="bg-white rounded-xl border border-[#E5E7EB] p-5 mb-4">
+          <h2 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+            <i data-lucide="clipboard-check" class="w-5 h-5 text-[#2E7D32]"></i> Extension Officer Review
+          </h2>
+          <form id="review-form" onsubmit="return submitReview(event)">
+            <input type="hidden" id="diagnosis-id">
+            <input type="hidden" id="review-id">
+
+            <div class="mb-3">
+              <label class="block text-sm font-medium text-[#374151] mb-1">Review Status</label>
+              <select id="review-status" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2">
+                <option value="pending">Pending</option>
+                <option value="in_review">In Review</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="needs_more_information">Needs More Information</option>
+                <option value="field_visit_required">Field Visit Required</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="block text-sm font-medium text-[#374151] mb-1">Confirmed Condition</label>
+              <input type="text" id="confirmed-condition" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2">
+            </div>
+
+            <div class="mb-3">
+              <label class="block text-sm font-medium text-[#374151] mb-1">Comment</label>
+              <textarea id="officer-comment" rows="3" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="block text-sm font-medium text-[#374151] mb-1">Recommendation</label>
+              <textarea id="recommendation" rows="3" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" id="requires-field-visit" class="rounded border-[#D1D5DB]">
+                <span class="text-sm text-[#374151]">Requires Field Visit</span>
+              </label>
+            </div>
+
+            <div id="review-error" class="text-red-600 text-sm mb-3 hidden"></div>
+            <button type="submit" class="w-full bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl py-2.5 text-sm font-medium">Save Review</button>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-xl border border-[#E5E7EB] p-5">
+          <h2 class="font-semibold text-[#1F2937] mb-3">Review History</h2>
+          <div id="review-history">
+            <p class="text-[#6B7280] text-sm">No reviews yet</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function loadDiagnosis() {
+  const id = window.location.pathname.split('/').pop();
+  document.getElementById('diagnosis-id').value = id;
+
+  try {
+    const res = await fetch('/api/v1/officer/diagnoses/' + id);
+    if (!res.ok) throw new Error('Failed');
+    const d = await res.json();
+
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('content').classList.remove('hidden');
+    document.getElementById('diagnosis-meta').textContent = d.crop + ' - ' + (d.district || 'No district');
+
+    // AI Assessment
+    document.getElementById('ai-assessment').innerHTML = `
+      <div class="space-y-2">
+        <p class="text-sm"><span class="font-medium">Condition:</span> ${d.probable_condition || 'Pending'}</p>
+        <p class="text-sm"><span class="font-medium">Confidence:</span> ${Math.round(d.confidence || 0)}%</p>
+        <p class="text-sm"><span class="font-medium">Urgency:</span> <span class="${d.urgency === 'urgent' ? 'text-red-600' : ''}">${d.urgency || 'unknown'}</span></p>
+        <p class="text-sm text-[#4B5563]">${d.description || ''}</p>
+      </div>
+    `;
+
+    // Farmer info
+    document.getElementById('farmer-info').innerHTML = `
+      <div class="space-y-2 text-sm">
+        <p><span class="font-medium">Crop:</span> ${d.crop}</p>
+        <p><span class="font-medium">District:</span> ${d.district || 'Not specified'}</p>
+        <p><span class="font-medium">Plant Part:</span> ${d.plant_part || 'Not specified'}</p>
+        <p><span class="font-medium">Symptoms:</span> ${d.symptom_description || 'Not specified'}</p>
+        <p><span class="font-medium">Status:</span> ${d.status}</p>
+      </div>
+    `;
+
+    // Reviews
+    if (d.reviews && d.reviews.length > 0) {
+      const latest = d.reviews[0];
+      document.getElementById('review-id').value = latest.id;
+      document.getElementById('review-status').value = latest.review_status;
+      document.getElementById('confirmed-condition').value = latest.confirmed_condition || '';
+      document.getElementById('officer-comment').value = latest.officer_comment || '';
+      document.getElementById('recommendation').value = latest.recommendation || '';
+      document.getElementById('requires-field-visit').checked = latest.requires_field_visit;
+
+      document.getElementById('review-history').innerHTML = d.reviews.map(r => `
+        <div class="border-b border-[#E5E7EB] py-2 text-sm">
+          <p><span class="font-medium">Status:</span> ${r.review_status}</p>
+          ${r.confirmed_condition ? `<p><span class="font-medium">Condition:</span> ${r.confirmed_condition}</p>` : ''}
+          ${r.officer_comment ? `<p class="text-[#4B5563]">${r.officer_comment}</p>` : ''}
+          <p class="text-xs text-[#6B7280]">${new Date(r.created_at).toLocaleString()}</p>
+        </div>
+      `).join('');
+    }
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  } catch (e) {
+    document.getElementById('loading').innerHTML = '<p class="text-red-600">Failed to load diagnosis</p>';
+  }
+}
+
+async function submitReview(e) {
+  e.preventDefault();
+  const diagID = document.getElementById('diagnosis-id').value;
+  const reviewID = document.getElementById('review-id').value;
+  const errEl = document.getElementById('review-error');
+  errEl.classList.add('hidden');
+
+  const body = {
+    review_status: document.getElementById('review-status').value,
+    confirmed_condition: document.getElementById('confirmed-condition').value,
+    officer_comment: document.getElementById('officer-comment').value,
+    recommendation: document.getElementById('recommendation').value,
+    requires_field_visit: document.getElementById('requires-field-visit').checked
+  };
+
+  try {
+    const url = reviewID
+      ? '/api/v1/officer/diagnoses/' + diagID + '/reviews/' + reviewID
+      : '/api/v1/officer/diagnoses/' + diagID + '/reviews';
+    const method = reviewID ? 'PUT' : 'POST';
+
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) {
+      const err = await res.json();
+      errEl.textContent = err.error || 'Failed to save review';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    location.reload();
+  } catch (e) {
+    errEl.textContent = 'Network error';
+    errEl.classList.remove('hidden');
+  }
+}
+
+loadDiagnosis();
+</script>
+{{end}}

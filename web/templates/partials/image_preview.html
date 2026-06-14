@@ -1,0 +1,26 @@
+{{define "image_preview"}}
+<div class="space-y-2">
+  <label class="block text-sm font-medium text-[#4B5563] mb-1">Crop Image *</label>
+  <div id="image-drop-zone"
+    class="border-2 border-dashed border-[#D1D5DB] rounded-xl p-6 text-center cursor-pointer hover:border-[#2E7D32] hover:bg-[#F5F7F5] transition-colors">
+    <input type="file" id="image-input" name="image" accept="image/jpeg,image/png,image/webp" class="hidden">
+
+    <div id="upload-prompt">
+      <i data-lucide="upload-cloud" class="w-10 h-10 text-[#6B7280] mx-auto mb-2"></i>
+      <p class="text-sm text-[#6B7280]">Drag and drop an image here, or click to browse</p>
+      <p class="text-xs text-[#6B7280] mt-1">JPEG, PNG, or WebP &middot; Max {{.MaxImageSizeMB}}MB</p>
+    </div>
+
+    <div id="image-preview" class="hidden relative">
+      <img id="preview-img" class="max-h-64 mx-auto rounded-lg" alt="Image preview">
+      <div class="flex justify-center gap-2 mt-3">
+        <button type="button" id="replace-image-btn"
+          class="px-3 py-1.5 text-xs border border-[#E5E7EB] rounded-lg hover:bg-white transition-colors">Replace</button>
+        <button type="button" id="remove-image-btn"
+          class="px-3 py-1.5 text-xs border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors">Remove</button>
+      </div>
+    </div>
+  </div>
+  <p id="image-error" class="text-xs text-red-500 hidden"></p>
+</div>
+{{end}}

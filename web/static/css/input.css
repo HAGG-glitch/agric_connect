@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+}
+
+@layer components {
+  .lang-btn {
+    @apply border-[#E5E7EB] text-[#6B7280] bg-white;
+  }
+  .lang-btn.active-lang {
+    @apply border-[#2E7D32] text-[#2E7D32] bg-[#2E7D32]/5 font-semibold;
+  }
+
+  .conversation-item {
+    @apply flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-[#6B7280] hover:bg-[#F5F7F5] cursor-pointer transition-colors truncate;
+  }
+  .conversation-item.active {
+    @apply bg-[#2E7D32]/10 text-[#2E7D32] font-medium;
+  }
+
+  .chat-message-user {
+    @apply flex justify-end;
+  }
+  .chat-message-assistant {
+    @apply flex justify-start;
+  }
+  .message-bubble-user {
+    @apply bg-[#2E7D32] text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] text-sm leading-relaxed;
+  }
+  .message-bubble-assistant {
+    @apply bg-white border border-[#E5E7EB] rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] text-sm leading-relaxed shadow-sm;
+  }
+
+  .weather-badge {
+    @apply inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full;
+  }
+}

@@ -1,0 +1,236 @@
+package main
+
+import (
+	"encoding/json"
+	"html/template"
+	"log"
+	"time"
+
+	"github.com/agriconnect-ai/internal/ai"
+	"github.com/agriconnect-ai/internal/auth"
+	"github.com/agriconnect-ai/internal/config"
+	"github.com/agriconnect-ai/internal/database"
+	"github.com/agriconnect-ai/internal/diagnosis"
+	"github.com/agriconnect-ai/internal/handlers"
+	"github.com/agriconnect-ai/internal/middleware"
+	"github.com/agriconnect-ai/internal/repositories"
+	"github.com/agriconnect-ai/internal/services"
+	"github.com/agriconnect-ai/internal/storage"
+	"github.com/agriconnect-ai/internal/transcription"
+	"github.com/agriconnect-ai/internal/weather"
+	"github.com/gin-gonic/gin"
+)
+
+func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	db, err := database.Connect(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	migrationsDir := findMigrationsDir()
+	migrator := database.NewMigrationRunner(db, migrationsDir)
+	if err := migrator.Up(); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	// Repositories
+	convRepo := repositories.NewConversationRepository(db)
+	msgRepo := repositories.NewMessageRepository(db)
+	knowledgeRepo := repositories.NewKnowledgeRepository(db)
+	weatherRepo := repositories.NewWeatherRepository(db)
+	diagnosisRepo := diagnosis.NewRepository(db)
+
+	// Weather client
+	weatherClient := weather.NewClient(cfg.OpenMeteoBaseURL)
+
+	// AI client
+	aiClient := ai.NewClient(cfg.GroqAPIKey, cfg.GroqBaseURL, cfg.GroqChatModel, cfg.GroqRequestTimeoutSecs)
+
+	// Services
+	knowledgeSvc := services.NewKnowledgeService(knowledgeRepo)
+	weatherSvc := services.NewWeatherService(weatherRepo, weatherClient, cfg.WeatherCacheMinutes)
+	chatSvc := services.NewChatService(convRepo, msgRepo, cfg.GroqChatModel)
+
+	// Orchestrator
+	orchestrator := ai.NewOrchestrator(aiClient, knowledgeSvc, weatherSvc)
+
+	// Storage
+	var objStore storage.ObjectStorage
+	switch cfg.StorageDriver {
+	case "supabase":
+		secretKey := cfg.SupabaseSecretKey
+		if secretKey == "" {
+			secretKey = cfg.SupabaseServiceRoleKey
+		}
+		if cfg.SupabaseURL == "" || secretKey == "" {
+			log.Fatalf("SUPABASE_URL and SUPABASE_SECRET_KEY must be set when STORAGE_DRIVER=supabase")
+		}
+		objStore = storage.NewSupabaseStorage(cfg.SupabaseURL, secretKey, cfg.SupabaseStorageBucket)
+	default:
+		ls, err := storage.NewLocalStorage(cfg.LocalUploadDir)
+		if err != nil {
+			log.Fatalf("Failed to init local storage: %v", err)
+		}
+		objStore = ls
+	}
+
+	// Diagnosis
+	diagnosisAI := ai.NewCropDiagnosisAI(aiClient, cfg.GroqVisionModel)
+	diagnosisSvc := diagnosis.NewService(diagnosisRepo, objStore, diagnosisAI, knowledgeSvc, cfg)
+
+	// Transcription
+	audioTranscriber := ai.NewAudioTranscriber(cfg.GroqAPIKey, cfg.GroqBaseURL, cfg.GroqTranscriptionModel)
+	transcriptionSvc := transcription.NewService(audioTranscriber)
+
+	// Auth
+	accessDur, _ := time.ParseDuration(cfg.JWTAccessDuration)
+	refreshDur, _ := time.ParseDuration(cfg.JWTRefreshDuration)
+	authSvc := auth.NewService(db, cfg.JWTAccessSecret, cfg.JWTRefreshSecret, accessDur, refreshDur)
+
+	// Handlers
+	pageHandler := handlers.NewPageHandler(cfg)
+	convHandler := handlers.NewConversationHandler(chatSvc)
+	chatHandler := handlers.NewChatHandler(chatSvc, orchestrator, cfg)
+	weatherHandler := handlers.NewWeatherHandler(weatherSvc)
+	healthHandler := handlers.NewHealthHandler(db)
+	diagnosisHandler := handlers.NewDiagnosisHandler(diagnosisSvc, cfg, objStore, chatSvc)
+	transcriptionHandler := handlers.NewTranscriptionHandler(transcriptionSvc, cfg)
+	authHandler := handlers.NewAuthHandler(authSvc, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite)
+	officerHandler := handlers.NewOfficerHandler(db, diagnosisSvc)
+	adminHandler := handlers.NewAdminHandler(db)
+	notifHandler := handlers.NewNotificationHandler(db)
+
+	router := gin.Default()
+	router.Use(middleware.RequestID())
+	router.Use(middleware.Recovery())
+	router.Use(middleware.AnonymousUser(cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite))
+	router.Use(middleware.RateLimit(cfg.RateLimitPerMinute))
+
+	router.SetTrustedProxies(nil)
+
+	// Static files
+	router.Static("/static", "./web/static")
+
+	// Templates
+	router.SetFuncMap(template.FuncMap{
+		"json": func(v any) (template.HTML, error) {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return "", err
+			}
+			return template.HTML(b), nil
+		},
+		"RainProbability": func(d weather.DailyForecast) int {
+			return d.RainProbabilityPercent
+		},
+	})
+	router.LoadHTMLGlob("web/templates/**/*.html")
+
+	// Health
+	router.GET("/health", healthHandler.Check)
+
+	// Public pages
+	router.GET("/", pageHandler.AssistantPage)
+	router.GET("/assistant", pageHandler.AssistantPage)
+	router.GET("/diagnose", diagnosisHandler.DiagnosePage)
+	router.GET("/diagnoses", diagnosisHandler.HistoryPage)
+	router.GET("/diagnoses/:id", diagnosisHandler.DetailPage)
+
+	// Auth pages
+	router.GET("/login", authHandler.LoginPage)
+	router.GET("/register", authHandler.RegisterPage)
+
+	// Officer pages (require auth)
+	officerPages := router.Group("")
+	officerPages.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	officerPages.Use(middleware.RequireRole("officer", "admin"))
+	{
+		officerPages.GET("/officer", officerHandler.OfficerPage)
+		officerPages.GET("/officer/diagnoses", officerHandler.OfficerDiagnosesPage)
+		officerPages.GET("/officer/diagnoses/:id", officerHandler.OfficerDiagnosisDetailPage)
+	}
+
+	// Admin pages
+	adminPages := router.Group("")
+	adminPages.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	adminPages.Use(middleware.RequireRole("admin"))
+	{
+		adminPages.GET("/admin/users", adminHandler.AdminPage)
+	}
+
+	// API v1
+	v1 := router.Group("/api/v1")
+	{
+		// Conversations
+		v1.POST("/conversations", convHandler.Create)
+		v1.GET("/conversations", convHandler.List)
+		v1.GET("/conversations/:id", convHandler.Get)
+		v1.DELETE("/conversations/:id", convHandler.Delete)
+
+		v1.POST("/conversations/:id/messages", chatHandler.SendMessage)
+		v1.POST("/conversations/:id/messages/stream", chatHandler.StreamMessage)
+
+		v1.GET("/weather", weatherHandler.GetWeather)
+
+		// Diagnoses
+		v1.POST("/diagnoses", diagnosisHandler.Create)
+		v1.GET("/diagnoses", diagnosisHandler.List)
+		v1.GET("/diagnoses/:id", diagnosisHandler.Get)
+		v1.DELETE("/diagnoses/:id", diagnosisHandler.Delete)
+		v1.GET("/diagnoses/:id/image", diagnosisHandler.ServeImage)
+		v1.POST("/diagnoses/:id/continue-in-chat", diagnosisHandler.ContinueInChat)
+
+		// Transcription
+		v1.POST("/ai/transcribe", transcriptionHandler.Transcribe)
+
+		// Auth
+		v1.POST("/auth/register", authHandler.Register)
+		v1.POST("/auth/login", authHandler.Login)
+		v1.POST("/auth/refresh", authHandler.Refresh)
+		v1.POST("/auth/logout", authHandler.Logout)
+		v1.GET("/auth/me", middleware.OptionalAuth(cfg.JWTAccessSecret, db), authHandler.Me)
+
+		// Officer API
+		officerAPI := v1.Group("/officer")
+		officerAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+		officerAPI.Use(middleware.RequireRole("officer", "admin"))
+		{
+			officerAPI.GET("/diagnoses", officerHandler.ListDiagnoses)
+			officerAPI.GET("/diagnoses/:id", officerHandler.GetDiagnosis)
+			officerAPI.POST("/diagnoses/:id/reviews", officerHandler.CreateReview)
+			officerAPI.PUT("/diagnoses/:id/reviews/:reviewID", officerHandler.UpdateReview)
+		}
+
+		// Admin API
+		adminAPI := v1.Group("/admin")
+		adminAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+		adminAPI.Use(middleware.RequireRole("admin"))
+		{
+			adminAPI.GET("/users", adminHandler.ListUsers)
+			adminAPI.PATCH("/users/:userId/role", adminHandler.UpdateRole)
+			adminAPI.PATCH("/users/:userId/status", adminHandler.UpdateStatus)
+		}
+
+		// Notifications
+		notifAPI := v1.Group("/notifications")
+		notifAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+		{
+			notifAPI.GET("", notifHandler.List)
+			notifAPI.PATCH("/:id/read", notifHandler.MarkRead)
+		}
+	}
+
+	log.Printf("AgriConnect AI starting on %s", cfg.AppPort)
+	if err := router.Run(":" + cfg.AppPort); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
+}
+
+func findMigrationsDir() string {
+	return "migrations"
+}

@@ -1,0 +1,15 @@
+{{define "chat_history"}}
+{{range .Conversations}}
+<div class="conversation-item{{if eq .ID $.ActiveID}} active{{end}}"
+     onclick="loadConversation('{{.ID}}')"
+     data-id="{{.ID}}">
+  <i data-lucide="message-circle" class="w-3.5 h-3.5 flex-shrink-0"></i>
+  <span class="truncate flex-1">{{.Title}}</span>
+  <button onclick="deleteConversation(event, '{{.ID}}')" class="p-0.5 hover:text-red-500 flex-shrink-0">
+    <i data-lucide="trash-2" class="w-3 h-3"></i>
+  </button>
+</div>
+{{else}}
+<p class="text-xs text-[#6B7280] px-2 py-4 text-center">No conversations yet</p>
+{{end}}
+{{end}}

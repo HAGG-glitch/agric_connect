@@ -1,0 +1,345 @@
+package handlers
+
+import (
+	"fmt"
+	"encoding/json"
+	"log"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/agriconnect-ai/internal/auth"
+	"github.com/agriconnect-ai/internal/diagnosis"
+	"github.com/agriconnect-ai/internal/middleware"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
+)
+
+type OfficerHandler struct {
+	db           *gorm.DB
+	diagnosisSvc diagnosis.Service
+}
+
+func NewOfficerHandler(db *gorm.DB, diagnosisSvc diagnosis.Service) *OfficerHandler {
+	return &OfficerHandler{db: db, diagnosisSvc: diagnosisSvc}
+}
+
+func (h *OfficerHandler) OfficerPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "officer_dashboard.html", gin.H{
+		"Title": "AgriConnect AI - Officer Dashboard",
+		"Year":  time.Now().Year(),
+	})
+}
+
+func (h *OfficerHandler) OfficerDiagnosesPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "officer_diagnoses.html", gin.H{
+		"Title": "AgriConnect AI - Diagnosis Queue",
+		"Year":  time.Now().Year(),
+	})
+}
+
+func (h *OfficerHandler) OfficerDiagnosisDetailPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "officer_diagnosis_detail.html", gin.H{
+		"Title": "AgriConnect AI - Review Diagnosis",
+		"Year":  time.Now().Year(),
+	})
+}
+
+func (h *OfficerHandler) ListDiagnoses(c *gin.Context) {
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	status := c.Query("status")
+	crop := c.Query("crop")
+	urgency := c.Query("urgency")
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 20
+	}
+
+	query := h.db.Model(&diagnosis.CropDiagnosis{}).
+		Where("status IN ?", []string{"ai_completed", "awaiting_review", "under_review", "reviewed"})
+
+	if user.Role != "admin" {
+		if user.District == "" {
+			query = query.Where("district IS NULL OR district = ''")
+		} else {
+			query = query.Where("district = ?", user.District)
+		}
+	}
+
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if crop != "" {
+		query = query.Where("crop = ?", crop)
+	}
+	if urgency != "" {
+		query = query.Where("urgency = ?", urgency)
+	}
+
+	var total int64
+	query.Count(&total)
+
+	var diags []diagnosis.CropDiagnosis
+	offset := (page - 1) * pageSize
+	if err := query.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&diags).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load diagnoses"})
+		return
+	}
+
+	views := make([]gin.H, 0, len(diags))
+	for _, d := range diags {
+		views = append(views, diagnosisToView(&d))
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"diagnoses": views,
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+	})
+}
+
+func (h *OfficerHandler) GetDiagnosis(c *gin.Context) {
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
+	idStr := c.Param("id")
+	diagID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid diagnosis ID"})
+		return
+	}
+
+	var d diagnosis.CropDiagnosis
+	if err := h.db.First(&d, "id = ?", diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
+		return
+	}
+
+	if user.Role != "admin" && user.District != "" && d.District != user.District {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: not your district"})
+		return
+	}
+
+	var reviews []auth.DiagnosisReview
+	h.db.Where("diagnosis_id = ?", diagID).Order("created_at DESC").Find(&reviews)
+
+	view := diagnosisToView(&d)
+	view["reviews"] = reviews
+
+	c.JSON(http.StatusOK, view)
+}
+
+func (h *OfficerHandler) CreateReview(c *gin.Context) {
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
+	idStr := c.Param("id")
+	diagID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid diagnosis ID"})
+		return
+	}
+
+	var d diagnosis.CropDiagnosis
+	if err := h.db.First(&d, "id = ?", diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
+		return
+	}
+
+	if user.Role != "admin" && user.District != "" && d.District != user.District {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: not your district"})
+		return
+	}
+
+	var existing auth.DiagnosisReview
+	if err := h.db.Where("diagnosis_id = ? AND review_status NOT IN ('closed')", diagID).First(&existing).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "An active review already exists for this diagnosis"})
+		return
+	}
+
+	var req struct {
+		ReviewStatus       string `json:"review_status"`
+		ConfirmedCondition string `json:"confirmed_condition"`
+		OfficerComment     string `json:"officer_comment"`
+		Recommendation     string `json:"recommendation"`
+		Urgency            string `json:"urgency"`
+		RequiresFieldVisit bool   `json:"requires_field_visit"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	validStatuses := map[string]bool{
+		"pending": true, "in_review": true, "confirmed": true,
+		"needs_more_information": true, "field_visit_required": true, "closed": true,
+	}
+
+	reviewStatus := req.ReviewStatus
+	if reviewStatus == "" || !validStatuses[reviewStatus] {
+		reviewStatus = "pending"
+	}
+
+	review := &auth.DiagnosisReview{
+		ID:                 uuid.New(),
+		DiagnosisID:        diagID,
+		OfficerID:          user.ID,
+		ReviewStatus:       reviewStatus,
+		ConfirmedCondition: req.ConfirmedCondition,
+		OfficerComment:     req.OfficerComment,
+		Recommendation:     req.Recommendation,
+		Urgency:            req.Urgency,
+		RequiresFieldVisit: req.RequiresFieldVisit,
+		CreatedAt:          time.Now().UTC(),
+		UpdatedAt:          time.Now().UTC(),
+	}
+
+	if err := h.db.Create(review).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create review"})
+		return
+	}
+
+	newDiagStatus := "under_review"
+	if reviewStatus == "confirmed" || reviewStatus == "closed" {
+		newDiagStatus = "reviewed"
+	}
+	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
+
+	// Create notification for farmer
+	h.createNotification(d.UserID, "Diagnosis Review Started",
+		fmt.Sprintf("An extension officer is reviewing your %s diagnosis.", d.Crop),
+		"review_started", "crop_diagnosis", diagID)
+
+	// Audit log
+	h.writeAuditLog(&user.ID, "review_created", "diagnosis_review", &review.ID, "diagnosis_id", diagID.String())
+
+	c.JSON(http.StatusCreated, review)
+}
+
+func (h *OfficerHandler) UpdateReview(c *gin.Context) {
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
+	diagIDStr := c.Param("id")
+	reviewIDStr := c.Param("reviewID")
+
+	diagID, err := uuid.Parse(diagIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid diagnosis ID"})
+		return
+	}
+
+	reviewID, err := uuid.Parse(reviewIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid review ID"})
+		return
+	}
+
+	var d diagnosis.CropDiagnosis
+	if err := h.db.First(&d, "id = ?", diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
+		return
+	}
+
+	var review auth.DiagnosisReview
+	if err := h.db.First(&review, "id = ? AND diagnosis_id = ?", reviewID, diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Review not found"})
+		return
+	}
+
+	var req struct {
+		ReviewStatus       string `json:"review_status"`
+		ConfirmedCondition string `json:"confirmed_condition"`
+		OfficerComment     string `json:"officer_comment"`
+		Recommendation     string `json:"recommendation"`
+		Urgency            string `json:"urgency"`
+		RequiresFieldVisit bool   `json:"requires_field_visit"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	validStatuses := map[string]bool{
+		"pending": true, "in_review": true, "confirmed": true,
+		"needs_more_information": true, "field_visit_required": true, "closed": true,
+	}
+
+	updates := map[string]interface{}{
+		"updated_at": time.Now().UTC(),
+	}
+
+	if req.ReviewStatus != "" && validStatuses[req.ReviewStatus] {
+		updates["review_status"] = req.ReviewStatus
+	}
+	if req.ConfirmedCondition != "" {
+		updates["confirmed_condition"] = req.ConfirmedCondition
+	}
+	updates["officer_comment"] = req.OfficerComment
+	updates["recommendation"] = req.Recommendation
+	updates["urgency"] = req.Urgency
+	updates["requires_field_visit"] = req.RequiresFieldVisit
+
+	h.db.Model(&review).Updates(updates)
+
+	newDiagStatus := "under_review"
+	if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
+		newDiagStatus = "reviewed"
+	} else if req.ReviewStatus == "needs_more_information" {
+		newDiagStatus = "awaiting_review"
+	}
+	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
+
+	h.db.First(&review, "id = ?", reviewID)
+
+	// Create notification
+	if req.ReviewStatus == "needs_more_information" {
+		h.createNotification(d.UserID, "More Information Needed",
+			"The extension officer needs more information about your crop diagnosis.",
+			"info_requested", "crop_diagnosis", diagID)
+	} else if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
+		h.createNotification(d.UserID, "Diagnosis Review Completed",
+			"The extension officer has completed reviewing your crop diagnosis.",
+			"review_completed", "crop_diagnosis", diagID)
+	}
+
+	h.writeAuditLog(&user.ID, "review_updated", "diagnosis_review", &reviewID, "diagnosis_id", diagID.String())
+
+	c.JSON(http.StatusOK, gin.H{"review": review})
+}
+
+func (h *OfficerHandler) createNotification(userID uuid.UUID, title, message, notifType, entityType string, entityID uuid.UUID) {
+	notif := &auth.Notification{
+		ID:               uuid.New(),
+		UserID:           userID,
+		Title:            title,
+		Message:          message,
+		NotificationType: notifType,
+		EntityType:       entityType,
+		EntityID:         &entityID,
+		CreatedAt:        time.Now().UTC(),
+	}
+	if err := h.db.Create(notif).Error; err != nil {
+		log.Printf("failed to create notification: %v", err)
+	}
+}
+
+func (h *OfficerHandler) writeAuditLog(actorID *uuid.UUID, action, entityType string, entityID *uuid.UUID, metaKey, metaValue string) {
+	metaBytes, _ := json.Marshal(map[string]interface{}{metaKey: metaValue})
+
+	auditEntry := &auth.AuditLog{
+		ID:          uuid.New(),
+		ActorUserID: actorID,
+		Action:      action,
+		EntityType:  entityType,
+		EntityID:    entityID,
+		Metadata:    datatypes.JSON(metaBytes),
+		CreatedAt:   time.Now().UTC(),
+	}
+	if err := h.db.Create(auditEntry).Error; err != nil {
+		log.Printf("failed to write audit log: %v", err)
+	}
+}

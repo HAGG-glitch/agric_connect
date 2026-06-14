@@ -1,0 +1,18 @@
+{{define "weather_card"}}
+<div class="flex items-center justify-between mb-2">
+  <div class="flex items-center gap-2">
+    <i data-lucide="cloud-sun" class="w-4 h-4 text-[#FFC107]"></i>
+    <span class="font-semibold text-sm text-[#1F2937]">{{.District}}, Sierra Leone{{if .Cached}} (cached){{end}}</span>
+  </div>
+  <button onclick="document.getElementById('weather-panel').classList.add('hidden')" class="text-[#6B7280] hover:text-[#1F2937] text-lg leading-none">&times;</button>
+</div>
+<div class="flex gap-4 flex-wrap">
+  <span class="weather-badge"><i data-lucide="thermometer" class="w-3 h-3"></i>{{.Current.TemperatureC}}°C</span>
+  <span class="weather-badge"><i data-lucide="droplets" class="w-3 h-3"></i>{{.Current.HumidityPercent}}% humidity</span>
+  <span class="weather-badge"><i data-lucide="umbrella" class="w-3 h-3"></i>{{.Current.PrecipitationMM}}mm now</span>
+  <span class="weather-badge"><i data-lucide="wind" class="w-3 h-3"></i>{{.Current.WindSpeedKMH}} km/h</span>
+  {{if .Daily}}
+  <span class="weather-badge"><i data-lucide="cloud-rain" class="w-3 h-3"></i>{{index .Daily 0 | RainProbability}}% rain today</span>
+  {{end}}
+</div>
+{{end}}

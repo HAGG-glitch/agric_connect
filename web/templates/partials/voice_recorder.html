@@ -1,0 +1,13 @@
+{{define "voice_recorder"}}
+<div id="voice-recorder-container"></div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Recorder !== 'undefined') {
+      Recorder.init({
+        containerId: 'voice-recorder-container',
+        language: 'krio',
+      });
+    }
+  });
+</script>
+{{end}}

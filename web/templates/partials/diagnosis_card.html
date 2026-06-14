@@ -1,0 +1,28 @@
+{{define "diagnosis_card"}}
+{{$d := .}}
+<a href="/diagnoses/{{$d.ID}}" class="block bg-white border border-[#E5E7EB] rounded-xl p-4 hover:border-[#2E7D32]/30 transition-colors">
+  <div class="flex items-start justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-[#F5F7F5] border border-[#E5E7EB] overflow-hidden flex-shrink-0">
+        <img src="/api/v1/diagnoses/{{$d.ID}}/image" alt="" class="w-full h-full object-cover">
+      </div>
+      <div>
+        <p class="font-semibold text-[#1F2937] capitalize">{{$d.Crop}}</p>
+        <p class="text-sm text-[#6B7280]">{{$d.ProbableCondition | default "Awaiting analysis"}}</p>
+      </div>
+    </div>
+    <div class="text-right flex-shrink-0">
+      <span class="inline-block text-xs px-2 py-0.5 rounded-full
+        {{if eq $d.Status "processing"}}bg-blue-100 text-blue-600
+        {{else if eq $d.Status "completed"}}bg-green-100 text-green-600
+        {{else if eq $d.Status "failed"}}bg-red-100 text-red-600
+        {{end}}">{{$d.Status}}</span>
+    </div>
+  </div>
+  <div class="flex gap-3 mt-2 text-xs text-[#6B7280]">
+    <span>Confidence: {{if $d.Confidence}}{{$d.Confidence}}%{{else}}N/A{{end}}</span>
+    <span>Urgency: {{$d.Urgency | default "N/A"}}</span>
+    <span>{{$d.CreatedAt.Format "Jan 2"}}</span>
+  </div>
+</a>
+{{end}}
