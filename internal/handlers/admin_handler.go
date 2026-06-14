@@ -31,13 +31,14 @@ func (h *AdminHandler) AdminPage(c *gin.Context) {
 	h.db.Model(&diagnosisModel{}).Where("status IN ?", []string{"ai_completed", "awaiting_review", "under_review"}).Count(&pendingReviewCount)
 
 	c.HTML(http.StatusOK, "admin_users.html", gin.H{
-		"Title":            "AgriConnect AI - Admin",
-		"Year":             time.Now().Year(),
-		"FarmerCount":      farmerCount,
-		"OfficerCount":     officerCount,
-		"AdminCount":       adminCount,
-		"DiagnosisCount":   diagCount,
-		"PendingReviews":   pendingReviewCount,
+		"Title":          "AgriConnect AI - Admin",
+		"Year":           time.Now().Year(),
+		"FarmerCount":    farmerCount,
+		"OfficerCount":   officerCount,
+		"AdminCount":     adminCount,
+		"DiagnosisCount": diagCount,
+		"PendingReviews": pendingReviewCount,
+		"ContentBlock":   "contentAdminUsers",
 	})
 }
 

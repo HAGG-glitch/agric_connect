@@ -22,6 +22,7 @@ import (
 	"github.com/agriconnect-ai/internal/config"
 	"github.com/agriconnect-ai/internal/diagnosis"
 	"github.com/agriconnect-ai/internal/handlers"
+	"github.com/agriconnect-ai/internal/middleware"
 	"github.com/agriconnect-ai/internal/services"
 	"github.com/agriconnect-ai/internal/storage"
 	"github.com/agriconnect-ai/internal/transcription"
@@ -945,7 +946,7 @@ func TestAuthHandler_Register_Success(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewAuthHandler(svc, false, "", "lax")
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
 
 	r := gin.New()
 	r.POST("/api/v1/auth/register", func(c *gin.Context) {
@@ -983,7 +984,7 @@ func TestAuthHandler_Register_Duplicate(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewAuthHandler(svc, false, "", "lax")
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
 
 	r := gin.New()
 	r.POST("/api/v1/auth/register", func(c *gin.Context) {
@@ -1030,7 +1031,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewAuthHandler(svc, false, "", "lax")
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
 
 	r := gin.New()
 	r.POST("/api/v1/auth/login", handler.Login)
@@ -1062,7 +1063,7 @@ func TestAuthHandler_Login_Invalid(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewAuthHandler(svc, false, "", "lax")
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
 
 	r := gin.New()
 	r.POST("/api/v1/auth/login", handler.Login)
@@ -1081,6 +1082,571 @@ func TestAuthHandler_Login_Invalid(t *testing.T) {
 	decodeJSON(t, resp.Body, &body)
 	if !containsStr(body["error"], "invalid") {
 		t.Errorf("expected 'invalid' error, got %q", body["error"])
+	}
+}
+
+func setupTemplateEngine(r *gin.Engine) {
+	r.Delims("{{", "}}")
+	r.SetFuncMap(template.FuncMap{
+		"json": func(v any) (template.HTML, error) {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return "", err
+			}
+			return template.HTML(b), nil
+		},
+		"RainProbability": func(d interface{}) int { return 50 },
+		"assetVersion":    func() string { return "test" },
+	})
+	r.LoadHTMLGlob("../web/templates/*/*.html")
+}
+
+func TestAuthHandler_RegisterPage_RendersForm(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/register", handler.RegisterPage)
+
+	req := httptest.NewRequest("GET", "/register", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !containsStr(body, "Create Account") {
+		t.Error("expected 'Create Account' heading")
+	}
+	if !containsStr(body, "/login") {
+		t.Error("expected link to /login")
+	}
+	if !containsStr(body, "type=\"submit\"") {
+		t.Error("expected submit button")
+	}
+}
+
+func TestAuthHandler_LoginPage_RendersForm(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/login", handler.LoginPage)
+
+	req := httptest.NewRequest("GET", "/login", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !containsStr(body, "Welcome Back") {
+		t.Errorf("expected 'Welcome Back' heading, got body:\n%s", body[:500])
+	}
+	if !containsStr(body, "/register") {
+		t.Error("expected link to /register")
+	}
+	if !containsStr(body, "type=\"submit\"") {
+		t.Error("expected submit button")
+	}
+}
+
+func TestAuthHandler_Register_SetsCookies(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	userID := uuid.New()
+	svc := &mockAuthService{
+		registerFunc: func(_ context.Context, input auth.RegisterInput) (*auth.TokenPair, error) {
+			return &auth.TokenPair{
+				AccessToken:  "access-token-123",
+				RefreshToken: "refresh-token-456",
+				User: auth.UserView{
+					ID:                userID,
+					FullName:          "John Farmer",
+					PhoneNumber:       "+23276123456",
+					District:          "bo",
+					PreferredLanguage: "english",
+					Role:              "farmer",
+				},
+			}, nil
+		},
+	}
+
+	handler := handlers.NewAuthHandler(svc, true, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.POST("/api/v1/auth/register", func(c *gin.Context) {
+		c.Set("user_id", uuid.Nil.String())
+		handler.Register(c)
+	})
+
+	body := `{"full_name":"John Farmer","phone_number":"+23276123456","district":"bo","preferred_language":"english","password":"securepass123"}`
+	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Check cookies were set
+	cookies := w.Result().Cookies()
+	var foundAccess, foundRefresh bool
+	for _, c := range cookies {
+		if c.Name == "access_token" {
+			foundAccess = true
+			if !c.HttpOnly {
+				t.Error("access_token should be HttpOnly")
+			}
+			if !c.Secure {
+				t.Error("access_token should be Secure")
+			}
+			if c.Path != "/" {
+				t.Errorf("expected path /, got %s", c.Path)
+			}
+		}
+		if c.Name == "refresh_token" {
+			foundRefresh = true
+			if !c.HttpOnly {
+				t.Error("refresh_token should be HttpOnly")
+			}
+		}
+	}
+	if !foundAccess {
+		t.Error("access_token cookie not set")
+	}
+	if !foundRefresh {
+		t.Error("refresh_token cookie not set")
+	}
+}
+
+func TestAuthHandler_Login_SetsCookies(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	userID := uuid.New()
+	svc := &mockAuthService{
+		loginFunc: func(_ context.Context, input auth.LoginInput) (*auth.TokenPair, error) {
+			return &auth.TokenPair{
+				AccessToken:  "access-token-456",
+				RefreshToken: "refresh-token-789",
+				User: auth.UserView{
+					ID:                userID,
+					FullName:          "John Farmer",
+					PhoneNumber:       "+23276123456",
+					District:          "bo",
+					PreferredLanguage: "english",
+					Role:              "farmer",
+				},
+			}, nil
+		},
+	}
+
+	handler := handlers.NewAuthHandler(svc, true, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.POST("/api/v1/auth/login", handler.Login)
+
+	body := `{"phone_number":"+23276123456","password":"securepass123"}`
+	req := httptest.NewRequest("POST", "/api/v1/auth/login", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	cookies := w.Result().Cookies()
+	var foundAccess bool
+	for _, c := range cookies {
+		if c.Name == "access_token" {
+			foundAccess = true
+			if !c.HttpOnly {
+				t.Error("access_token should be HttpOnly")
+			}
+			if !c.Secure {
+				t.Error("access_token should be Secure in production")
+			}
+		}
+	}
+	if !foundAccess {
+		t.Error("access_token cookie not set")
+	}
+}
+
+func TestAuthHandler_Logout_ClearsCookies(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	userID := uuid.New()
+	svc := &mockAuthService{
+		logoutFunc: func(_ context.Context, uid, rtid uuid.UUID) error {
+			return nil
+		},
+	}
+
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.POST("/api/v1/auth/logout", func(c *gin.Context) {
+		c.Set("user_id", userID.String())
+		c.Request.AddCookie(&http.Cookie{Name: "refresh_token", Value: "some-token"})
+		handler.Logout(c)
+	})
+
+	req := httptest.NewRequest("POST", "/api/v1/auth/logout", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	cookies := w.Result().Cookies()
+	for _, c := range cookies {
+		if c.Name == "access_token" || c.Name == "refresh_token" {
+			if c.MaxAge != -1 && c.Expires.IsZero() == false {
+				// Should be expired
+			}
+		}
+	}
+}
+
+func TestAuthHandler_Me_Authenticated(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	userID := uuid.New()
+	svc := &mockAuthService{
+		getUserFunc: func(_ context.Context, uid uuid.UUID) (*auth.UserView, error) {
+			return &auth.UserView{
+				ID:                uid,
+				FullName:          "John Farmer",
+				PhoneNumber:       "+23276123456",
+				District:          "bo",
+				PreferredLanguage: "english",
+				Role:              "farmer",
+			}, nil
+		},
+	}
+
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.GET("/api/v1/auth/me", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   userID,
+			Role: "farmer",
+		})
+		c.Set("user_id", userID.String())
+		c.Set("user_role", "farmer")
+		handler.Me(c)
+	})
+
+	req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var body map[string]interface{}
+	decodeJSON(t, w.Body, &body)
+	if body["full_name"] != "John Farmer" {
+		t.Errorf("expected 'John Farmer', got %v", body["full_name"])
+	}
+	if body["role"] != "farmer" {
+		t.Errorf("expected 'farmer', got %v", body["role"])
+	}
+	if body["phone_number"] != "+23276123456" {
+		t.Errorf("expected '+23276123456', got %v", body["phone_number"])
+	}
+}
+
+func TestAuthHandler_Me_Unauthenticated(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.GET("/api/v1/auth/me", func(c *gin.Context) {
+		// ContextKeyUser not set — simulate anonymous user
+		handler.Me(c)
+	})
+
+	req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var body map[string]string
+	decodeJSON(t, w.Body, &body)
+	if !containsStr(body["error"], "Not authenticated") {
+		t.Errorf("expected 'Not authenticated' error, got %q", body["error"])
+	}
+}
+
+func TestAuthHandler_Register_ValidatesMissingFields(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{
+		registerFunc: func(_ context.Context, input auth.RegisterInput) (*auth.TokenPair, error) {
+			return nil, fmt.Errorf("full name is required")
+		},
+	}
+
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.POST("/api/v1/auth/register", func(c *gin.Context) {
+		c.Set("user_id", uuid.Nil.String())
+		handler.Register(c)
+	})
+
+	// Missing full_name
+	body := `{"phone_number":"+23276123456","password":"securepass123"}`
+	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]string
+	decodeJSON(t, w.Body, &resp)
+	if !containsStr(resp["error"], "required") {
+		t.Errorf("expected 'required' error, got %q", resp["error"])
+	}
+}
+
+func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{
+		loginFunc: func(_ context.Context, input auth.LoginInput) (*auth.TokenPair, error) {
+			return nil, fmt.Errorf("invalid phone number or password")
+		},
+	}
+
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.POST("/api/v1/auth/login", handler.Login)
+
+	body := `{"phone_number":"+23276123456","password":"wrongpass"}`
+	req := httptest.NewRequest("POST", "/api/v1/auth/login", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]string
+	decodeJSON(t, w.Body, &resp)
+	if !containsStr(resp["error"], "invalid") {
+		t.Errorf("expected 'invalid' error, got %q", resp["error"])
+	}
+}
+
+func TestAuthHandler_Refresh_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	userID := uuid.New()
+	svc := &mockAuthService{
+		refreshTokenFunc: func(_ context.Context, token string) (*auth.TokenPair, error) {
+			return &auth.TokenPair{
+				AccessToken:  "new-access-token",
+				RefreshToken: "new-refresh-token",
+				User: auth.UserView{
+					ID:                userID,
+					FullName:          "John Farmer",
+					PhoneNumber:       "+23276123456",
+					Role:              "farmer",
+				},
+			}, nil
+		},
+	}
+
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.POST("/api/v1/auth/refresh", handler.Refresh)
+
+	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "valid-refresh-token"})
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var body map[string]interface{}
+	decodeJSON(t, w.Body, &body)
+	if body["access_token"] != "new-access-token" {
+		t.Errorf("expected access token, got %v", body["access_token"])
+	}
+}
+
+func TestAuthHandler_Refresh_MissingCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.POST("/api/v1/auth/refresh", handler.Refresh)
+
+	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestAuthHandler_LoginPage_RedirectsAuthenticated(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.GET("/login", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "farmer",
+		})
+		handler.LoginPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/login", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/assistant" {
+		t.Errorf("expected redirect to /assistant, got %s", loc)
+	}
+}
+
+func TestAuthHandler_RegisterPage_RedirectsAuthenticated(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.GET("/register", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "farmer",
+		})
+		handler.RegisterPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/register", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/assistant" {
+		t.Errorf("expected redirect to /assistant, got %s", loc)
+	}
+}
+
+func TestAuthHandler_RegisterPage_HasLoginLink(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/register", handler.RegisterPage)
+
+	req := httptest.NewRequest("GET", "/register", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !containsStr(body, "href=\"/login\"") {
+		t.Error("expected link to /login")
+	}
+	if !containsStr(body, "type=\"submit\"") {
+		t.Error("expected submit button")
+	}
+}
+
+func TestAuthHandler_LoginPage_HasRegisterLink(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/login", handler.LoginPage)
+
+	req := httptest.NewRequest("GET", "/login", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !containsStr(body, "href=\"/register\"") {
+		t.Error("expected link to /register")
+	}
+	if !containsStr(body, "type=\"submit\"") {
+		t.Error("expected submit button")
+	}
+}
+
+func TestAuthHandler_Register_DistrictDropdown(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/register", handler.RegisterPage)
+
+	req := httptest.NewRequest("GET", "/register", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	body := w.Body.String()
+	if !containsStr(body, "<select") {
+		t.Error("expected a select element for district")
 	}
 }
 

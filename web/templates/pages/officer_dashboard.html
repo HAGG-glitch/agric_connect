@@ -1,6 +1,4 @@
-{{template "app.html" .}}
-
-{{define "content"}}
+{{template "layout_head" .}}
 <div class="max-w-5xl mx-auto p-4 md:p-8">
   <div class="flex items-center justify-between mb-6">
     <div>
@@ -65,4 +63,4 @@ async function loadDashboard() {
 
 loadDashboard();
 </script>
-{{end}}
+{{template "layout_foot" .}}

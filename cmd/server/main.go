@@ -106,7 +106,7 @@ func main() {
 	healthHandler := handlers.NewHealthHandler(db)
 	diagnosisHandler := handlers.NewDiagnosisHandler(diagnosisSvc, cfg, objStore, chatSvc)
 	transcriptionHandler := handlers.NewTranscriptionHandler(transcriptionSvc, cfg)
-	authHandler := handlers.NewAuthHandler(authSvc, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite)
+	authHandler := handlers.NewAuthHandler(authSvc, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite, cfg.JWTRefreshSecret)
 	officerHandler := handlers.NewOfficerHandler(db, diagnosisSvc)
 	adminHandler := handlers.NewAdminHandler(db)
 	notifHandler := handlers.NewNotificationHandler(db)
@@ -144,16 +144,24 @@ func main() {
 	// Health
 	router.GET("/health", healthHandler.Check)
 
-	// Public pages
-	router.GET("/", pageHandler.AssistantPage)
-	router.GET("/assistant", pageHandler.AssistantPage)
-	router.GET("/diagnose", diagnosisHandler.DiagnosePage)
-	router.GET("/diagnoses", diagnosisHandler.HistoryPage)
-	router.GET("/diagnoses/:id", diagnosisHandler.DetailPage)
+	// Public pages (with optional auth to recognize logged-in users)
+	publicPages := router.Group("")
+	publicPages.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	{
+		publicPages.GET("/", pageHandler.AssistantPage)
+		publicPages.GET("/assistant", pageHandler.AssistantPage)
+		publicPages.GET("/diagnose", diagnosisHandler.DiagnosePage)
+		publicPages.GET("/diagnoses", diagnosisHandler.HistoryPage)
+		publicPages.GET("/diagnoses/:id", diagnosisHandler.DetailPage)
+	}
 
-	// Auth pages
-	router.GET("/login", authHandler.LoginPage)
-	router.GET("/register", authHandler.RegisterPage)
+	// Auth pages (with optional auth to redirect already-logged-in users)
+	authPages := router.Group("")
+	authPages.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	{
+		authPages.GET("/login", authHandler.LoginPage)
+		authPages.GET("/register", authHandler.RegisterPage)
+	}
 
 	// Officer pages (require auth)
 	officerPages := router.Group("")
@@ -173,66 +181,73 @@ func main() {
 		adminPages.GET("/admin/users", adminHandler.AdminPage)
 	}
 
-	// API v1
+	// API v1 — auth flows that must work without a prior session
 	v1 := router.Group("/api/v1")
 	{
-		// Conversations
-		v1.POST("/conversations", convHandler.Create)
-		v1.GET("/conversations", convHandler.List)
-		v1.GET("/conversations/:id", convHandler.Get)
-		v1.DELETE("/conversations/:id", convHandler.Delete)
-
-		v1.POST("/conversations/:id/messages", chatHandler.SendMessage)
-		v1.POST("/conversations/:id/messages/stream", chatHandler.StreamMessage)
-
-		v1.GET("/weather", weatherHandler.GetWeather)
-
-		// Diagnoses
-		v1.POST("/diagnoses", diagnosisHandler.Create)
-		v1.GET("/diagnoses", diagnosisHandler.List)
-		v1.GET("/diagnoses/:id", diagnosisHandler.Get)
-		v1.DELETE("/diagnoses/:id", diagnosisHandler.Delete)
-		v1.GET("/diagnoses/:id/image", diagnosisHandler.ServeImage)
-		v1.POST("/diagnoses/:id/continue-in-chat", diagnosisHandler.ContinueInChat)
-
-		// Transcription
-		v1.POST("/ai/transcribe", transcriptionHandler.Transcribe)
-
-		// Auth
 		v1.POST("/auth/register", authHandler.Register)
 		v1.POST("/auth/login", authHandler.Login)
 		v1.POST("/auth/refresh", authHandler.Refresh)
-		v1.POST("/auth/logout", authHandler.Logout)
-		v1.GET("/auth/me", middleware.OptionalAuth(cfg.JWTAccessSecret, db), authHandler.Me)
+	}
 
-		// Officer API
-		officerAPI := v1.Group("/officer")
-		officerAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
-		officerAPI.Use(middleware.RequireRole("officer", "admin"))
-		{
-			officerAPI.GET("/diagnoses", officerHandler.ListDiagnoses)
-			officerAPI.GET("/diagnoses/:id", officerHandler.GetDiagnosis)
-			officerAPI.POST("/diagnoses/:id/reviews", officerHandler.CreateReview)
-			officerAPI.PUT("/diagnoses/:id/reviews/:reviewID", officerHandler.UpdateReview)
-		}
+	// API v1 — routes that recognise authenticated users (OptionalAuth)
+	v1User := router.Group("/api/v1")
+	v1User.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	{
+		// Auth
+		v1User.POST("/auth/logout", authHandler.Logout)
+		v1User.GET("/auth/me", authHandler.Me)
 
-		// Admin API
-		adminAPI := v1.Group("/admin")
-		adminAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
-		adminAPI.Use(middleware.RequireRole("admin"))
-		{
-			adminAPI.GET("/users", adminHandler.ListUsers)
-			adminAPI.PATCH("/users/:userId/role", adminHandler.UpdateRole)
-			adminAPI.PATCH("/users/:userId/status", adminHandler.UpdateStatus)
-		}
+		// Conversations
+		v1User.POST("/conversations", convHandler.Create)
+		v1User.GET("/conversations", convHandler.List)
+		v1User.GET("/conversations/:id", convHandler.Get)
+		v1User.DELETE("/conversations/:id", convHandler.Delete)
 
-		// Notifications
-		notifAPI := v1.Group("/notifications")
-		notifAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
-		{
-			notifAPI.GET("", notifHandler.List)
-			notifAPI.PATCH("/:id/read", notifHandler.MarkRead)
-		}
+		v1User.POST("/conversations/:id/messages", chatHandler.SendMessage)
+		v1User.POST("/conversations/:id/messages/stream", chatHandler.StreamMessage)
+
+		// Weather
+		v1User.GET("/weather", weatherHandler.GetWeather)
+
+		// Diagnoses
+		v1User.POST("/diagnoses", diagnosisHandler.Create)
+		v1User.GET("/diagnoses", diagnosisHandler.List)
+		v1User.GET("/diagnoses/:id", diagnosisHandler.Get)
+		v1User.DELETE("/diagnoses/:id", diagnosisHandler.Delete)
+		v1User.GET("/diagnoses/:id/image", diagnosisHandler.ServeImage)
+		v1User.POST("/diagnoses/:id/continue-in-chat", diagnosisHandler.ContinueInChat)
+
+		// Transcription
+		v1User.POST("/ai/transcribe", transcriptionHandler.Transcribe)
+	}
+
+	// API v1 — officer (auth + role check)
+	officerAPI := router.Group("/api/v1/officer")
+	officerAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	officerAPI.Use(middleware.RequireRole("officer", "admin"))
+	{
+		officerAPI.GET("/diagnoses", officerHandler.ListDiagnoses)
+		officerAPI.GET("/diagnoses/:id", officerHandler.GetDiagnosis)
+		officerAPI.POST("/diagnoses/:id/reviews", officerHandler.CreateReview)
+		officerAPI.PUT("/diagnoses/:id/reviews/:reviewID", officerHandler.UpdateReview)
+	}
+
+	// API v1 — admin (auth + role check)
+	adminAPI := router.Group("/api/v1/admin")
+	adminAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	adminAPI.Use(middleware.RequireRole("admin"))
+	{
+		adminAPI.GET("/users", adminHandler.ListUsers)
+		adminAPI.PATCH("/users/:userId/role", adminHandler.UpdateRole)
+		adminAPI.PATCH("/users/:userId/status", adminHandler.UpdateStatus)
+	}
+
+	// API v1 — notifications (auth, any role)
+	notifAPI := router.Group("/api/v1/notifications")
+	notifAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	{
+		notifAPI.GET("", notifHandler.List)
+		notifAPI.PATCH("/:id/read", notifHandler.MarkRead)
 	}
 
 	// Determine port: Render provides PORT, fall back to APP_PORT

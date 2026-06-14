@@ -28,22 +28,25 @@ func NewOfficerHandler(db *gorm.DB, diagnosisSvc diagnosis.Service) *OfficerHand
 
 func (h *OfficerHandler) OfficerPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "officer_dashboard.html", gin.H{
-		"Title": "AgriConnect AI - Officer Dashboard",
-		"Year":  time.Now().Year(),
+		"Title":        "AgriConnect AI - Officer Dashboard",
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentOfficerDashboard",
 	})
 }
 
 func (h *OfficerHandler) OfficerDiagnosesPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "officer_diagnoses.html", gin.H{
-		"Title": "AgriConnect AI - Diagnosis Queue",
-		"Year":  time.Now().Year(),
+		"Title":        "AgriConnect AI - Diagnosis Queue",
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentOfficerDiagnoses",
 	})
 }
 
 func (h *OfficerHandler) OfficerDiagnosisDetailPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "officer_diagnosis_detail.html", gin.H{
-		"Title": "AgriConnect AI - Review Diagnosis",
-		"Year":  time.Now().Year(),
+		"Title":        "AgriConnect AI - Review Diagnosis",
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentOfficerDiagnosisDetail",
 	})
 }
 

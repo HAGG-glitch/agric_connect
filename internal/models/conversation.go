@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Conversation struct {
@@ -22,7 +23,7 @@ func (Conversation) TableName() string {
 	return "ai_conversations"
 }
 
-func (c *Conversation) BeforeCreate(_ interface{}) error {
+func (c *Conversation) BeforeCreate(tx *gorm.DB) error {
 	if c.ID == uuid.Nil {
 		c.ID = uuid.New()
 	}

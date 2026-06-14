@@ -23,10 +23,11 @@ func (h *PageHandler) AssistantPage(c *gin.Context) {
 	userID, _ := uuid.Parse(userIDStr.(string))
 
 	c.HTML(http.StatusOK, "assistant.html", gin.H{
-		"Title":       "AgriConnect AI - Agricultural Assistant",
-		"UserID":      userID,
-		"Districts":   weather.SupportedDistricts,
-		"AIAvailable": h.cfg.AIAvailable(),
-		"Year":        time.Now().Year(),
+		"Title":        "AgriConnect AI - Agricultural Assistant",
+		"UserID":       userID,
+		"Districts":    weather.SupportedDistricts,
+		"AIAvailable":  h.cfg.AIAvailable(),
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentAssistant",
 	})
 }

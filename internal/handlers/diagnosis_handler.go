@@ -33,21 +33,23 @@ func NewDiagnosisHandler(svc diagnosis.Service, cfg *config.Config, objStore sto
 
 func (h *DiagnosisHandler) DiagnosePage(c *gin.Context) {
 	c.HTML(http.StatusOK, "diagnose.html", gin.H{
-		"Title":              "AgriConnect AI - Crop Diagnosis",
-		"Districts":          weather.SupportedDistricts,
-		"PlantParts":         diagnosis.ValidPlantParts,
-		"MaxImageSizeMB":     h.cfg.MaxImageSizeMB,
-		"MinImageWidth":      h.cfg.MinImageWidth,
-		"MinImageHeight":     h.cfg.MinImageHeight,
-		"AIAvailable":        h.cfg.AIAvailable(),
-		"Year":               time.Now().Year(),
+		"Title":          "AgriConnect AI - Crop Diagnosis",
+		"Districts":      weather.SupportedDistricts,
+		"PlantParts":     diagnosis.ValidPlantParts,
+		"MaxImageSizeMB": h.cfg.MaxImageSizeMB,
+		"MinImageWidth":  h.cfg.MinImageWidth,
+		"MinImageHeight": h.cfg.MinImageHeight,
+		"AIAvailable":    h.cfg.AIAvailable(),
+		"Year":           time.Now().Year(),
+		"ContentBlock":   "contentDiagnose",
 	})
 }
 
 func (h *DiagnosisHandler) HistoryPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "diagnosis_history.html", gin.H{
-		"Title":     "AgriConnect AI - Diagnosis History",
-		"Year":      time.Now().Year(),
+		"Title":        "AgriConnect AI - Diagnosis History",
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentDiagnosisHistory",
 	})
 }
 
@@ -55,21 +57,22 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		c.HTML(http.StatusNotFound, "diagnosis_detail.html", gin.H{"Error": "Invalid diagnosis ID"})
+		c.HTML(http.StatusNotFound, "diagnosis_detail.html", gin.H{"Error": "Invalid diagnosis ID", "ContentBlock": "contentDiagnosisDetail"})
 		return
 	}
 
 	userID := getUserID(c)
 	d, err := h.svc.GetDiagnosis(c.Request.Context(), id, userID)
 	if err != nil {
-		c.HTML(http.StatusNotFound, "diagnosis_detail.html", gin.H{"Error": "Diagnosis not found"})
+		c.HTML(http.StatusNotFound, "diagnosis_detail.html", gin.H{"Error": "Diagnosis not found", "ContentBlock": "contentDiagnosisDetail"})
 		return
 	}
 
 	c.HTML(http.StatusOK, "diagnosis_detail.html", gin.H{
-		"Title":     "AgriConnect AI - Diagnosis Detail",
-		"Diagnosis": d,
-		"Year":      time.Now().Year(),
+		"Title":        "AgriConnect AI - Diagnosis Detail",
+		"Diagnosis":    d,
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentDiagnosisDetail",
 	})
 }
 

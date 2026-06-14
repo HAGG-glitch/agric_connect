@@ -1,6 +1,4 @@
-{{template "app.html" .}}
-
-{{define "content"}}
+{{template "layout_head" .}}
 <div class="flex h-full" id="app">
 
   <!-- Mobile overlay -->
@@ -247,4 +245,4 @@
     aiAvailable: {{.AIAvailable}},
   };
 </script>
-{{end}}
+{{template "layout_foot" .}}

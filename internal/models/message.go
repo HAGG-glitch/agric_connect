@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 const (
@@ -29,7 +30,7 @@ func (Message) TableName() string {
 	return "ai_messages"
 }
 
-func (m *Message) BeforeCreate(_ interface{}) error {
+func (m *Message) BeforeCreate(tx *gorm.DB) error {
 	if m.ID == uuid.Nil {
 		m.ID = uuid.New()
 	}

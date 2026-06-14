@@ -7,32 +7,50 @@ import (
 	"time"
 
 	"github.com/agriconnect-ai/internal/auth"
+	"github.com/agriconnect-ai/internal/middleware"
+	"github.com/agriconnect-ai/internal/weather"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
-	authSvc  auth.Service
-	secure   bool
-	domain   string
-	sameSite string
+	authSvc       auth.Service
+	secure        bool
+	domain        string
+	sameSite      string
+	refreshSecret string
 }
 
-func NewAuthHandler(authSvc auth.Service, secure bool, domain string, sameSite string) *AuthHandler {
-	return &AuthHandler{authSvc: authSvc, secure: secure, domain: domain, sameSite: sameSite}
+func NewAuthHandler(authSvc auth.Service, secure bool, domain string, sameSite string, refreshSecret string) *AuthHandler {
+	return &AuthHandler{
+		authSvc: authSvc, secure: secure, domain: domain,
+		sameSite: sameSite, refreshSecret: refreshSecret,
+	}
 }
 
 func (h *AuthHandler) RegisterPage(c *gin.Context) {
+	if h.isAuthenticated(c) {
+		c.Redirect(http.StatusSeeOther, "/assistant")
+		return
+	}
 	c.HTML(http.StatusOK, "register.html", gin.H{
-		"Title": "AgriConnect AI - Register",
-		"Year":  time.Now().Year(),
+		"Title":        "AgriConnect AI - Register",
+		"Year":         time.Now().Year(),
+		"Districts":    weather.SupportedDistricts,
+		"ContentBlock": "contentRegister",
 	})
 }
 
 func (h *AuthHandler) LoginPage(c *gin.Context) {
+	if h.isAuthenticated(c) {
+		c.Redirect(http.StatusSeeOther, "/assistant")
+		return
+	}
 	c.HTML(http.StatusOK, "login.html", gin.H{
-		"Title": "AgriConnect AI - Login",
-		"Year":  time.Now().Year(),
+		"Title":        "AgriConnect AI - Login",
+		"Year":         time.Now().Year(),
+		"Districts":    weather.SupportedDistricts,
+		"ContentBlock": "contentLogin",
 	})
 }
 
@@ -61,9 +79,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	anonymousIDStr, _ := c.Get("user_id")
-	anonymousID, _ := uuid.Parse(anonymousIDStr.(string))
-
+	anonymousID := h.getAnonymousID(c)
 	h.setCookies(c, tokens)
 	h.tryTransfer(c, anonymousID, tokens.User.ID)
 
@@ -89,7 +105,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	anonymousID := h.getAnonymousID(c)
 	h.setCookies(c, tokens)
+	h.tryTransfer(c, anonymousID, tokens.User.ID)
+
 	c.JSON(http.StatusOK, tokens)
 }
 
@@ -111,11 +130,17 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	userIDStr, _ := c.Get("user_id")
+	userIDStr, exists := c.Get("user_id")
+	if !exists {
+		h.clearCookies(c)
+		c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
+		return
+	}
 	userID, _ := uuid.Parse(userIDStr.(string))
+
 	refreshTokenStr, err := c.Cookie("refresh_token")
 	if err == nil && refreshTokenStr != "" {
-		claims, parseErr := auth.ValidateToken(refreshTokenStr, "")
+		claims, parseErr := auth.ValidateToken(refreshTokenStr, h.refreshSecret)
 		if parseErr == nil && claims != nil {
 			if rtID, parseErr2 := uuid.Parse(claims.ID); parseErr2 == nil {
 				_ = h.authSvc.Logout(c.Request.Context(), userID, rtID)
@@ -128,16 +153,24 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 func (h *AuthHandler) Me(c *gin.Context) {
-	userIDStr, _ := c.Get("user_id")
-	userID, _ := uuid.Parse(userIDStr.(string))
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if !exists || authUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+		return
+	}
+	user, ok := authUser.(*middleware.AuthUser)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+		return
+	}
 
-	user, err := h.authSvc.GetUser(c.Request.Context(), userID)
+	userView, err := h.authSvc.GetUser(c.Request.Context(), user.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, userView)
 }
 
 func (h *AuthHandler) setCookies(c *gin.Context, tokens *auth.TokenPair) {
@@ -147,10 +180,7 @@ func (h *AuthHandler) setCookies(c *gin.Context, tokens *auth.TokenPair) {
 	c.SetCookie("access_token", tokens.AccessToken, 900, "/", h.domain, h.secure, true)
 
 	c.SetSameSite(ss)
-	c.SetCookie("refresh_token", tokens.RefreshToken, 604800, "/api/v1/auth", h.domain, h.secure, true)
-
-	c.SetSameSite(ss)
-	c.SetCookie("refresh_token", tokens.RefreshToken, 604800, "/login", h.domain, h.secure, true)
+	c.SetCookie("refresh_token", tokens.RefreshToken, 604800, "/", h.domain, h.secure, true)
 }
 
 func (h *AuthHandler) clearCookies(c *gin.Context) {
@@ -183,4 +213,27 @@ func (h *AuthHandler) tryTransfer(c *gin.Context, anonymousID, userID uuid.UUID)
 	}
 }
 
+func (h *AuthHandler) getAnonymousID(c *gin.Context) uuid.UUID {
+	raw, exists := c.Get("user_id")
+	if !exists {
+		return uuid.Nil
+	}
+	str, ok := raw.(string)
+	if !ok {
+		return uuid.Nil
+	}
+	id, err := uuid.Parse(str)
+	if err != nil {
+		return uuid.Nil
+	}
+	// If OptionalAuth ran before us and set a real user ID, skip transfer
+	if _, hasAuth := c.Get(middleware.ContextKeyUser); hasAuth {
+		return uuid.Nil
+	}
+	return id
+}
 
+func (h *AuthHandler) isAuthenticated(c *gin.Context) bool {
+	_, exists := c.Get(middleware.ContextKeyUser)
+	return exists
+}
