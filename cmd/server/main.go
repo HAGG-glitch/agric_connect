@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -122,10 +123,7 @@ func main() {
 	router.Static("/static", "./web/static")
 
 	// Templates
-	assetVersion := os.Getenv("ASSET_VERSION")
-	if assetVersion == "" {
-		assetVersion = "dev"
-	}
+	assetVersion := fmt.Sprintf("%x", time.Now().Unix())
 	router.SetFuncMap(template.FuncMap{
 		"json": func(v any) (template.HTML, error) {
 			b, err := json.Marshal(v)
