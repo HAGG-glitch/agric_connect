@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"image"
 	"image/png"
 	"io"
@@ -1332,6 +1333,29 @@ func TestConfigParsing_ProductionRequiresGroqKey(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when GROQ_API_KEY is missing in production")
 	}
+}
+
+func TestTemplatesParse(t *testing.T) {
+	funcMap := template.FuncMap{
+		"json": func(v any) (template.HTML, error) {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return "", err
+			}
+			return template.HTML(b), nil
+		},
+		"RainProbability": func(d interface{}) int {
+			return 0
+		},
+		"assetVersion": func() string {
+			return "test"
+		},
+	}
+	tmpl, err := template.New("").Funcs(funcMap).ParseGlob("../web/templates/**/*.html")
+	if err != nil {
+		t.Fatalf("failed to parse templates: %v", err)
+	}
+	_ = tmpl
 }
 
 
