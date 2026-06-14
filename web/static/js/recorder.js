@@ -196,13 +196,22 @@
 
     const formData = new FormData();
     formData.append('audio', RecorderUI.blob, 'recording.' + getExtension(RecorderUI.blob.type));
-    formData.append('language_hint', config.language || 'auto');
+    var currentLang = typeof State !== 'undefined' && State.language ? State.language : (config.language || 'auto');
+    formData.append('language_hint', currentLang);
+
+    console.log('recorder: transcription request starting', {
+      blobType: RecorderUI.blob.type,
+      blobSize: RecorderUI.blob.size,
+    });
 
     try {
       const res = await fetch('/api/v1/ai/transcribe', {
         method: 'POST',
+        credentials: 'same-origin',
         body: formData,
       });
+
+      console.log('recorder: transcription response', { status: res.status });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

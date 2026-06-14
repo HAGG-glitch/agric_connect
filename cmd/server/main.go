@@ -115,12 +115,17 @@ func main() {
 	router.Use(middleware.RequestID())
 	router.Use(middleware.Recovery())
 	router.Use(middleware.AnonymousUser(cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite))
-	router.Use(middleware.RateLimit(cfg.RateLimitPerMinute))
+	// Rate limiter with per-route tiers
+	rlCfg := middleware.DefaultRateLimitConfig()
+	rlCfg.APIPerMinute = cfg.RateLimitAPIPerMinute
+	rlCfg.WeatherPerMinute = cfg.RateLimitWeatherPerMinute
+	router.Use(middleware.RateLimit(rlCfg))
 
-	router.SetTrustedProxies(nil)
+	router.SetTrustedProxies([]string{"*"})
 
 	// Static files
 	router.Static("/static", "./web/static")
+	router.StaticFile("/favicon.ico", "./web/static/favicon.ico")
 
 	// Templates
 	assetVersion := fmt.Sprintf("%x", time.Now().Unix())

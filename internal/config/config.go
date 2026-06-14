@@ -26,9 +26,11 @@ type Config struct {
 	CookieDomain   string
 	CookieSameSite string
 
-	MaxMessageLength     int
-	MaxContextMessages   int
-	RateLimitPerMinute   int
+	MaxMessageLength       int
+	MaxContextMessages     int
+	RateLimitPerMinute     int
+	RateLimitAPIPerMinute  int
+	RateLimitWeatherPerMinute int
 
 	GroqVisionModel          string
 	GroqTranscriptionModel   string
@@ -71,7 +73,9 @@ func Load() (*Config, error) {
 		WeatherCacheMinutes:    getEnvInt("WEATHER_CACHE_MINUTES", 20),
 		MaxMessageLength:       getEnvInt("MAX_MESSAGE_LENGTH", 4000),
 		MaxContextMessages:     getEnvInt("MAX_CONTEXT_MESSAGES", 12),
-		RateLimitPerMinute:     getEnvInt("RATE_LIMIT_REQUESTS_PER_MINUTE", 20),
+		RateLimitPerMinute:         getEnvInt("RATE_LIMIT_REQUESTS_PER_MINUTE", 20),
+		RateLimitAPIPerMinute:      getEnvInt("RATE_LIMIT_API_PER_MINUTE", 20),
+		RateLimitWeatherPerMinute:  getEnvInt("RATE_LIMIT_WEATHER_PER_MINUTE", 30),
 		CookieSecure:                getEnvBool("COOKIE_SECURE", false),
 		GroqVisionModel:             getEnv("GROQ_VISION_MODEL", "llama-3.2-11b-vision-preview"),
 		GroqTranscriptionModel:      getEnv("GROQ_TRANSCRIPTION_MODEL", "whisper-large-v3"),

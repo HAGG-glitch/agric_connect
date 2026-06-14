@@ -369,3 +369,27 @@ func TestTranscription_UnsupportedAudioType_Validator(t *testing.T) {
 		t.Errorf("expected 'unsupported audio type' error, got %v", err)
 	}
 }
+
+func TestValidateAudioContentType_NormalizesCodecParam(t *testing.T) {
+	allowed := []string{"audio/webm", "audio/wav", "audio/mpeg"}
+	err := transcription.ValidateAudioContentType("audio/webm; codecs=opus", allowed)
+	if err != nil {
+		t.Errorf("expected no error for audio/webm with codec param, got %v", err)
+	}
+}
+
+func TestValidateAudioContentType_NormalizesWhitespace(t *testing.T) {
+	allowed := []string{"audio/wav", "audio/webm"}
+	err := transcription.ValidateAudioContentType("  audio/wav  ", allowed)
+	if err != nil {
+		t.Errorf("expected no error for audio/wav with whitespace, got %v", err)
+	}
+}
+
+func TestValidateAudioContentType_RejectsTrulyUnknown(t *testing.T) {
+	allowed := []string{"audio/webm", "audio/wav"}
+	err := transcription.ValidateAudioContentType("audio/flac", allowed)
+	if err == nil {
+		t.Error("expected error for audio/flac")
+	}
+}

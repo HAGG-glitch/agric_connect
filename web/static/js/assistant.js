@@ -6,6 +6,7 @@ const State = {
   district: '',
   crop: '',
   sending: false,
+  _weatherFetched: false,
 };
 
 // ─── Initialization ────────────────────────────────────────────────────────
@@ -30,10 +31,30 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch {}
   }
 
+  // If user has a saved district from registration, auto-fetch weather once
+  const userDistrict = window.AGRI_CONFIG?.userDistrict;
+  if (userDistrict && !State.district) {
+    State.district = userDistrict;
+    const sel = document.getElementById('district-select');
+    if (sel) sel.value = userDistrict;
+    saveState();
+  }
+
+  // Preserve user district even if not saved to session
+  if (userDistrict && !saved) {
+    setDistrict(userDistrict);
+  }
+
   // Reload last conversation if present
   const lastConv = sessionStorage.getItem('agri_conv');
   if (lastConv) {
     loadConversation(lastConv);
+  }
+
+  // Auto-weather on page load (once)
+  if (State.district && !State._weatherFetched) {
+    State._weatherFetched = true;
+    fetchWeather(true);
   }
 });
 
@@ -78,8 +99,12 @@ function setLanguage(lang, persist = true) {
 }
 
 function setDistrict(value) {
+  if (value === State.district) return;
   State.district = value;
+  State._weatherFetched = false;
   saveState();
+  document.getElementById('weather-panel')?.classList.add('hidden');
+  fetchWeather(true);
 }
 
 function setCrop(value) {
@@ -520,22 +545,55 @@ function showToast(message, type = 'info') {
 
 // ─── Weather ───────────────────────────────────────────────────────────────
 
-async function fetchWeather() {
+async function fetchWeather(silent) {
   if (!State.district) {
     showToast('Please select a district first.', 'warning');
     return;
   }
 
   const btn = document.getElementById('weather-btn');
-  btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span>Loading...</span>';
+  const panel = document.getElementById('weather-panel');
+  const content = document.getElementById('weather-content');
+
+  if (!silent) {
+    btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span>Loading...</span>';
+  }
+
+  if (!silent) {
+    content.innerHTML = `
+      <div class="flex items-center gap-3 py-2">
+        <div class="w-4 h-4 border-2 border-[#2E7D32] border-t-transparent rounded-full animate-spin"></div>
+        <span class="text-sm text-[#6B7280]">Loading weather...</span>
+      </div>`;
+    panel.classList.remove('hidden');
+  }
 
   try {
     const res = await fetch(`/api/v1/weather?district=${encodeURIComponent(State.district)}`);
-    if (!res.ok) throw new Error('Weather unavailable');
+    if (!res.ok) {
+      if (res.status === 429) {
+        throw { message: 'Too many weather requests. Please wait briefly and retry.', status: 429 };
+      } else if (res.status === 502 || res.status === 503) {
+        throw { message: 'The weather provider is temporarily unavailable.', status: res.status };
+      }
+      throw { message: 'Unable to load weather data.', status: res.status };
+    }
     const data = await res.json();
     renderWeatherPanel(data);
   } catch (e) {
-    showToast('Weather data temporarily unavailable.', 'warning');
+    const msg = e.message || e.status || 'Check your internet connection and retry.';
+    if (silent) {
+      content.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-[#6B7280]">
+            <span class="font-semibold">${escapeHTML(State.district)}</span>
+          </div>
+          <button onclick="fetchWeather()" class="text-xs text-[#2E7D32] hover:underline font-medium">Retry</button>
+        </div>
+        <p class="text-xs text-red-600 mt-1">${escapeHTML(msg)}</p>`;
+    } else {
+      showToast(msg, 'error');
+    }
   } finally {
     btn.innerHTML = '<i data-lucide="cloud-sun" class="w-4 h-4 text-[#FFC107]"></i><span>Check District Weather</span>';
     if (typeof lucide !== 'undefined') lucide.createIcons();

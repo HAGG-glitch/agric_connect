@@ -2,10 +2,11 @@
 <div id="voice-recorder-container"></div>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    if (typeof Recorder !== 'undefined') {
+    if (typeof Recorder !== 'undefined' && !document.getElementById('voice-recorder-container').hasAttribute('data-initialized')) {
+      document.getElementById('voice-recorder-container').setAttribute('data-initialized', 'true');
       Recorder.init({
         containerId: 'voice-recorder-container',
-        language: 'krio',
+        language: typeof State !== 'undefined' && State.language ? State.language : 'english',
       });
     }
   });

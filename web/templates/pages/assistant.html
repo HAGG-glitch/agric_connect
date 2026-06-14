@@ -71,6 +71,18 @@
 
     </div>
 
+    <!-- Diagnosis navigation -->
+    <div class="px-3 py-2 border-b border-[#E5E7EB] space-y-1">
+      <a href="/diagnose" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#6B7280] hover:bg-[#F5F7F5] rounded-lg transition-colors" aria-label="Upload a crop image for diagnosis">
+        <i data-lucide="image-plus" class="w-4 h-4 text-[#2E7D32]"></i>
+        <span>Diagnose Crop</span>
+      </a>
+      <a href="/diagnoses" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#6B7280] hover:bg-[#F5F7F5] rounded-lg transition-colors">
+        <i data-lucide="history" class="w-4 h-4 text-[#6B7280]"></i>
+        <span>Diagnosis History</span>
+      </a>
+    </div>
+
     <!-- Weather shortcut -->
     <div class="px-3 py-2 border-b border-[#E5E7EB]">
       <button onclick="fetchWeather()" id="weather-btn" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#6B7280] hover:bg-[#F5F7F5] rounded-lg transition-colors">
@@ -176,6 +188,22 @@
             </button>
           </div>
         </div>
+
+        <!-- Diagnosis quick-action card -->
+        <div class="w-full max-w-lg mt-6">
+          <a href="/diagnose" class="block bg-white border border-[#E5E7EB] rounded-xl p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="scan-line" class="w-5 h-5 text-[#2E7D32]"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-semibold text-[#1F2937]">Diagnose a Crop Problem</h3>
+                <p class="text-xs text-[#6B7280] mt-0.5">Upload a clear crop photo and describe the symptoms for AI-powered preliminary screening.</p>
+                <span class="inline-block mt-2 text-xs font-medium text-[#2E7D32] hover:underline">Start diagnosis &rarr;</span>
+              </div>
+            </div>
+          </a>
+        </div>
       </div>
 
       <!-- Messages area (shown when conversation is active) -->
@@ -218,6 +246,9 @@
             ></textarea>
             <span id="char-count" class="absolute bottom-2 right-3 text-xs text-[#6B7280] hidden"></span>
           </div>
+          <a href="/diagnose" class="flex-shrink-0 w-10 h-10 text-[#6B7280] hover:text-[#2E7D32] hover:bg-[#F5F7F5] rounded-xl flex items-center justify-center transition-colors" aria-label="Upload a crop image for diagnosis" title="Diagnose crop from photo">
+            <i data-lucide="image-plus" class="w-5 h-5"></i>
+          </a>
           {{template "voice_recorder" .}}
           <button
             id="send-btn"
@@ -243,6 +274,7 @@
   window.AGRI_CONFIG = {
     districts: {{json .Districts}},
     aiAvailable: {{.AIAvailable}},
+    userDistrict: {{json .UserDistrict}},
   };
 </script>
 {{template "layout_foot" .}}

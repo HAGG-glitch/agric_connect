@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/agriconnect-ai/internal/middleware"
 	"github.com/agriconnect-ai/internal/services"
 	"github.com/agriconnect-ai/internal/validation"
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,13 @@ func NewWeatherHandler(weatherSvc services.WeatherService) *WeatherHandler {
 
 func (h *WeatherHandler) GetWeather(c *gin.Context) {
 	district := c.Query("district")
+	if district == "" {
+		if authUser, exists := c.Get(middleware.ContextKeyUser); exists {
+			if user, ok := authUser.(*middleware.AuthUser); ok && user.District != "" {
+				district = user.District
+			}
+		}
+	}
 	if district == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "district query parameter is required"})
 		return

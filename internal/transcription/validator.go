@@ -16,10 +16,19 @@ func ValidateLanguageHint(hint string) error {
 }
 
 func ValidateAudioContentType(contentType string, allowed []string) error {
+	normalized := normalizeMimeType(contentType)
 	for _, a := range allowed {
-		if strings.EqualFold(a, contentType) {
+		if strings.EqualFold(a, normalized) {
 			return nil
 		}
 	}
 	return fmt.Errorf("unsupported audio type: %s", contentType)
+}
+
+func normalizeMimeType(raw string) string {
+	idx := strings.IndexByte(raw, ';')
+	if idx == -1 {
+		return strings.TrimSpace(raw)
+	}
+	return strings.TrimSpace(raw[:idx])
 }
