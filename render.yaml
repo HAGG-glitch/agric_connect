@@ -4,7 +4,7 @@ services:
     runtime: docker
     repo: https://github.com/HAGG-glitch/agric_connect
     plan: free
-    region: oregon
+    region: virginia
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
