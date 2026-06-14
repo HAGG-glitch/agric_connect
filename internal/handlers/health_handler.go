@@ -34,7 +34,7 @@ func (h *HealthHandler) Check(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":   "ok",
+		"status":   "healthy",
 		"database": "connected",
 	})
 }

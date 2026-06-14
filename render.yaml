@@ -1,0 +1,58 @@
+services:
+  - type: web
+    name: agriconnect
+    runtime: docker
+    repo: https://github.com/HAGG-glitch/agric_connect
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_PORT
+        value: "8080"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAME_SITE
+        value: lax
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: SUPABASE_STORAGE_BUCKET
+        value: crop-diagnosis-images
+      - key: MAX_IMAGE_SIZE_MB
+        value: "5"
+      - key: MAX_AUDIO_SIZE_MB
+        value: "10"
+      - key: MIN_IMAGE_WIDTH
+        value: "256"
+      - key: MIN_IMAGE_HEIGHT
+        value: "256"
+      - key: MAX_IMAGE_PIXELS
+        value: "25000000"
+      - key: ASSET_VERSION
+        fromService:
+          type: web
+          name: agriconnect
+          property: deployId
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agriconnect-db
+          property: connectionString
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+
+databases:
+  - name: agriconnect-db
+    plan: free
+    region: oregon
+    databaseName: agriconnect
+    ipAllowList: []

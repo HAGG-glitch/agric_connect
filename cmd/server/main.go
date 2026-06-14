@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"html/template"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/agriconnect-ai/internal/ai"
@@ -117,6 +122,10 @@ func main() {
 	router.Static("/static", "./web/static")
 
 	// Templates
+	assetVersion := os.Getenv("ASSET_VERSION")
+	if assetVersion == "" {
+		assetVersion = "dev"
+	}
 	router.SetFuncMap(template.FuncMap{
 		"json": func(v any) (template.HTML, error) {
 			b, err := json.Marshal(v)
@@ -127,6 +136,9 @@ func main() {
 		},
 		"RainProbability": func(d weather.DailyForecast) int {
 			return d.RainProbabilityPercent
+		},
+		"assetVersion": func() string {
+			return assetVersion
 		},
 	})
 	router.LoadHTMLGlob("web/templates/**/*.html")
@@ -225,10 +237,47 @@ func main() {
 		}
 	}
 
-	log.Printf("AgriConnect AI starting on %s", cfg.AppPort)
-	if err := router.Run(":" + cfg.AppPort); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	// Determine port: Render provides PORT, fall back to APP_PORT
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = cfg.AppPort
 	}
+	addr := ":" + port
+
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		log.Printf("AgriConnect AI starting on %s", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Close database connection
+	if sqlDB, err := db.DB(); err == nil {
+		sqlDB.Close()
+	}
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+	log.Println("Server exited cleanly")
 }
 
 func findMigrationsDir() string {

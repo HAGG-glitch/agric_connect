@@ -1,1275 +1,902 @@
-# AgriConnect AI Repository Recovery and Phase 1–3 Completion Prompt
+# AgriConnect Render Deployment Preparation
 
-You are a senior Go full-stack engineer working inside an existing, partially generated AgriConnect AI repository.
+You are a senior Go, Docker, PostgreSQL and Render deployment engineer working inside the existing AgriConnect repository.
 
-The previous coding session ended before the project could be fully organized or packaged. Some files may be incomplete, duplicated, misplaced, disconnected, or only partially implemented.
+Your task is to inspect the entire codebase, understand how the application currently builds and runs, and make all changes required to deploy AgriConnect successfully as a Render Web Service for user testing.
 
-Your task is to inspect the current repository, recover the useful work, organize every relevant file into the correct architecture, add all missing Phase 1–3 files, connect the scattered implementations, and leave the project compiling and runnable.
+Do not only provide instructions.
 
-Do not merely explain what should be done. Perform the repository reorganization and implementation.
-
----
-
-## 1. Current Product
-
-AgriConnect AI is a responsive agricultural advisory web application for farmers in Sierra Leone.
-
-The current milestone covers only:
-
-### Phase 1 — Agricultural AI Chat
-
-- Gin web server
-- PostgreSQL connection
-- Anonymous browser user identity
-- Agricultural AI chat through Groq
-- English and Krio response modes
-- Conversation creation, history, loading, deletion, and persistence
-- Streaming or reliable non-streaming fallback
-- Responsive HTML interface
-
-### Phase 2 — Agricultural Knowledge Retrieval
-
-- Agricultural documents stored in PostgreSQL
-- Initial content for rice, cassava, maize, and groundnut
-- Crop and topic detection
-- Relevant document retrieval
-- Retrieved knowledge added to the Groq prompt
-- Source metadata stored and shown where appropriate
-
-### Phase 3 — Weather Intelligence
-
-- Sierra Leone district coordinate mapping
-- Open-Meteo integration
-- Current weather and seven-day forecast
-- PostgreSQL weather caching
-- Weather-aware agricultural AI responses
-- The AI must never invent current weather
-
-Do not implement Phase 4 crop-image diagnosis or Phase 5 voice input in this task.
-
-You may create clean interfaces and extension points for those later phases, but do not add incomplete image-diagnosis or audio code.
+Inspect, implement, configure, test and document the deployment.
 
 ---
 
-## 2. Technology Stack
+# 1. Important ownership boundary
 
-Use the following stack:
+Joshua owns all AI and USSD functionality.
 
-### Backend
+Do not redesign, rewrite or take ownership of:
 
-- Go
-- Gin
-- PostgreSQL
-- GORM
-- Groq API
-- Open-Meteo API
+* Groq agricultural chat
+* AI prompts
+* AI response generation
+* Agricultural knowledge retrieval
+* Crop-image AI analysis
+* Vision-model calls
+* Voice transcription
+* Krio transcription
+* AI streaming
+* AI model selection
+* USSD menus
+* USSD session handling
+* USSD provider integration
+* USSD-to-AI communication
 
-### Frontend
+You may modify configuration, dependency wiring, startup behavior and deployment compatibility only when necessary for hosting.
 
-- Go HTML templates
-- Tailwind CSS
-- HTMX where useful
-- Vanilla JavaScript
-- Lucide icons
-
-### Infrastructure
-
-- Docker
-- Docker Compose
-- SQL migrations
-- Environment-based configuration
-
-Do not migrate the project to React, Next.js, Vue, FastAPI, or another backend framework.
-
-Node.js may be used only for Tailwind CSS compilation and frontend development tooling.
+Do not change the existing AI or USSD business logic unless a specific deployment defect prevents the application from starting.
 
 ---
 
-## 3. Critical Recovery Rules
+# 2. Inspect the entire repository first
 
-Follow these rules before changing the repository:
-
-1. Inspect the entire repository recursively.
-2. Read all existing Go, HTML, CSS, JavaScript, SQL, JSON, YAML, Docker, environment, and Markdown files.
-3. Run `git status` when the repository uses Git.
-4. Do not delete useful existing work.
-5. Do not overwrite a more complete implementation with a smaller placeholder.
-6. Identify duplicate files and determine which implementation is most complete.
-7. Merge useful logic when two scattered files implement different parts of the same feature.
-8. Update package names, imports, template paths, static asset paths, route registrations, dependency injection, and configuration after moving files.
-9. Do not leave disconnected files that are never imported, registered, rendered, or called.
-10. Do not leave two competing application entry points.
-11. Do not leave duplicate route registrations.
-12. Do not leave hard-coded secrets.
-13. Do not expose the Groq API key to HTML or browser JavaScript.
-14. Do not silently ignore compile errors, migration errors, template errors, or failed tests.
-15. Do not stop after reorganizing folders. Complete missing Phase 1–3 behavior.
-16. Preserve the current visual work where it is useful, but convert it into reusable Gin templates and static assets.
-17. If an existing file cannot be integrated safely, document it in `RECOVERY_REPORT.md`.
-18. Do not create fake production data or claim expert validation for sample agricultural content.
-
-Before editing, create `RECOVERY_REPORT.md` and record:
-
-- Existing repository structure
-- Files discovered
-- Duplicate or conflicting implementations
-- Missing Phase 1–3 components
-- Planned moves and merges
-- Important assumptions
-
-Update the report after the work is complete.
-
----
-
-## 4. Target Repository Structure
-
-Organize the project toward this structure:
+Before editing anything, inspect:
 
 ```text
-agriconnect-ai/
-├── cmd/
-│   └── server/
-│       └── main.go
-│
-├── internal/
-│   ├── config/
-│   │   └── config.go
-│   │
-│   ├── database/
-│   │   ├── postgres.go
-│   │   └── migrations.go
-│   │
-│   ├── models/
-│   │   ├── conversation.go
-│   │   ├── message.go
-│   │   ├── agricultural_document.go
-│   │   └── weather_cache.go
-│   │
-│   ├── repositories/
-│   │   ├── conversation_repository.go
-│   │   ├── message_repository.go
-│   │   ├── knowledge_repository.go
-│   │   └── weather_repository.go
-│   │
-│   ├── services/
-│   │   ├── chat_service.go
-│   │   ├── conversation_service.go
-│   │   ├── knowledge_service.go
-│   │   └── weather_service.go
-│   │
-│   ├── ai/
-│   │   ├── client.go
-│   │   ├── assistant.go
-│   │   ├── orchestrator.go
-│   │   ├── schemas.go
-│   │   └── prompts/
-│   │       ├── agricultural_assistant.txt
-│   │       └── krio_rules.txt
-│   │
-│   ├── weather/
-│   │   ├── client.go
-│   │   └── districts.go
-│   │
-│   ├── handlers/
-│   │   ├── page_handler.go
-│   │   ├── chat_handler.go
-│   │   ├── conversation_handler.go
-│   │   ├── weather_handler.go
-│   │   └── health_handler.go
-│   │
-│   ├── middleware/
-│   │   ├── anonymous_user.go
-│   │   ├── request_id.go
-│   │   ├── recovery.go
-│   │   └── rate_limit.go
-│   │
-│   └── validation/
-│       └── validation.go
-│
-├── web/
-│   ├── templates/
-│   │   ├── layouts/
-│   │   │   └── app.html
-│   │   ├── pages/
-│   │   │   └── assistant.html
-│   │   └── partials/
-│   │       ├── sidebar.html
-│   │       ├── chat_message.html
-│   │       ├── chat_history.html
-│   │       ├── weather_card.html
-│   │       ├── loading_indicator.html
-│   │       └── error_message.html
-│   │
-│   └── static/
-│       ├── css/
-│       │   ├── input.css
-│       │   └── app.css
-│       └── js/
-│           ├── app.js
-│           └── assistant.js
-│
-├── migrations/
-│   ├── 000001_create_ai_tables.up.sql
-│   └── 000001_create_ai_tables.down.sql
-│
-├── seed/
-│   └── agricultural_documents.json
-│
-├── tests/
-│   ├── chat_service_test.go
-│   ├── knowledge_service_test.go
-│   └── weather_service_test.go
-│
-├── scripts/
-│   └── seed.go
-│
-├── Dockerfile
-├── docker-compose.yml
-├── Makefile
-├── package.json
-├── tailwind.config.js
-├── go.mod
-├── go.sum
-├── .env.example
-├── .gitignore
-├── README.md
-└── RECOVERY_REPORT.md
+go.mod
+go.sum
+Dockerfile
+docker-compose.yml
+render.yaml
+.env.example
+.gitignore
+.dockerignore
+Makefile
+package.json
+tailwind.config.js
+
+cmd/
+internal/
+migrations/
+configs/
+web/templates/
+web/static/
+scripts/
+tests/
+
+README.md
+RECOVERY_REPORT.md
+PHASE_4_5_REPORT.md
+FINAL_COMPLETION_REPORT.md
 ```
 
-This is the target architecture, not a command to create empty files.
+Some files might not exist. Record which deployment-related files already exist and which must be created.
 
-If an existing structure is already clean and equivalent, retain it and document the mapping instead of moving files unnecessarily.
+Inspect and understand:
+
+1. The actual Go application entry point
+2. The migration command and migration binary
+3. How configuration is loaded
+4. How the application reads its port
+5. How Gin starts the HTTP server
+6. How PostgreSQL is initialized
+7. How Redis is used, if still required
+8. How templates are loaded
+9. How static files are served
+10. How Tailwind CSS is compiled
+11. How JavaScript files are copied into the final image
+12. How Groq environment variables are loaded
+13. How Supabase credentials are loaded
+14. How authentication secrets are loaded
+15. How storage drivers are selected
+16. How the `/health` endpoint behaves
+17. Whether startup automatically runs migrations
+18. Whether local filesystem paths are assumed
+19. Whether any localhost-only addresses are hardcoded
+20. Whether any secrets are present in tracked files
+
+Do not assume filenames, binary names or commands. Determine them from the repository.
 
 ---
 
-## 5. Repository Inspection Procedure
+# 3. Run and record the baseline
 
-Perform the following steps in order.
-
-### Step 1: Inventory
-
-List all existing files and classify each one as:
-
-- Complete and correctly placed
-- Complete but misplaced
-- Incomplete but reusable
-- Duplicate
-- Obsolete
-- Missing dependency
-- Missing required Phase 1–3 implementation
-
-Record the classification in `RECOVERY_REPORT.md`.
-
-### Step 2: Find Entry Points
-
-Locate every possible application entry point, including:
-
-- `main.go`
-- `cmd/**/main.go`
-- old server files
-- temporary prototype servers
-- duplicated router setup
-
-Choose one production entry point:
-
-```text
-cmd/server/main.go
-```
-
-Connect all application dependencies through this entry point.
-
-Do not keep multiple active servers.
-
-### Step 3: Trace Connections
-
-For every major feature, trace the complete path:
-
-```text
-Route
-→ Handler
-→ Service
-→ Repository or Integration Client
-→ Database or External API
-→ Response
-→ Frontend rendering
-```
-
-Repair all broken paths.
-
-### Step 4: Move and Merge
-
-Move misplaced files into their correct folders.
-
-When duplicate implementations exist:
-
-- Compare completeness
-- Preserve useful logic
-- Merge carefully
-- Remove duplicate registrations
-- Update imports
-- Update tests
-- Document the decision
-
-### Step 5: Compile Early
-
-After the initial organization, run:
+Before changing the code, run:
 
 ```bash
+git status
 go mod tidy
 go test ./...
 go vet ./...
-go build ./cmd/server
+go build ./...
+docker compose config
 ```
 
-Fix structural and compile problems before adding more functionality.
+When Node dependencies are present, also run:
+
+```bash
+npm install
+npx tailwindcss -i ./web/static/css/input.css -o ./web/static/css/app.css --minify
+```
+
+If Docker is available, run:
+
+```bash
+docker build -t agriconnect-render-baseline .
+```
+
+Record:
+
+* Commands that pass
+* Commands that fail
+* Exact failure messages
+* Missing files
+* Missing environment variables
+* Current application start command
+* Current migration command
+
+Create or update:
+
+```text
+RENDER_DEPLOYMENT_REPORT.md
+```
+
+Include a baseline section before making changes.
 
 ---
 
-## 6. Required Configuration
+# 4. Make the Go server compatible with Render
 
-Create or repair `internal/config/config.go`.
+Render must be able to reach the application through the port assigned at runtime.
 
-Load configuration from environment variables.
+Update the application so it:
 
-Required variables:
+1. Reads `PORT` first.
+2. Falls back to the existing local port when `PORT` is absent.
+3. Binds to `0.0.0.0`.
+4. Does not bind only to `localhost` or `127.0.0.1`.
+5. Logs the listening address without logging secrets.
+6. Supports graceful shutdown.
+7. Stops cleanly when Render sends a termination signal.
+8. Uses reasonable HTTP server timeouts.
 
-```env
-APP_ENV=development
-APP_PORT=8080
-APP_URL=http://localhost:8080
-
-DATABASE_URL=postgresql://postgres:postgres@db:5432/agriconnect?sslmode=disable
-
-GROQ_API_KEY=
-GROQ_BASE_URL=https://api.groq.com/openai/v1
-GROQ_CHAT_MODEL=
-GROQ_REQUEST_TIMEOUT_SECONDS=60
-
-OPEN_METEO_BASE_URL=https://api.open-meteo.com/v1
-WEATHER_CACHE_MINUTES=20
-
-COOKIE_SECURE=false
-COOKIE_DOMAIN=
-COOKIE_SAME_SITE=lax
-
-MAX_MESSAGE_LENGTH=4000
-MAX_CONTEXT_MESSAGES=12
-RATE_LIMIT_REQUESTS_PER_MINUTE=20
-```
-
-Requirements:
-
-- Validate required values.
-- Parse integer, boolean, and duration values safely.
-- Never log secret values.
-- Development mode may start without a Groq key.
-- When Groq is unavailable, the UI must show a clear configuration error.
-- Production mode must fail fast when required secrets are missing.
-
-Create or repair `.env.example`.
-
-Do not create a committed `.env` containing real secrets.
-
----
-
-## 7. Database and Migrations
-
-Use PostgreSQL UUID primary keys.
-
-Create or repair migrations for these tables.
-
-### `ai_conversations`
-
-```sql
-CREATE TABLE ai_conversations (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL,
-    title VARCHAR(200) NOT NULL,
-    preferred_language VARCHAR(20) NOT NULL DEFAULT 'english',
-    district VARCHAR(100),
-    crop VARCHAR(100),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-### `ai_messages`
-
-```sql
-CREATE TABLE ai_messages (
-    id UUID PRIMARY KEY,
-    conversation_id UUID NOT NULL
-        REFERENCES ai_conversations(id)
-        ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL,
-    content TEXT NOT NULL,
-    language VARCHAR(20),
-    model VARCHAR(150),
-    input_tokens INTEGER,
-    output_tokens INTEGER,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-Allowed roles:
-
-- user
-- assistant
-- system
-- tool
-
-### `agricultural_documents`
-
-```sql
-CREATE TABLE agricultural_documents (
-    id UUID PRIMARY KEY,
-    crop VARCHAR(100),
-    category VARCHAR(100) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL,
-    language VARCHAR(20) NOT NULL DEFAULT 'english',
-    source TEXT,
-    reviewed BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-### `weather_cache`
-
-```sql
-CREATE TABLE weather_cache (
-    district VARCHAR(100) PRIMARY KEY,
-    response JSONB NOT NULL,
-    fetched_at TIMESTAMPTZ NOT NULL
-);
-```
-
-Create useful indexes for:
-
-- `ai_conversations.user_id`
-- `ai_conversations.updated_at`
-- `ai_messages.conversation_id`
-- `agricultural_documents.crop`
-- `agricultural_documents.category`
-
-Requirements:
-
-- Up and down migrations must both work.
-- Models must match the database.
-- Repositories must use context-aware database operations.
-- The application must not silently auto-create a conflicting schema.
-- Use either migrations as the source of truth or a carefully controlled migration runner.
-- Document the chosen approach.
-
----
-
-## 8. Anonymous Browser User
-
-Full registration and JWT authentication are not part of Phase 1–3.
-
-Implement anonymous browser identity.
-
-Requirements:
-
-1. When a browser first opens the application, generate a UUID.
-2. Store it in an HTTP-only cookie named:
-
-```text
-agriconnect_user
-```
-
-3. Apply appropriate SameSite settings.
-4. Use `Secure` in production.
-5. Use the UUID as the conversation owner.
-6. Verify ownership on every conversation read, update, message, and delete operation.
-7. Never accept a user ID supplied by frontend JavaScript.
-8. Structure code so the anonymous user can later be replaced by authenticated user middleware.
-
----
-
-## 9. Phase 1 — Agricultural AI Chat
-
-Complete the entire chat flow.
-
-### Required routes
-
-```text
-GET    /assistant
-GET    /health
-
-POST   /api/v1/conversations
-GET    /api/v1/conversations
-GET    /api/v1/conversations/:id
-DELETE /api/v1/conversations/:id
-
-POST   /api/v1/conversations/:id/messages
-POST   /api/v1/conversations/:id/messages/stream
-```
-
-### Conversation creation
-
-Request:
-
-```json
-{
-  "preferred_language": "krio",
-  "district": "Bo",
-  "crop": "Cassava"
-}
-```
-
-Validate:
-
-- `preferred_language` must be `english` or `krio`
-- district must be supported
-- crop must be either empty or in the supported crop list
-
-### Message processing
-
-The handler must:
-
-1. Read the anonymous user from middleware.
-2. Verify conversation ownership.
-3. Validate message length.
-4. Save the user message.
-5. Retrieve relevant agricultural knowledge.
-6. Determine whether weather data is required.
-7. Retrieve weather safely when needed.
-8. Build the Groq request.
-9. Include only a limited number of recent messages.
-10. Call Groq.
-11. Save the assistant response.
-12. Update conversation title after the first meaningful question.
-13. Update `updated_at`.
-14. Return the assistant message.
-15. Preserve the saved user message when Groq fails.
-
-### Message limits
-
-Use:
-
-```text
-Minimum length: 2 characters
-Maximum length: 4,000 characters
-Maximum context messages: configurable, default 12
-```
-
-### Groq client
-
-Create a reusable Groq client with:
-
-- Environment-configured base URL
-- Environment-configured model
-- Request timeout
-- Context cancellation
-- Error status decoding
-- Streaming support
-- Token usage parsing where available
-- No secret logging
-- Testable interface
-
-Do not hard-code a Groq model name.
-
-### System prompt
-
-Create:
-
-```text
-internal/ai/prompts/agricultural_assistant.txt
-```
-
-The prompt must establish:
-
-- Agricultural focus
-- Sierra Leone context
-- English and Krio response behavior
-- No invented current weather
-- No invented current market prices
-- No invented pesticide dosage
-- Chemical safety guidance
-- Uncertainty disclosure
-- Escalation to an extension officer
-- Simple farmer-friendly explanations
-
-Create:
-
-```text
-internal/ai/prompts/krio_rules.txt
-```
-
-Include starter terms such as:
-
-```text
-crop disease = sik wey de affect di plant
-symptoms = sign dem wey di plant de show
-fertiliser = plant food
-pest = bad insect or animal wey de spoil di crop
-treatment = wetin yu kin do fo control di problem
-prevention = wetin yu kin do fo stop di problem
-harvest = time fo pull or gather di crop
-soil = gron
-rainfall = ren
-```
-
-Clearly document that the Krio glossary requires community and language-expert review.
-
----
-
-## 10. Phase 2 — Agricultural Knowledge Retrieval
-
-Create or repair the agricultural knowledge system.
-
-Seed sample records for:
-
-- Rice
-- Cassava
-- Maize
-- Groundnut
-
-Include categories:
-
-- Planting
-- Disease
-- Pests
-- Soil
-- Fertiliser
-- Harvesting
-- Storage
-
-Every seed record must contain:
-
-- Crop
-- Category
-- Title
-- Content
-- Language
-- Source
-- Reviewed flag
-
-Sample content must state that it is academic prototype material requiring expert validation.
-
-### Retrieval behavior
-
-The knowledge service must:
-
-1. Normalize the farmer's question.
-2. Detect crop names using explicit aliases and keyword matching.
-3. Detect likely categories.
-4. Search PostgreSQL.
-5. Rank exact crop and category matches higher.
-6. Limit the number and total length of documents.
-7. Return structured context and source metadata.
-8. Avoid unrelated documents.
-9. Add the selected context to the AI request.
-10. Keep retrieval behind a testable service interface.
-
-Do not add vector search, embeddings, or `pgvector` in this phase.
-
----
-
-## 11. Phase 3 — Weather Intelligence
-
-Support these Sierra Leone districts:
-
-- Bo
-- Bombali
-- Bonthe
-- Falaba
-- Kailahun
-- Kambia
-- Karene
-- Kenema
-- Koinadugu
-- Kono
-- Moyamba
-- Port Loko
-- Pujehun
-- Tonkolili
-- Western Area Urban
-- Western Area Rural
-
-Create:
+The equivalent behavior should be:
 
 ```go
-type DistrictCoordinates struct {
-    Name      string
-    Latitude  float64
-    Longitude float64
+port := os.Getenv("PORT")
+if port == "" {
+    port = existingConfiguredPort
 }
+
+address := "0.0.0.0:" + port
 ```
 
-Keep the mapping in:
+Do not create a second Gin router.
 
-```text
-internal/weather/districts.go
-```
+Do not create a second server entry point.
 
-Use reasonable central coordinates and document the source or approximation.
-
-### Weather route
-
-```text
-GET /api/v1/weather?district=Bo
-```
-
-Return:
-
-- District
-- Current temperature
-- Relative humidity
-- Current precipitation
-- Wind speed
-- Seven-day daily minimum temperature
-- Seven-day daily maximum temperature
-- Rain probability
-- Total precipitation
-- Fetch time
-- Whether the result came from cache
-
-### Weather cache
-
-Use the `weather_cache` table.
-
-Processing order:
-
-1. Validate district.
-2. Check cached record.
-3. Return cache if younger than the configured duration.
-4. Otherwise call Open-Meteo.
-5. Validate provider response.
-6. Save the response.
-7. Return the new weather object.
-8. Return a clear service error if no valid cache exists and the provider fails.
-
-Do not call Open-Meteo when a valid cache exists.
-
-### AI weather orchestration
-
-Create one orchestrator responsible for deciding when weather is required.
-
-Preferred approach:
-
-- Use Groq tool/function calling when supported by the configured model.
-
-Required fallback:
-
-- Detect weather-related questions in the backend.
-- Fetch weather before the model request.
-- Add the weather data to the prompt.
-- Do not allow the model to invent current conditions.
-
-Possible weather-intent terms include:
-
-- Weather
-- Rain
-- Rainfall
-- Temperature
-- Humidity
-- Tomorrow
-- This week
-- Planting conditions
-- Dry spell
-- Ren
-- Hot
-- Cold
-
-The backend must validate the district itself.
-
-Never execute arbitrary tools, commands, or URLs supplied by the model.
-
-Limit tool iterations.
+Modify the existing application startup path.
 
 ---
 
-## 12. Frontend Organization
+# 5. Verify the health endpoint
 
-The repository may contain a scattered prototype with:
-
-- A root `index.html`
-- One large `app.js`
-- One large `styles.css`
-- Static dashboard markup
-- LocalStorage-based mock data
-
-Recover useful design elements, but reorganize the frontend for Gin.
-
-### Required template structure
-
-```text
-web/templates/layouts/app.html
-web/templates/pages/assistant.html
-web/templates/partials/sidebar.html
-web/templates/partials/chat_message.html
-web/templates/partials/chat_history.html
-web/templates/partials/weather_card.html
-web/templates/partials/loading_indicator.html
-web/templates/partials/error_message.html
-```
-
-### Required static assets
-
-```text
-web/static/css/input.css
-web/static/css/app.css
-web/static/js/app.js
-web/static/js/assistant.js
-```
-
-### Page requirements
-
-The `/assistant` page must provide:
-
-#### Sidebar
-
-- AgriConnect AI brand
-- New conversation button
-- Conversation history
-- English/Krio selector
-- District selector
-- Crop selector
-- Weather shortcut
-
-#### Main chat area
-
-- Welcome state
-- Suggested agricultural questions
-- User and assistant message bubbles
-- Loading state
-- Streaming state
-- Error state
-- Retry action
-- Message input
-- Send button
-- Safety disclaimer
-- Source display when knowledge records were used
-
-#### Weather area
-
-- Selected district
-- Current conditions
-- Rain probability
-- Temperature
-- Humidity
-- Seven-day summary
-- Refresh behavior that respects backend caching
-
-### Responsive behavior
-
-The interface must work on:
-
-- Desktop
-- Tablet
-- Mobile
-
-On mobile:
-
-- Conversation sidebar becomes a drawer
-- Message input stays accessible
-- Selectors remain usable
-- Weather cards stack vertically
-- Content does not overflow horizontally
-
-### Design
-
-Use:
-
-```text
-Primary green: #2E7D32
-Secondary green: #4CAF50
-Accent gold: #FFC107
-Background: #F5F7F5
-Surface: #FFFFFF
-Text: #1F2937
-Muted text: #6B7280
-Border: #E5E7EB
-```
-
-Use Tailwind CSS and Lucide icons.
-
-Do not use emoji as the primary icon system.
-
-### Browser safety
-
-- Escape all AI content.
-- Do not inject raw model-generated HTML.
-- If rendering Markdown, use a safe renderer and sanitizer.
-- Prevent duplicate submissions.
-- Disable the send button during active requests.
-- Cancel or stop work when the browser disconnects.
-- Handle SSE parsing correctly.
-- Show clear failures without losing existing messages.
-
----
-
-## 13. Streaming Requirements
-
-Complete the streaming endpoint when possible.
-
-Use Server-Sent Events.
-
-Supported events:
-
-```text
-event: status
-data: {"message":"Searching agricultural resources"}
-
-event: status
-data: {"message":"Checking weather for Bo"}
-
-event: token
-data: {"text":"Yu"}
-
-event: complete
-data: {"message_id":"uuid"}
-
-event: error
-data: {"message":"The AI service is temporarily unavailable"}
-```
-
-Requirements:
-
-- Set correct SSE headers.
-- Flush events immediately.
-- Stop generation after client cancellation.
-- Accumulate the final assistant text safely.
-- Save the assistant message only when a complete response exists.
-- Send a clean error event on failure.
-- Provide a non-streaming fallback route.
-
----
-
-## 14. Middleware and Security
-
-Implement or repair:
-
-- Request ID middleware
-- Panic recovery
-- Anonymous user cookie middleware
-- Rate limiting
-- Request body size limits
-- Input validation
-- Safe error responses
-- Ownership checks
-- HTTP client timeouts
-- Secure cookie settings
-- Structured logs
-- No secret logging
-
-Do not return database errors or provider response bodies directly to users.
-
-Use stable public error messages and log internal details with request IDs.
-
----
-
-## 15. Docker and Development Tools
-
-Create or repair:
-
-### `Dockerfile`
-
-Use a multi-stage build.
-
-Stages should:
-
-1. Install frontend dependencies.
-2. Compile Tailwind CSS.
-3. Build the Go binary.
-4. Copy templates, static assets, prompts, migrations, and seed data.
-5. Run as a non-root user.
-
-### `docker-compose.yml`
-
-Include:
-
-- `app`
-- `db`
-
-Expose:
-
-```text
-Application: 8080
-PostgreSQL: 5432
-```
-
-The application must wait for PostgreSQL, run migrations, and start.
-
-### `Makefile`
-
-Provide:
-
-```text
-make dev
-make build
-make test
-make vet
-make migrate-up
-make migrate-down
-make seed
-make css
-make docker-up
-make docker-down
-```
-
-Repair existing commands rather than creating conflicting alternatives.
-
----
-
-## 16. Health Check
-
-Create:
+The application must expose:
 
 ```text
 GET /health
 ```
 
-Successful response:
+Requirements:
+
+* Return HTTP 200 when the application is ready.
+* Return JSON.
+* Do not require authentication.
+* Do not call Groq.
+* Do not call Open-Meteo.
+* Do not require Supabase to answer.
+* Avoid leaking database credentials or configuration.
+* Make the response fast.
+* Include a simple status such as `healthy`.
+* If a database-readiness check already exists, use a short timeout.
+* Do not let a slow external AI provider make Render mark the service unhealthy.
+
+Example response:
 
 ```json
 {
-  "status": "ok",
-  "database": "connected"
+  "status": "healthy"
 }
 ```
 
-Do not expose:
-
-- Database URL
-- Groq key
-- Groq model secrets
-- Environment secrets
-- Internal stack traces
-
-Return an appropriate non-200 status when the database is unavailable.
+Add or update tests for `/health`.
 
 ---
 
-## 17. Testing
+# 6. Create a production-ready Dockerfile
 
-Use interfaces and mocks so tests do not call live services.
+Inspect the current Dockerfile and improve it instead of blindly replacing it.
 
-Create or repair tests for:
+Use a multi-stage build where appropriate.
 
-### Knowledge retrieval
+The Docker build must:
 
-- Finds cassava documents from a cassava question
-- Finds disease documents from a symptom question
-- Ranks exact crop/category matches higher
-- Limits context size
-- Does not return unrelated documents
+1. Download Go dependencies.
+2. Compile the migration binary if the project uses one.
+3. Compile the server binary.
+4. Install Node dependencies only in a build stage.
+5. Compile Tailwind CSS.
+6. Copy templates into the final image.
+7. Copy static JavaScript, CSS, icons and images into the final image.
+8. Copy required configuration files.
+9. Copy migration files.
+10. Include CA certificates for HTTPS calls to Groq, Supabase and Open-Meteo.
+11. Avoid placing source-only tools in the final image.
+12. Avoid placing `.env` in the image.
+13. Avoid embedding credentials as Docker build arguments.
+14. Use a non-root runtime user where compatible with the application.
+15. Use predictable working directories.
+16. ensure the final image starts the correct binary.
 
-### Weather service
+Confirm the final image contains all of these at runtime:
 
-- Rejects unsupported districts
-- Returns a valid cached response
-- Refreshes expired cache
-- Avoids provider calls when cache is valid
-- Handles provider failure
-- Returns stale cache only when an explicit safe fallback policy exists
+```text
+Go server binary
+migration binary or migration command
+HTML templates
+Tailwind output CSS
+JavaScript files
+Lucide integration
+migration SQL files
+required prompt files
+required configuration files
+```
 
-### Chat service
+The application must not fail on Render because a template, CSS file, JavaScript file, migration or AI prompt is missing from the final image.
 
-- Saves user message
-- Applies English prompt behavior
-- Applies Krio prompt behavior
-- Includes agricultural context
-- Includes weather context when required
-- Limits recent history
-- Saves assistant response
-- Preserves user message when Groq fails
-- Rejects unauthorized conversation ownership
+---
 
-### Handlers
+# 7. Add a safe production startup process
 
-At minimum, verify:
+Inspect the current migration process.
 
-- Anonymous cookie creation
-- Conversation ownership checks
-- Message validation
-- Health route
-- Unsupported district error
-- Groq-unavailable response
+Use the actual existing migration implementation.
+
+Implement a production startup flow equivalent to:
+
+```text
+Apply pending database migrations
+→ Stop immediately if migration fails
+→ Start the Go server
+```
+
+This can be implemented using:
+
+* Render’s supported pre-deploy migration command, or
+* a small entrypoint script, or
+* the existing migration-and-start command
+
+Choose the approach that best matches the repository.
+
+Requirements:
+
+1. Migrations must be idempotent.
+2. Existing migrations must not be rewritten after deployment.
+3. Migration failures must stop the deployment.
+4. The server must not start against an outdated schema.
+5. Migration logs must not reveal credentials.
+6. The startup command must use the actual server binary.
+7. Do not run destructive down-migrations during deployment.
+8. Do not automatically delete or recreate production data.
+
+Create a script only if it improves reliability, for example:
+
+```text
+scripts/render-start.sh
+```
+
+Make it executable in the Docker image.
+
+---
+
+# 8. Create or repair `render.yaml`
+
+Create a root-level:
+
+```text
+render.yaml
+```
+
+Use the current official Render Blueprint specification.
+
+The Blueprint should define:
+
+## Web service
+
+* Type: public web service
+* Runtime: Docker
+* Repository Dockerfile
+* Health check path: `/health`
+* Automatic deployment from the selected branch
+* Production environment
+* Correct Docker context and Dockerfile path
+* Appropriate region selection or clear documentation
+* Web service name such as `agriconnect`
+
+## PostgreSQL database
+
+Define or reference a Render PostgreSQL database such as:
+
+```text
+agriconnect-db
+```
+
+Configure the web service’s `DATABASE_URL` from the database connection string using the supported Blueprint database reference.
+
+Do not hardcode the database password.
+
+## Public non-secret environment values
+
+Add appropriate non-secret values such as:
+
+```env
+APP_ENV=production
+COOKIE_SECURE=true
+COOKIE_SAME_SITE=lax
+STORAGE_DRIVER=supabase
+SUPABASE_STORAGE_BUCKET=crop-diagnosis-images
+MAX_IMAGE_SIZE_MB=5
+MAX_AUDIO_SIZE_MB=10
+MIN_IMAGE_WIDTH=256
+MIN_IMAGE_HEIGHT=256
+MAX_IMAGE_PIXELS=25000000
+```
+
+Use the exact environment-variable names currently loaded by the application.
+
+Do not invent duplicate configuration names.
+
+## Secret environment values
+
+Mark secrets so the user must enter them in Render rather than committing them:
+
+```env
+GROQ_API_KEY
+SUPABASE_URL
+SUPABASE_SECRET_KEY
+JWT_ACCESS_SECRET
+JWT_REFRESH_SECRET
+```
+
+Also include any other secret that the inspected code genuinely requires.
+
+Do not include real values.
+
+Use the appropriate Blueprint mechanism for dashboard-supplied secret values.
+
+## Optional services
+
+If Redis is genuinely required by the current code:
+
+* Determine whether it is required for startup or optional.
+* Add the appropriate Render key-value service or document the manual setup.
+* Do not add Redis merely because an old file mentions it.
+* If Redis is optional, make the application degrade safely without it.
+
+Validate `render.yaml` using an available Render CLI, schema validator or careful comparison with the current Blueprint specification.
+
+Do not claim validation passed unless it was actually validated.
+
+---
+
+# 9. Correct production environment handling
+
+Inspect every environment variable loaded by the application.
+
+Update `.env.example` so it contains placeholders only.
+
+It must never contain:
+
+* Real Groq keys
+* Real Supabase secret keys
+* Database passwords
+* JWT secrets
+* USSD provider secrets
+* Personal phone numbers
+* Production callback tokens
+
+Ensure `.gitignore` contains:
+
+```gitignore
+.env
+.env.local
+.env.production
+```
+
+Ensure `.dockerignore` excludes:
+
+```text
+.env
+.env.*
+.git
+.gitignore
+data/uploads
+temporary audio
+local test artifacts
+coverage files
+```
+
+Do not exclude `.env.example`.
+
+Create a complete production environment-variable table in the deployment documentation.
+
+For each variable, document:
+
+* Name
+* Required or optional
+* Example format without secret values
+* Purpose
+* Whether Render supplies it
+* Whether it must be entered manually
+
+Use the environment variables actually found in the codebase.
+
+---
+
+# 10. PostgreSQL compatibility
+
+Ensure the application can connect to Render PostgreSQL using one complete:
+
+```env
+DATABASE_URL
+```
+
+Requirements:
+
+1. Support a standard PostgreSQL connection URL.
+2. Do not require hardcoded localhost values in production.
+3. Do not split the URL incorrectly.
+4. Support SSL options present in the Render connection string.
+5. Use sensible connection-pool settings.
+6. Avoid opening excessive database connections on a small testing instance.
+7. Close the database connection during graceful shutdown.
+8. Apply migrations before serving traffic.
+9. Use the Render database’s internal connection string when referenced through the Blueprint.
+10. Keep local Docker Compose PostgreSQL working.
+
+Add a test for configuration parsing where practical.
+
+Do not replace PostgreSQL with Supabase Database unless the repository already uses it.
+
+Supabase remains the crop-image storage provider unless the codebase indicates otherwise.
+
+---
+
+# 11. Supabase production storage
+
+For Render hosting, do not depend on the container’s local filesystem for permanent crop images.
+
+Ensure production uses:
+
+```env
+STORAGE_DRIVER=supabase
+```
+
+Verify:
+
+* Supabase image upload works.
+* Private signed URLs work.
+* Image deletion works.
+* The private bucket remains private.
+* `GET /api/v1/diagnoses/:id/image` does not return 503 simply because local storage is disabled.
+* The Supabase secret stays server-side.
+* The browser never receives the secret key.
+* PostgreSQL stores only the storage object path.
+* Signed URLs are not stored permanently.
+* Ownership checks happen before generating a signed URL.
+
+If the Supabase implementation is still incomplete, finish the deployment-critical storage functions and add tests.
+
+Do not modify the AI diagnosis logic.
+
+---
+
+# 12. Static files and mobile navigation deployment
+
+The rendered production site must include the latest CSS and JavaScript, including the mobile hamburger menu.
+
+Verify:
+
+1. Tailwind CSS builds during Docker image creation.
+2. The final CSS file is copied into the runtime image.
+3. All JavaScript modules are copied.
+4. The hamburger menu JavaScript is loaded.
+5. Lucide icons initialize.
+6. Desktop navigation remains horizontal.
+7. Mobile navigation is vertical and collapsible.
+8. Browser caching does not permanently show an older CSS or JavaScript build.
+
+Implement a simple cache-busting strategy if the project does not already have one.
+
+Acceptable approaches include:
+
+* Content-hashed asset filenames, or
+* An asset version derived from the deployment commit, or
+* Version query parameters generated from a build version
+
+Do not disable all browser caching globally without reason.
+
+HTML pages should not become permanently cached during active user testing.
+
+Confirm the Docker image contains the newly built static assets rather than stale files from a previous build layer.
+
+---
+
+# 13. Production cookies and proxy behavior
+
+Render terminates HTTPS before forwarding traffic to the application.
+
+Ensure production authentication works behind a reverse proxy.
+
+Requirements:
+
+* Secure cookies enabled in production
+* HTTP-only authentication cookies
+* Appropriate SameSite behavior
+* Correct cookie path
+* No hardcoded localhost cookie domain
+* Respect forwarded HTTPS information where needed
+* Avoid redirect loops
+* Do not trust arbitrary proxy headers from untrusted direct clients
+* APP_URL or equivalent production URL must be configurable
+* Logout must clear cookies correctly
+
+Do not implement authentication from scratch if it already exists.
+
+Only make it deployment-compatible.
+
+---
+
+# 14. Logging and error handling
+
+Production logs must go to standard output and standard error.
+
+Requirements:
+
+* Use structured logs where the project already supports them.
+* Log startup stages.
+* Log successful database connection without credentials.
+* Log migration success or failure.
+* Log the selected storage driver without secrets.
+* Log the server port.
+* Do not log Groq keys.
+* Do not log Supabase keys.
+* Do not log JWT secrets.
+* Do not log database passwords.
+* Do not log full voice transcripts by default.
+* Do not log uploaded image bytes.
+* Return safe user-facing errors.
+* Keep enough error context for Render logs.
+
+Do not write essential logs only to local files because the Render container filesystem is not the primary logging system.
+
+---
+
+# 15. Preserve local development
+
+Render changes must not break local development.
+
+The following should continue working:
+
+```bash
+go run ./cmd/server
+docker compose up --build
+go test ./...
+```
+
+Local development may continue using:
+
+```env
+STORAGE_DRIVER=local
+LOCAL_UPLOAD_DIR=./data/uploads
+```
+
+Production must support:
+
+```env
+STORAGE_DRIVER=supabase
+```
+
+Keep the same application and codebase for both environments.
+
+Do not create a separate Render-only copy of the application.
+
+---
+
+# 16. Do not commit secrets
+
+Search the repository for accidentally committed secrets.
+
+Inspect:
+
+```bash
+git grep -n "sb_secret_"
+git grep -n "gsk_"
+git grep -n "GROQ_API_KEY="
+git grep -n "SUPABASE_SECRET_KEY="
+git grep -n "JWT_ACCESS_SECRET="
+git grep -n "JWT_REFRESH_SECRET="
+```
+
+Also inspect Git status and tracked environment files.
+
+If a real secret appears:
+
+1. Remove it from tracked files.
+2. Replace it with a placeholder.
+3. State clearly in the report that the exposed key should be rotated.
+4. Do not print the complete key in the report.
+5. Do not attempt to silently hide the incident.
+
+Do not rewrite Git history unless explicitly authorized.
+
+---
+
+# 17. Add deployment documentation
+
+Create:
+
+```text
+RENDER_DEPLOYMENT.md
+```
+
+The guide must include:
+
+## Render resources
+
+* One Render Web Service
+* One Render PostgreSQL database
+* Supabase private storage
+* Groq API
+* Open-Meteo
+* Optional Redis or key-value service only if genuinely required
+
+## Manual dashboard deployment
+
+Document:
+
+1. Push repository to GitHub.
+2. Sign in to Render.
+3. Create a Blueprint from `render.yaml`, or create the services manually.
+4. Select the correct branch.
+5. Select a region.
+6. Keep the web service and database in the same region.
+7. Enter all secret environment variables.
+8. Deploy.
+9. Watch build logs.
+10. Confirm migrations.
+11. Open `/health`.
+12. Test registration and login.
+13. Test the AI assistant.
+14. Test crop diagnosis.
+15. Test voice transcription.
+16. Test Supabase image display.
+17. Test mobile navigation.
+18. Configure the USSD callback URL manually if the existing USSD provider requires it.
+
+Do not implement or change the USSD logic.
+
+Only document the final public callback URL pattern based on the route already present in the repository.
+
+## Required secret variables
+
+List every required secret discovered during inspection.
+
+Do not place values in the guide.
+
+## Testing checklist
+
+Include exact public routes to test.
+
+## Troubleshooting
+
+Include solutions for:
+
+* No open port detected
+* Application binding to localhost
+* Database connection refused
+* Migration failure
+* Missing template
+* Missing CSS or JavaScript
+* Stale static assets
+* Supabase 401 or 403
+* Groq authentication failure
+* Health check failure
+* Secure-cookie login issue
+* Incorrect APP_URL
+* Service starts locally but fails in Docker
+
+---
+
+# 18. Add a deployment checklist
+
+Create:
+
+```text
+RENDER_DEPLOYMENT_CHECKLIST.md
+```
+
+Include checkboxes for:
+
+## Before deployment
+
+* Tests pass
+* Docker image builds
+* `.env` ignored
+* No real secrets in repository
+* Tailwind CSS compiled
+* Templates copied
+* Static JavaScript copied
+* Migrations included
+* Health endpoint works
+* Supabase signed URLs work
+
+## Render configuration
+
+* Web service created
+* PostgreSQL created
+* Same region selected
+* Database URL connected
+* Groq key added
+* Supabase URL added
+* Supabase secret key added
+* JWT secrets added
+* Storage driver set to Supabase
+* Health path set to `/health`
+
+## After deployment
+
+* `/health` returns 200
+* Home page loads
+* Mobile hamburger menu works
+* Registration works
+* Login works
+* AI assistant works
+* Weather works
+* Crop upload works
+* Diagnosis result works
+* Private image loads
+* Voice transcription works
+* Officer route protection works
+* Admin route protection works
+* USSD callback route is publicly reachable if implemented
+* No secrets appear in browser source
+* No critical errors appear in Render logs
+
+---
+
+# 19. Test the final deployment image locally
 
 Run:
 
 ```bash
+go mod tidy
 go test ./...
+go test -race ./...
 go vet ./...
-go build ./cmd/server
+go build ./...
+npm install
+npx tailwindcss -i ./web/static/css/input.css -o ./web/static/css/app.css --minify
+docker compose config
+docker build --no-cache -t agriconnect-render .
 ```
 
-Fix every failure.
+If Docker is available, run the image using safe local test environment values.
+
+Confirm:
+
+* The container starts.
+* Migrations run.
+* The server binds to the supplied `PORT`.
+* `/health` returns 200.
+* Templates load.
+* CSS loads.
+* JavaScript loads.
+* The mobile hamburger menu works.
+* The application connects to PostgreSQL.
+* Startup fails safely when required variables are missing.
+
+Do not call paid Groq endpoints automatically in normal unit tests.
+
+Do not call live Supabase automatically unless an explicitly enabled integration-test mode exists.
 
 ---
 
-## 18. README
+# 20. Optional Render integration test
 
-Create or repair `README.md`.
+If Render credentials or CLI access are already configured in the environment, validate the Blueprint.
 
-It must explain:
+Do not ask for or print personal Render API keys.
 
-1. Project purpose
-2. Implemented Phase 1–3 scope
-3. Architecture
-4. Folder structure
-5. Prerequisites
-6. Environment setup
-7. Running locally
-8. Running with Docker
-9. Database migrations
-10. Seeding agricultural documents
-11. Tailwind compilation
-12. Groq configuration
-13. Open-Meteo integration
-14. Running tests
-15. API routes
-16. Anonymous user behavior
-17. Security notes
-18. Known limitations
-19. Future Phase 4 and Phase 5 extension points
+If deployment access is not available:
 
-Known limitations must include:
+* Prepare the repository completely.
+* Validate everything possible locally.
+* Provide the exact manual dashboard steps.
+* Do not claim that the application was deployed.
 
-- AI advice can be incorrect
-- Krio output requires community review
-- Seed agricultural material requires expert validation
-- Weather depends on an external provider
-- No crop-image diagnosis yet
-- No speech input yet
-- No complete authentication yet
-- No extension-officer review workflow yet
+If actual deployment access is available and authorized:
+
+1. Deploy the Blueprint.
+2. Monitor logs.
+3. Verify `/health`.
+4. Verify public pages.
+5. Record the generated public service URL.
+6. Do not expose secret values.
+7. Record the actual deployment result.
 
 ---
 
-## 19. Missing File Policy
+# 21. Final acceptance criteria
 
-When a required file is missing:
+The Render preparation is complete only when:
 
-- Create it.
-- Implement it completely enough for Phase 1–3.
-- Connect it to the application.
-- Add tests when it contains business logic.
-
-Do not create empty placeholder files.
-
-When an existing file is incomplete:
-
-- Finish it.
-- Preserve useful code.
-- Remove dead code.
-- Update all references.
-
-When an existing file is in the wrong folder:
-
-- Move it.
-- Update package declarations.
-- Update imports.
-- Update template/static references.
-- Update Docker copy paths.
-- Update tests.
-
-When two files conflict:
-
-- Choose or merge the stronger design.
-- Avoid duplicated behavior.
-- Record the decision in `RECOVERY_REPORT.md`.
+* The entire repository was inspected.
+* The server binds to `0.0.0.0:$PORT`.
+* `/health` returns HTTP 200.
+* The Docker image builds.
+* The Docker image contains templates and static assets.
+* Tailwind builds during deployment.
+* The latest hamburger-menu JavaScript is deployed.
+* PostgreSQL connects through `DATABASE_URL`.
+* Migrations run before the server starts.
+* Supabase is used for production crop images.
+* No real secrets are committed.
+* `render.yaml` exists and uses valid current syntax.
+* Render secrets are represented as placeholders.
+* Local development still works.
+* Existing AI and USSD logic remains intact.
+* Tests pass.
+* Deployment documentation exists.
+* A deployment checklist exists.
+* The final report honestly states what was and was not executed.
 
 ---
 
-## 20. Completion Acceptance Criteria
+# 22. Final report
 
-Do not finish until all relevant conditions pass.
+Update:
 
-### Repository
+```text
+RENDER_DEPLOYMENT_REPORT.md
+```
 
-- Files are organized coherently.
-- One active application entry point exists.
-- No required feature is left disconnected.
-- No duplicate route registration exists.
-- No secret is committed.
+The final report must contain:
 
-### Application
+1. Repository structure inspected
+2. Existing deployment problems found
+3. Files created
+4. Files modified
+5. Port-binding changes
+6. Dockerfile changes
+7. Migration-startup changes
+8. `render.yaml` configuration
+9. PostgreSQL configuration
+10. Supabase production-storage status
+11. Static-asset build and cache-busting status
+12. Environment variables required
+13. Secret scan results
+14. Tests executed
+15. Test results
+16. Docker build result
+17. Local container result
+18. Blueprint validation result
+19. Actual Render deployment result, if authorized
+20. Remaining manual dashboard steps
+21. Known limitations
+22. Final public-testing checklist
 
-- `docker compose up --build` starts the database and application.
-- `/health` confirms database connectivity.
-- `/assistant` renders correctly.
-- An anonymous user cookie is created.
-- A conversation can be created.
-- A conversation list can be loaded.
-- Conversation messages remain after refresh.
-- A conversation can be deleted by its owner.
-- Another anonymous browser cannot access it.
+Do not only summarize what should be done.
 
-### AI
+Make the deployment changes, run the available checks, fix failures and prepare the repository for Render.
 
-- English mode works.
-- Krio mode sends the correct prompt instructions.
-- Agricultural context is retrieved and included.
-- Responses are saved.
-- Groq failure produces a safe UI error.
-- Current weather is never invented.
-
-### Weather
-
-- Supported district validation works.
-- Open-Meteo data is transformed correctly.
-- Cache is used.
-- Seven-day forecast displays.
-- Weather questions receive real weather context.
-
-### Frontend
-
-- Desktop layout works.
-- Tablet layout works.
-- Mobile layout works.
-- Streaming or fallback chat works.
-- Duplicate message submission is prevented.
-- Errors and loading states are visible.
-- AI output is rendered safely.
-
-### Quality
-
-- `go mod tidy` succeeds.
-- `go test ./...` succeeds.
-- `go vet ./...` succeeds.
-- `go build ./cmd/server` succeeds.
-- Tailwind compilation succeeds.
-- Docker build succeeds.
-- README instructions are reproducible.
-
----
-
-## 21. Final Work Report
-
-After completing the repository, respond with:
-
-1. Initial problems discovered
-2. Files moved
-3. Files merged
-4. Files created
-5. Files removed, if any, and why
-6. Architecture implemented
-7. Database migrations completed
-8. Routes completed
-9. AI integration completed
-10. Knowledge retrieval completed
-11. Weather integration completed
-12. Frontend connections completed
-13. Tests added
-14. Commands executed
-15. Test and build results
-16. Remaining limitations
-17. Exact commands I should run locally
-
-Also ensure `RECOVERY_REPORT.md` contains this information in the repository.
-
----
-
-## 22. Start Now
-
-Begin by inspecting the repository.
-
-Do not ask me to identify which scattered files belong together. Determine that from their contents, imports, routes, templates, and intended Phase 1–3 architecture.
-
-Do not stop at an audit.
-
-Organize, repair, connect, implement, test, and document the project.
+Do not mark a step as passed unless you executed it successfully.
