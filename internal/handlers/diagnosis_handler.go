@@ -223,7 +223,13 @@ func (h *DiagnosisHandler) ServeImage(c *gin.Context) {
 	}
 
 	signedURL, err := h.objStore.SignedURL(c.Request.Context(), d.ImageStoragePath, 5*time.Minute)
-	if err == nil && signedURL != d.ImageStoragePath {
+	if err != nil {
+		log.Printf("failed to get signed URL for diagnosis %s: %v", id, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serve image"})
+		return
+	}
+
+	if signedURL != d.ImageStoragePath {
 		c.Redirect(http.StatusFound, signedURL)
 		return
 	}
@@ -233,14 +239,15 @@ func (h *DiagnosisHandler) ServeImage(c *gin.Context) {
 		contentType = "application/octet-stream"
 	}
 
-	fullPath := localFullPath(h.objStore, d.ImageStoragePath)
-	if fullPath == "" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Image not found"})
+	relPath := d.ImageStoragePath
+	ls, ok := h.objStore.(*storage.LocalStorage)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serve image"})
 		return
 	}
-
+	fullPath := ls.FullPath(relPath)
 	cleaned := filepath.Clean(fullPath)
-	localDir := filepath.Clean(localFullPath(h.objStore, ""))
+	localDir := filepath.Clean(ls.FullPath(""))
 	if !strings.HasPrefix(cleaned, localDir) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 		return
@@ -257,14 +264,6 @@ func (h *DiagnosisHandler) ServeImage(c *gin.Context) {
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Status(http.StatusOK)
 	io.Copy(c.Writer, f)
-}
-
-func localFullPath(store storage.ObjectStorage, path string) string {
-	ls, ok := store.(*storage.LocalStorage)
-	if !ok {
-		return ""
-	}
-	return ls.FullPath(path)
 }
 
 func (h *DiagnosisHandler) ContinueInChat(c *gin.Context) {

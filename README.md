@@ -161,7 +161,15 @@ go build ./cmd/server
 | GET | `/diagnose` | Crop diagnosis form |
 | GET | `/diagnoses` | Diagnosis history |
 | GET | `/diagnoses/:id` | Diagnosis detail |
-| GET | `/` | Redirects to `/assistant` |
+| GET | `/login` | Login page |
+| GET | `/register` | Registration page |
+| GET | `/officer` | Officer dashboard |
+| GET | `/admin/users` | Admin user management |
+| POST | `/api/v1/auth/register` | Register a new user |
+| POST | `/api/v1/auth/login` | Login |
+| POST | `/api/v1/auth/refresh` | Refresh access token |
+| POST | `/api/v1/auth/logout` | Logout |
+| GET | `/api/v1/auth/me` | Get current user profile |
 | POST | `/api/v1/conversations` | Create conversation |
 | GET | `/api/v1/conversations` | List conversations |
 | GET | `/api/v1/conversations/:id` | Get conversation with messages |
@@ -176,6 +184,15 @@ go build ./cmd/server
 | GET | `/api/v1/diagnoses/:id/image` | Serve diagnosis image (ownership-checked) |
 | POST | `/api/v1/diagnoses/:id/continue-in-chat` | Continue diagnosis in AI chat |
 | POST | `/api/v1/ai/transcribe` | Transcribe audio recording (multipart) |
+| GET | `/api/v1/officer/diagnoses` | Officer diagnosis queue (paginated, filterable) |
+| GET | `/api/v1/officer/diagnoses/:id` | Officer get diagnosis detail with reviews |
+| POST | `/api/v1/officer/diagnoses/:id/reviews` | Create review for a diagnosis |
+| PUT | `/api/v1/officer/diagnoses/:id/reviews/:reviewID` | Update an existing review |
+| GET | `/api/v1/admin/users` | List all users |
+| PATCH | `/api/v1/admin/users/:userId/role` | Update user role |
+| PATCH | `/api/v1/admin/users/:userId/status` | Update user active status |
+| GET | `/api/v1/notifications` | List user notifications |
+| PATCH | `/api/v1/notifications/:id/read` | Mark notification as read |
 
 ## Anonymous User Behavior
 
@@ -206,5 +223,5 @@ Users are identified by an HTTP-only cookie (`agriconnect_user`) set on first vi
 - Audio recordings are not retained by default
 - Seed agricultural material requires expert validation before use in production
 - Weather depends on an external free provider (Open-Meteo)
-- Full authentication is not yet implemented
-- Extension-officer review workflow is not yet implemented
+- In-memory rate limiting is not suitable for multi-instance production
+- Anonymous-data transfer depends on the browser retaining its anonymous cookie

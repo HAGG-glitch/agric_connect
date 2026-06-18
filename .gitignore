@@ -39,3 +39,5 @@ Thumbs.db
 .env.production
 # Docker
 docker-data/
+prompt.md
+report.md
