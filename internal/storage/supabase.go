@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -136,12 +137,22 @@ func (s *SupabaseStorage) SignedURL(ctx context.Context, path string, expiry tim
 		return "", fmt.Errorf("decoding signed url response: %w", err)
 	}
 
-	if result.SignedURL != "" {
-		return result.SignedURL, nil
+	raw := result.SignedURL
+	if raw == "" {
+		raw = result.Symmetric
 	}
-	if result.Symmetric != "" {
-		return result.Symmetric, nil
+	if raw == "" {
+		return "", fmt.Errorf("supabase signed url response missing signedURL field")
 	}
 
-	return "", fmt.Errorf("supabase signed url response missing signedURL field")
+	if strings.HasPrefix(raw, "http://") || strings.HasPrefix(raw, "https://") {
+		return raw, nil
+	}
+
+	baseURL := strings.TrimRight(s.url, "/")
+	if strings.HasPrefix(raw, "/") {
+		return baseURL + raw, nil
+	}
+
+	return baseURL + "/" + raw, nil
 }

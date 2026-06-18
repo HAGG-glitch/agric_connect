@@ -1,6 +1,7 @@
 package diagnosis
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,6 +56,36 @@ type CropDiagnosis struct {
 
 func (CropDiagnosis) TableName() string {
 	return "crop_diagnoses"
+}
+
+func (d *CropDiagnosis) GetObservedSigns() []string {
+	return parseJSONArray(d.ObservedSigns)
+}
+
+func (d *CropDiagnosis) GetPossibleAlternatives() []string {
+	return parseJSONArray(d.PossibleAlternatives)
+}
+
+func (d *CropDiagnosis) GetRecommendedActions() []string {
+	return parseJSONArray(d.RecommendedActions)
+}
+
+func (d *CropDiagnosis) GetPreventionTips() []string {
+	return parseJSONArray(d.PreventionTips)
+}
+
+func parseJSONArray(data datatypes.JSON) []string {
+	if data == nil || string(data) == "" || string(data) == "null" {
+		return nil
+	}
+	var result []string
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil
+	}
+	if result == nil {
+		return nil
+	}
+	return result
 }
 
 func (d *CropDiagnosis) BeforeCreate(tx *gorm.DB) error {

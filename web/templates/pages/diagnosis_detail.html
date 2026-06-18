@@ -18,23 +18,12 @@
     </div>
   </div>
 
-  {{if eq $d.Status "processing"}}
-  <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-    <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-    <p class="text-blue-700 font-medium">Analysis in progress...</p>
-    <p class="text-sm text-blue-600 mt-1">Please wait while the AI analyzes your image. This page will update automatically.</p>
-    <meta http-equiv="refresh" content="5">
+  <div class="flex flex-wrap gap-2 mb-6">
+    <span class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full font-medium">Image: uploaded</span>
+    <span class="text-xs {{if eq $d.Status "completed"}}bg-green-50 text-green-600{{else if eq $d.Status "processing"}}bg-blue-50 text-blue-600{{else}}bg-red-50 text-red-600{{end}} px-2 py-1 rounded-full font-medium">AI analysis: {{$d.Status}}</span>
+    <span class="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-full font-medium">Officer review: pending</span>
   </div>
 
-  {{else if eq $d.Status "failed"}}
-  <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-    <i data-lucide="x-circle" class="w-8 h-8 text-red-500 mx-auto mb-3"></i>
-    <p class="text-red-700 font-medium">Analysis Failed</p>
-    <p class="text-sm text-red-600 mt-1">{{$d.ErrorMessage}}</p>
-    <a href="/diagnose" class="inline-block mt-4 bg-[#2E7D32] text-white px-4 py-2 rounded-xl text-sm font-medium">Try Again</a>
-  </div>
-
-  {{else}}
   <div class="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
     <div class="flex items-start gap-4">
       <div class="w-24 h-24 rounded-lg bg-[#F5F7F5] flex-shrink-0 overflow-hidden border border-[#E5E7EB]">
@@ -51,6 +40,26 @@
     </div>
   </div>
 
+  {{if eq $d.Status "processing"}}
+  <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center mb-6">
+    <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+    <p class="text-blue-700 font-medium">Analysis in progress...</p>
+    <p class="text-sm text-blue-600 mt-1">Please wait while the AI analyzes your image. This page will update automatically.</p>
+    <meta http-equiv="refresh" content="5">
+  </div>
+
+  {{else if eq $d.Status "failed"}}
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center mb-6">
+    <i data-lucide="alert-triangle" class="w-8 h-8 text-amber-600 mx-auto mb-3"></i>
+    <p class="text-amber-800 font-medium">AI Analysis Could Not Be Completed</p>
+    <p class="text-sm text-amber-700 mt-1">The image was uploaded successfully, but AI analysis could not be completed. You can retry analysis or contact an extension officer.</p>
+    <div class="flex gap-3 justify-center mt-4">
+      <a href="/diagnose" class="bg-[#2E7D32] text-white px-4 py-2 rounded-xl text-sm font-medium">Try Again</a>
+      <button onclick="deleteAndGoBack('{{$d.ID}}')" class="px-4 py-2 border border-red-200 text-red-600 rounded-xl text-sm hover:bg-red-50">Delete</button>
+    </div>
+  </div>
+
+  {{else}}
   <div class="space-y-4">
     <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
       <h3 class="font-semibold text-[#1F2937] mb-2">Description</h3>
@@ -61,13 +70,13 @@
       <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
         <h3 class="font-semibold text-[#1F2937] mb-2 text-sm">Observed Signs</h3>
         <ul class="text-sm text-[#4B5563] space-y-1">
-          {{range $d.ObservedSigns}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
+          {{range $d.GetObservedSigns}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
         </ul>
       </div>
       <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
         <h3 class="font-semibold text-[#1F2937] mb-2 text-sm">Possible Alternatives</h3>
         <ul class="text-sm text-[#4B5563] space-y-1">
-          {{range $d.PossibleAlternatives}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
+          {{range $d.GetPossibleAlternatives}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
         </ul>
       </div>
     </div>
@@ -75,14 +84,14 @@
     <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
       <h3 class="font-semibold text-[#1F2937] mb-2 text-sm">Recommended Actions</h3>
       <ul class="text-sm text-[#4B5563] space-y-1">
-        {{range $d.RecommendedActions}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
+        {{range $d.GetRecommendedActions}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
       </ul>
     </div>
 
     <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
       <h3 class="font-semibold text-[#1F2937] mb-2 text-sm">Prevention Tips</h3>
       <ul class="text-sm text-[#4B5563] space-y-1">
-        {{range $d.PreventionTips}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
+        {{range $d.GetPreventionTips}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
       </ul>
     </div>
 
@@ -103,8 +112,8 @@
     </div>
   </div>
   {{end}}
-  {{end}}
 </div>
+{{end}}
 
 <script>
   async function continueInChat(id) {
