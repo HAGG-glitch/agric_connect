@@ -26,11 +26,15 @@ type Config struct {
 	CookieDomain   string
 	CookieSameSite string
 
-	MaxMessageLength       int
-	MaxContextMessages     int
-	RateLimitPerMinute     int
-	RateLimitAPIPerMinute  int
-	RateLimitWeatherPerMinute int
+	MaxMessageLength           int
+	MaxContextMessages         int
+	MaxKnowledgeContextChars   int
+	MaxDiagnosisContextChars   int
+	GroqChatMaxOutputTokens    int
+	GroqVisionMaxOutputTokens  int
+	RateLimitPerMinute         int
+	RateLimitAPIPerMinute      int
+	RateLimitWeatherPerMinute  int
 
 	GroqVisionModel          string
 	GroqTranscriptionModel   string
@@ -71,8 +75,12 @@ func Load() (*Config, error) {
 		CookieSameSite:         getEnv("COOKIE_SAME_SITE", "lax"),
 		GroqRequestTimeoutSecs: getEnvInt("GROQ_REQUEST_TIMEOUT_SECONDS", 60),
 		WeatherCacheMinutes:    getEnvInt("WEATHER_CACHE_MINUTES", 20),
-		MaxMessageLength:       getEnvInt("MAX_MESSAGE_LENGTH", 4000),
-		MaxContextMessages:     getEnvInt("MAX_CONTEXT_MESSAGES", 12),
+		MaxMessageLength:           getEnvInt("MAX_MESSAGE_LENGTH", 4000),
+		MaxContextMessages:         getEnvInt("MAX_CONTEXT_MESSAGES", 12),
+		MaxKnowledgeContextChars:   getEnvInt("MAX_KNOWLEDGE_CONTEXT_CHARS", 2000),
+		MaxDiagnosisContextChars:   getEnvInt("MAX_DIAGNOSIS_CONTEXT_CHARS", 1500),
+		GroqChatMaxOutputTokens:    getEnvInt("GROQ_CHAT_MAX_OUTPUT_TOKENS", 1024),
+		GroqVisionMaxOutputTokens:  getEnvInt("GROQ_VISION_MAX_OUTPUT_TOKENS", 512),
 		RateLimitPerMinute:         getEnvInt("RATE_LIMIT_REQUESTS_PER_MINUTE", 20),
 		RateLimitAPIPerMinute:      getEnvInt("RATE_LIMIT_API_PER_MINUTE", 20),
 		RateLimitWeatherPerMinute:  getEnvInt("RATE_LIMIT_WEATHER_PER_MINUTE", 30),

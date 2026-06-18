@@ -3,6 +3,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('diagnosis-form');
   if (!form) return;
+  if (form.dataset.initialized === "true") return;
+  form.dataset.initialized = "true";
 
   const dropZone = document.getElementById('image-drop-zone');
   const fileInput = document.getElementById('image-input');

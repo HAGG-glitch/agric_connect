@@ -233,6 +233,42 @@ func (h *AuthHandler) getAnonymousID(c *gin.Context) uuid.UUID {
 	return id
 }
 
+func (h *AuthHandler) UpdatePreferences(c *gin.Context) {
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if !exists || authUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+		return
+	}
+	user, ok := authUser.(*middleware.AuthUser)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+		return
+	}
+
+	var req struct {
+		FullName          *string `json:"full_name"`
+		District          *string `json:"district"`
+		PreferredLanguage *string `json:"preferred_language"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	updated, err := h.authSvc.UpdatePreferences(c.Request.Context(), auth.UpdatePreferencesInput{
+		UserID:            user.ID,
+		FullName:          req.FullName,
+		District:          req.District,
+		PreferredLanguage: req.PreferredLanguage,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update preferences"})
+		return
+	}
+
+	c.JSON(http.StatusOK, updated)
+}
+
 func (h *AuthHandler) isAuthenticated(c *gin.Context) bool {
 	_, exists := c.Get(middleware.ContextKeyUser)
 	return exists

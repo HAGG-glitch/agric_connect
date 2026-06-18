@@ -99,7 +99,7 @@ func main() {
 	authSvc := auth.NewService(db, cfg.JWTAccessSecret, cfg.JWTRefreshSecret, accessDur, refreshDur)
 
 	// Handlers
-	pageHandler := handlers.NewPageHandler(cfg)
+	pageHandler := handlers.NewPageHandler(cfg, authSvc)
 	convHandler := handlers.NewConversationHandler(chatSvc)
 	chatHandler := handlers.NewChatHandler(chatSvc, orchestrator, cfg)
 	weatherHandler := handlers.NewWeatherHandler(weatherSvc)
@@ -158,6 +158,7 @@ func main() {
 		publicPages.GET("/diagnose", diagnosisHandler.DiagnosePage)
 		publicPages.GET("/diagnoses", diagnosisHandler.HistoryPage)
 		publicPages.GET("/diagnoses/:id", diagnosisHandler.DetailPage)
+		publicPages.GET("/profile", pageHandler.ProfilePage)
 	}
 
 	// Auth pages (with optional auth to redirect already-logged-in users)
@@ -201,6 +202,7 @@ func main() {
 		// Auth
 		v1User.POST("/auth/logout", authHandler.Logout)
 		v1User.GET("/auth/me", authHandler.Me)
+		v1User.PATCH("/profile/preferences", authHandler.UpdatePreferences)
 
 		// Conversations
 		v1User.POST("/conversations", convHandler.Create)

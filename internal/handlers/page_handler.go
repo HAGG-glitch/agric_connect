@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/agriconnect-ai/internal/auth"
 	"github.com/agriconnect-ai/internal/config"
 	"github.com/agriconnect-ai/internal/middleware"
 	"github.com/agriconnect-ai/internal/weather"
@@ -12,11 +13,12 @@ import (
 )
 
 type PageHandler struct {
-	cfg *config.Config
+	cfg    *config.Config
+	authSvc auth.Service
 }
 
-func NewPageHandler(cfg *config.Config) *PageHandler {
-	return &PageHandler{cfg: cfg}
+func NewPageHandler(cfg *config.Config, authSvc auth.Service) *PageHandler {
+	return &PageHandler{cfg: cfg, authSvc: authSvc}
 }
 
 func (h *PageHandler) AssistantPage(c *gin.Context) {
@@ -38,5 +40,35 @@ func (h *PageHandler) AssistantPage(c *gin.Context) {
 		"AIAvailable":   h.cfg.AIAvailable(),
 		"Year":          time.Now().Year(),
 		"ContentBlock":  "contentAssistant",
+	})
+}
+
+func (h *PageHandler) ProfilePage(c *gin.Context) {
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if !exists || authUser == nil {
+		c.Redirect(http.StatusSeeOther, "/login")
+		return
+	}
+	user, ok := authUser.(*middleware.AuthUser)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/login")
+		return
+	}
+
+	userView, err := h.authSvc.GetUser(c.Request.Context(), user.ID)
+	if err != nil {
+		c.HTML(http.StatusNotFound, "profile.html", gin.H{
+			"Title":  "AgriConnect AI - Profile",
+			"Error":  "User not found",
+			"Year":   time.Now().Year(),
+		})
+		return
+	}
+
+	c.HTML(http.StatusOK, "profile.html", gin.H{
+		"Title":     "AgriConnect AI - Profile",
+		"User":      userView,
+		"Districts": weather.SupportedDistricts,
+		"Year":      time.Now().Year(),
 	})
 }

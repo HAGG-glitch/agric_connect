@@ -44,12 +44,20 @@ type UserView struct {
 	Role              string    `json:"role"`
 }
 
+type UpdatePreferencesInput struct {
+	UserID            uuid.UUID
+	FullName          *string
+	District          *string
+	PreferredLanguage *string
+}
+
 type Service interface {
 	Register(ctx context.Context, input RegisterInput) (*TokenPair, error)
 	Login(ctx context.Context, input LoginInput) (*TokenPair, error)
 	RefreshToken(ctx context.Context, refreshTokenStr string) (*TokenPair, error)
 	Logout(ctx context.Context, userID, refreshTokenID uuid.UUID) error
 	GetUser(ctx context.Context, userID uuid.UUID) (*UserView, error)
+	UpdatePreferences(ctx context.Context, input UpdatePreferencesInput) (*UserView, error)
 	TransferAnonymousData(ctx context.Context, anonymousID, userID uuid.UUID) error
 	NormalizePhone(phone string) string
 }
@@ -230,6 +238,37 @@ func (s *service) GetUser(ctx context.Context, userID uuid.UUID) (*UserView, err
 	if err := s.db.WithContext(ctx).First(&user, "id = ?", userID).Error; err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
+	return &UserView{
+		ID:                user.ID,
+		FullName:          user.FullName,
+		PhoneNumber:       user.PhoneNumber,
+		District:          user.District,
+		PreferredLanguage: user.PreferredLanguage,
+		Role:              user.Role,
+	}, nil
+}
+
+func (s *service) UpdatePreferences(ctx context.Context, input UpdatePreferencesInput) (*UserView, error) {
+	var user User
+	if err := s.db.WithContext(ctx).First(&user, "id = ?", input.UserID).Error; err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	if input.FullName != nil {
+		user.FullName = *input.FullName
+	}
+	if input.District != nil {
+		user.District = *input.District
+	}
+	if input.PreferredLanguage != nil {
+		user.PreferredLanguage = *input.PreferredLanguage
+	}
+	user.UpdatedAt = time.Now().UTC()
+
+	if err := s.db.WithContext(ctx).Save(&user).Error; err != nil {
+		return nil, fmt.Errorf("updating user: %w", err)
+	}
+
 	return &UserView{
 		ID:                user.ID,
 		FullName:          user.FullName,

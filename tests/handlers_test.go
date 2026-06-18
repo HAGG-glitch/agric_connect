@@ -87,13 +87,14 @@ func (m *mockTranscriptionService) Transcribe(ctx context.Context, input transcr
 }
 
 type mockAuthService struct {
-	registerFunc             func(context.Context, auth.RegisterInput) (*auth.TokenPair, error)
-	loginFunc                func(context.Context, auth.LoginInput) (*auth.TokenPair, error)
-	refreshTokenFunc         func(context.Context, string) (*auth.TokenPair, error)
-	logoutFunc               func(context.Context, uuid.UUID, uuid.UUID) error
-	getUserFunc              func(context.Context, uuid.UUID) (*auth.UserView, error)
+	registerFunc              func(context.Context, auth.RegisterInput) (*auth.TokenPair, error)
+	loginFunc                 func(context.Context, auth.LoginInput) (*auth.TokenPair, error)
+	refreshTokenFunc          func(context.Context, string) (*auth.TokenPair, error)
+	logoutFunc                func(context.Context, uuid.UUID, uuid.UUID) error
+	getUserFunc               func(context.Context, uuid.UUID) (*auth.UserView, error)
+	updatePreferencesFunc     func(context.Context, auth.UpdatePreferencesInput) (*auth.UserView, error)
 	transferAnonymousDataFunc func(context.Context, uuid.UUID, uuid.UUID) error
-	normalizePhoneFunc       func(string) string
+	normalizePhoneFunc        func(string) string
 }
 
 func (m *mockAuthService) Register(ctx context.Context, input auth.RegisterInput) (*auth.TokenPair, error) {
@@ -136,6 +137,13 @@ func (m *mockAuthService) TransferAnonymousData(ctx context.Context, anonymousID
 		return m.transferAnonymousDataFunc(ctx, anonymousID, userID)
 	}
 	return fmt.Errorf("unexpected TransferAnonymousData call")
+}
+
+func (m *mockAuthService) UpdatePreferences(ctx context.Context, input auth.UpdatePreferencesInput) (*auth.UserView, error) {
+	if m.updatePreferencesFunc != nil {
+		return m.updatePreferencesFunc(ctx, input)
+	}
+	return &auth.UserView{ID: input.UserID, Role: "farmer"}, nil
 }
 
 func (m *mockAuthService) NormalizePhone(phone string) string {
