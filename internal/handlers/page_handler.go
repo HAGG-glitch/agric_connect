@@ -13,7 +13,7 @@ import (
 )
 
 type PageHandler struct {
-	cfg    *config.Config
+	cfg     *config.Config
 	authSvc auth.Service
 }
 
@@ -21,7 +21,42 @@ func NewPageHandler(cfg *config.Config, authSvc auth.Service) *PageHandler {
 	return &PageHandler{cfg: cfg, authSvc: authSvc}
 }
 
+func (h *PageHandler) Home(c *gin.Context) {
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if !exists || authUser == nil {
+		c.HTML(http.StatusOK, "landing.html", gin.H{
+			"Title": "AgriConnect AI - Agricultural Assistant for Sierra Leone",
+			"Year":  time.Now().Year(),
+		})
+		return
+	}
+	user, ok := authUser.(*middleware.AuthUser)
+	if !ok {
+		c.HTML(http.StatusOK, "landing.html", gin.H{
+			"Title": "AgriConnect AI - Agricultural Assistant for Sierra Leone",
+			"Year":  time.Now().Year(),
+		})
+		return
+	}
+	switch user.Role {
+	case "admin":
+		c.Redirect(http.StatusSeeOther, "/admin")
+	case "officer":
+		c.Redirect(http.StatusSeeOther, "/officer")
+	default:
+		c.Redirect(http.StatusSeeOther, "/dashboard")
+	}
+}
+
 func (h *PageHandler) AssistantPage(c *gin.Context) {
+	if !h.cfg.AllowAnonymousAssistant {
+		authUser, exists := c.Get(middleware.ContextKeyUser)
+		if !exists || authUser == nil {
+			c.Redirect(http.StatusSeeOther, "/register")
+			return
+		}
+	}
+
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
 

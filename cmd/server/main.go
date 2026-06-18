@@ -177,7 +177,7 @@ func main() {
 	publicPages := router.Group("")
 	publicPages.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
 	{
-		publicPages.GET("/", pageHandler.AssistantPage)
+		publicPages.GET("/", pageHandler.Home)
 		publicPages.GET("/assistant", pageHandler.AssistantPage)
 		publicPages.GET("/dashboard", dashboardHandler.DashboardPage)
 		publicPages.GET("/diagnose", diagnosisHandler.DiagnosePage)

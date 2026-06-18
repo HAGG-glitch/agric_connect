@@ -28,9 +28,28 @@ func NewAuthHandler(authSvc auth.Service, secure bool, domain string, sameSite s
 	}
 }
 
+func (h *AuthHandler) roleHome(c *gin.Context) string {
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if !exists || authUser == nil {
+		return "/dashboard"
+	}
+	user, ok := authUser.(*middleware.AuthUser)
+	if !ok {
+		return "/dashboard"
+	}
+	switch user.Role {
+	case "admin":
+		return "/admin"
+	case "officer":
+		return "/officer"
+	default:
+		return "/dashboard"
+	}
+}
+
 func (h *AuthHandler) RegisterPage(c *gin.Context) {
 	if h.isAuthenticated(c) {
-		c.Redirect(http.StatusSeeOther, "/assistant")
+		c.Redirect(http.StatusSeeOther, h.roleHome(c))
 		return
 	}
 	c.HTML(http.StatusOK, "register.html", gin.H{
@@ -43,7 +62,7 @@ func (h *AuthHandler) RegisterPage(c *gin.Context) {
 
 func (h *AuthHandler) LoginPage(c *gin.Context) {
 	if h.isAuthenticated(c) {
-		c.Redirect(http.StatusSeeOther, "/assistant")
+		c.Redirect(http.StatusSeeOther, h.roleHome(c))
 		return
 	}
 	c.HTML(http.StatusOK, "login.html", gin.H{

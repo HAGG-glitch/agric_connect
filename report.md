@@ -112,3 +112,65 @@ AgriConnect AI is a Go + Gin + PostgreSQL web application providing AI-powered c
 12. Visit `/dashboard` for personalized dashboard
 13. Visit `/diagnose` to submit a new crop diagnosis
 14. Visit `/notifications` to view notifications
+
+## Public Root Routing Fix
+
+### Root Cause
+`GET /` was routed directly to `pageHandler.AssistantPage`, rendering the AI assistant chat for all visitors including unauthenticated first-time users. No public landing page existed.
+
+### New `/` Behavior
+- **Unauthenticated**: renders a public landing page (`landing.html`) with AgriConnect branding, feature cards, and CTA buttons for `/register` and `/login`
+- **Authenticated farmer**: 303 redirect to `/dashboard`
+- **Authenticated officer**: 303 redirect to `/officer`
+- **Authenticated admin**: 303 redirect to `/admin`
+
+### `/assistant` Protection
+- Config flag `ALLOW_ANONYMOUS_ASSISTANT` (default `false`) controls anonymous access
+- When `false`, unauthenticated `GET /assistant` returns 303 redirect to `/register`
+- Authenticated users across all roles can still access `/assistant`
+
+### Auth Page Redirects
+- `GET /login` and `GET /register` for already-authenticated users now redirect based on role:
+  - Farmer → `/dashboard`, Officer → `/officer`, Admin → `/admin`
+- Previously all authenticated users were redirected to `/assistant`
+
+### Files Changed
+- `cmd/server/main.go` — `GET /` now calls `pageHandler.Home` instead of `pageHandler.AssistantPage`
+- `internal/handlers/page_handler.go` — Added `Home` handler with role-aware routing; assistant protection check
+- `internal/handlers/auth_handler.go` — Added `roleHome` helper; `LoginPage`/`RegisterPage` use role-aware redirects
+- `internal/config/config.go` — Added `AllowAnonymousAssistant` config flag
+- `web/templates/pages/landing.html` — New public landing page with branding, feature cards, CTAs
+
+### Tests Added (12 new, 3 updated)
+1. `TestHome_Unauthenticated_LandingPage` — anonymous GET / renders landing, not assistant UI
+2. `TestHome_AuthenticatedFarmer_RedirectsDashboard` — farmer GET / → /dashboard
+3. `TestHome_AuthenticatedOfficer_RedirectsOfficer` — officer GET / → /officer
+4. `TestHome_AuthenticatedAdmin_RedirectsAdmin` — admin GET / → /admin
+5. `TestAssistant_Unauthenticated_RedirectsRegister` — anonymous GET /assistant redirects to /register
+6. `TestAssistant_AuthenticatedFarmer_Allowed` — authenticated farmer can access /assistant
+7. `TestAuthHandler_LoginPage_RedirectsAuthenticatedOfficer` — officer login page redirects to /officer
+8. `TestAuthHandler_LoginPage_RedirectsAuthenticatedAdmin` — admin login page redirects to /admin
+9. `TestAuthHandler_RegisterPage_RedirectsAuthenticatedFarmer` — farmer register redirects to /dashboard
+10. `TestAuthHandler_RegisterPage_RedirectsAuthenticatedOfficer` — officer register redirects to /officer
+11. `TestAuthHandler_RegisterPage_RedirectsAuthenticatedAdmin` — admin register redirects to /admin
+12. Updated existing: `LoginPage_RedirectsAuthenticated` → `LoginPage_RedirectsAuthenticatedFarmer` (now checks for /dashboard)
+
+### Verification Commands
+```
+go build ./...          ✓
+go vet ./...            ✓
+go test ./...           ✓ (all tests pass)
+npm install             ✓
+npx tailwindcss -i ./web/static/css/input.css -o ./web/static/css/app.css --minify
+docker build --no-cache -t agriconnect-routing-fix .
+```
+
+### Render Deployment Notes
+- Set `ALLOW_ANONYMOUS_ASSISTANT=false` in Render environment variables (default)
+- After deploy, verify via incognito browser:
+  - `GET /` → landing page (not AI assistant)
+  - `GET /register` → registration form
+  - `GET /login` → login form
+  - Farmer login → `GET /` redirects to `/dashboard`
+  - Officer login → `GET /` redirects to `/officer`
+  - Admin login → `GET /` redirects to `/admin`

@@ -1532,7 +1532,7 @@ func TestAuthHandler_Refresh_MissingCookie(t *testing.T) {
 	}
 }
 
-func TestAuthHandler_LoginPage_RedirectsAuthenticated(t *testing.T) {
+func TestAuthHandler_LoginPage_RedirectsAuthenticatedFarmer(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	svc := &mockAuthService{}
@@ -1555,12 +1555,68 @@ func TestAuthHandler_LoginPage_RedirectsAuthenticated(t *testing.T) {
 		t.Fatalf("expected 303 redirect, got %d", w.Code)
 	}
 	loc := w.Header().Get("Location")
-	if loc != "/assistant" {
-		t.Errorf("expected redirect to /assistant, got %s", loc)
+	if loc != "/dashboard" {
+		t.Errorf("expected redirect to /dashboard, got %s", loc)
 	}
 }
 
-func TestAuthHandler_RegisterPage_RedirectsAuthenticated(t *testing.T) {
+func TestAuthHandler_LoginPage_RedirectsAuthenticatedOfficer(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.GET("/login", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "officer",
+		})
+		handler.LoginPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/login", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/officer" {
+		t.Errorf("expected redirect to /officer, got %s", loc)
+	}
+}
+
+func TestAuthHandler_LoginPage_RedirectsAuthenticatedAdmin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.GET("/login", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "admin",
+		})
+		handler.LoginPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/login", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/admin" {
+		t.Errorf("expected redirect to /admin, got %s", loc)
+	}
+}
+
+func TestAuthHandler_RegisterPage_RedirectsAuthenticatedFarmer(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	svc := &mockAuthService{}
@@ -1583,8 +1639,64 @@ func TestAuthHandler_RegisterPage_RedirectsAuthenticated(t *testing.T) {
 		t.Fatalf("expected 303 redirect, got %d", w.Code)
 	}
 	loc := w.Header().Get("Location")
-	if loc != "/assistant" {
-		t.Errorf("expected redirect to /assistant, got %s", loc)
+	if loc != "/dashboard" {
+		t.Errorf("expected redirect to /dashboard, got %s", loc)
+	}
+}
+
+func TestAuthHandler_RegisterPage_RedirectsAuthenticatedOfficer(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.GET("/register", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "officer",
+		})
+		handler.RegisterPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/register", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/officer" {
+		t.Errorf("expected redirect to /officer, got %s", loc)
+	}
+}
+
+func TestAuthHandler_RegisterPage_RedirectsAuthenticatedAdmin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &mockAuthService{}
+	handler := handlers.NewAuthHandler(svc, false, "", "lax", "test-refresh-secret")
+
+	r := gin.New()
+	r.GET("/register", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "admin",
+		})
+		handler.RegisterPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/register", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/admin" {
+		t.Errorf("expected redirect to /admin, got %s", loc)
 	}
 }
 
@@ -3004,6 +3116,170 @@ type mockAudioTranscriber struct {
 
 func (m *mockAudioTranscriber) Transcribe(_ context.Context, _ ai.TranscriptionInput) (*ai.TranscriptionResult, error) {
 	return m.result, m.err
+}
+
+// ── Routing Tests ──────────────────────────────────────────────────────────
+
+func TestHome_Unauthenticated_LandingPage(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{})
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/", handler.Home)
+
+	req := httptest.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if containsStr(body, "chat-messages") || containsStr(body, "id=\"conversation") {
+		t.Error("landing page should not contain assistant UI markup")
+	}
+	if !containsStr(body, "AgriConnect") {
+		t.Error("expected AgriConnect branding")
+	}
+	if !containsStr(body, "href=\"/register\"") {
+		t.Error("expected link to /register")
+	}
+	if !containsStr(body, "href=\"/login\"") {
+		t.Error("expected link to /login")
+	}
+}
+
+func TestHome_AuthenticatedFarmer_RedirectsDashboard(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{})
+
+	r := gin.New()
+	r.GET("/", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "farmer",
+		})
+		handler.Home(c)
+	})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/dashboard" {
+		t.Errorf("expected redirect to /dashboard, got %s", loc)
+	}
+}
+
+func TestHome_AuthenticatedOfficer_RedirectsOfficer(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{})
+
+	r := gin.New()
+	r.GET("/", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "officer",
+		})
+		handler.Home(c)
+	})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/officer" {
+		t.Errorf("expected redirect to /officer, got %s", loc)
+	}
+}
+
+func TestHome_AuthenticatedAdmin_RedirectsAdmin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{})
+
+	r := gin.New()
+	r.GET("/", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "admin",
+		})
+		handler.Home(c)
+	})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/admin" {
+		t.Errorf("expected redirect to /admin, got %s", loc)
+	}
+}
+
+func TestAssistant_Unauthenticated_RedirectsRegister(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := handlers.NewPageHandler(&config.Config{AllowAnonymousAssistant: false}, &mockAuthService{})
+
+	r := gin.New()
+	r.GET("/assistant", handler.AssistantPage)
+
+	req := httptest.NewRequest("GET", "/assistant", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/register" {
+		t.Errorf("expected redirect to /register, got %s", loc)
+	}
+}
+
+func TestAssistant_AuthenticatedFarmer_Allowed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := handlers.NewPageHandler(&config.Config{AllowAnonymousAssistant: false}, &mockAuthService{})
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/assistant", func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUser, &middleware.AuthUser{
+			ID:   uuid.New(),
+			Role: "farmer",
+		})
+		c.Set("user_id", uuid.New().String())
+		handler.AssistantPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/assistant", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !containsStr(body, "AgriConnect") {
+		t.Error("expected assistant page to render")
+	}
 }
 
 

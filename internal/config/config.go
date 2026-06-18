@@ -67,6 +67,8 @@ type Config struct {
 	HuggingFaceAPIKey     string
 	HuggingFaceSTTModel   string
 	HuggingFaceSTTTimeout int
+
+	AllowAnonymousAssistant bool
 }
 
 func Load() (*Config, error) {
@@ -123,6 +125,8 @@ func Load() (*Config, error) {
 		HuggingFaceAPIKey:     getEnv("HUGGINGFACE_API_KEY", ""),
 		HuggingFaceSTTModel:   getEnv("HUGGINGFACE_STT_MODEL", "openai/whisper-large-v3"),
 		HuggingFaceSTTTimeout: getEnvInt("HUGGINGFACE_STT_TIMEOUT_SECONDS", 60),
+
+		AllowAnonymousAssistant: getEnvBool("ALLOW_ANONYMOUS_ASSISTANT", false),
 	}
 
 	if cfg.DatabaseURL == "" {
