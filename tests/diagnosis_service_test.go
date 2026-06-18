@@ -174,9 +174,11 @@ func (m *mockObjectStorage) SignedURL(_ context.Context, _ string, _ time.Durati
 type mockDiagnosisAI struct {
 	result *ai.DiagnosisAIResult
 	err    error
+	lastInput ai.DiagnosisAIInput
 }
 
-func (m *mockDiagnosisAI) Diagnose(_ context.Context, _ ai.DiagnosisAIInput) (*ai.DiagnosisAIResult, error) {
+func (m *mockDiagnosisAI) Diagnose(_ context.Context, input ai.DiagnosisAIInput) (*ai.DiagnosisAIResult, error) {
+	m.lastInput = input
 	return m.result, m.err
 }
 
@@ -942,5 +944,147 @@ func TestDiagnosis_EmptyImageData(t *testing.T) {
 	_, err := svc.CreateDiagnosis(context.Background(), uuid.New(), input, file, header)
 	if err == nil {
 		t.Fatal("expected error for empty image data")
+	}
+}
+
+func TestDiagnosis_ImageOptimizationReducesSize(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 2000, 2000))
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("encoding test PNG: %v", err)
+	}
+	original := buf.Bytes()
+
+	optimized := diagnosis.OptimizeImageForAI(original, "image/png")
+
+	if len(optimized) >= len(original) {
+		t.Errorf("optimized image (%d bytes) should be smaller than original (%d bytes)", len(optimized), len(original))
+	}
+
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(optimized))
+	if err != nil {
+		t.Fatalf("decoding optimized image: %v", err)
+	}
+	if cfg.Width < 256 || cfg.Height < 256 {
+		t.Errorf("optimized image dimensions (%dx%d) below 256x256 minimum", cfg.Width, cfg.Height)
+	}
+	if cfg.Width > 768 || cfg.Height > 768 {
+		t.Errorf("optimized image dimensions (%dx%d) exceed 768 max dimension", cfg.Width, cfg.Height)
+	}
+}
+
+func TestDiagnosis_ImageOptimizationPreservesSmall(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 100, 100))
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("encoding test PNG: %v", err)
+	}
+	original := buf.Bytes()
+
+	optimized := diagnosis.OptimizeImageForAI(original, "image/png")
+
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(optimized))
+	if err != nil {
+		t.Fatalf("decoding optimized image: %v", err)
+	}
+	if cfg.Width != 100 || cfg.Height != 100 {
+		t.Errorf("expected 100×100, got %dx%d", cfg.Width, cfg.Height)
+	}
+}
+
+func TestDiagnosis_ContextCapped(t *testing.T) {
+	imgData := createValidPNG(t)
+	cfg := testConfig()
+	cfg.MaxDiagnosisContextChars = 50
+	cfg.DiagnosisRequestTimeout = 5
+
+	mockAI := &mockDiagnosisAI{
+		result: &ai.DiagnosisAIResult{
+			Crop:              "cassava",
+			ProbableCondition: "Cassava Mosaic",
+			Confidence:        80,
+			ConfidenceLabel:   "high",
+			Urgency:           "medium",
+			Description:       "Test",
+		},
+	}
+
+	longCtx := ""
+	for i := 0; i < 100; i++ {
+		longCtx += "a"
+	}
+
+	svc := diagnosis.NewService(
+		&mockDiagnosisRepo{diags: make(map[uuid.UUID]*diagnosis.CropDiagnosis)},
+		&mockObjectStorage{},
+		mockAI,
+		&mockKnowledgeService{ctx: longCtx},
+		cfg)
+
+	userID := uuid.New()
+	input := diagnosis.DiagnosisInput{
+		Crop:               "cassava",
+		SymptomDescription: "yellow leaves",
+		PlantPart:          "leaf",
+	}
+
+	file := mockMultipartFile{bytes.NewReader(imgData)}
+	header := makeFileHeader("test.png", "image/png", imgData)
+
+	d, err := svc.CreateDiagnosis(context.Background(), userID, input, file, header)
+	if err != nil {
+		t.Fatalf("CreateDiagnosis failed: %v", err)
+	}
+
+	waitForGoroutine()
+
+	if d.Status != "completed" {
+		t.Fatalf("expected completed, got %q: %s", d.Status, d.ErrorMessage)
+	}
+
+	if len(mockAI.lastInput.KnowledgeContext) > cfg.MaxDiagnosisContextChars {
+		t.Errorf("knowledge context length %d exceeds MaxDiagnosisContextChars %d",
+			len(mockAI.lastInput.KnowledgeContext), cfg.MaxDiagnosisContextChars)
+	}
+}
+
+func TestDiagnosis_AIUsesVisionModel(t *testing.T) {
+	cfg := testConfig()
+	cfg.GroqVisionModel = "llama-3.2-11b-vision-preview"
+	cfg.GroqChatModel = "llama-3.1-8b-instant"
+
+	svc := diagnosis.NewService(
+		&mockDiagnosisRepo{diags: make(map[uuid.UUID]*diagnosis.CropDiagnosis)},
+		&mockObjectStorage{},
+		&mockDiagnosisAI{result: &ai.DiagnosisAIResult{
+			Crop:              "cassava",
+			ProbableCondition: "Test",
+			Confidence:        80,
+			ConfidenceLabel:   "high",
+			Urgency:           "medium",
+			Description:       "Test",
+		}},
+		&mockKnowledgeService{},
+		cfg)
+
+	userID := uuid.New()
+	input := diagnosis.DiagnosisInput{
+		Crop:               "cassava",
+		SymptomDescription: "yellow leaves",
+		PlantPart:          "leaf",
+	}
+
+	file := mockMultipartFile{bytes.NewReader(createValidPNG(t))}
+	header := makeFileHeader("test.png", "image/png", createValidPNG(t))
+
+	d, err := svc.CreateDiagnosis(context.Background(), userID, input, file, header)
+	if err != nil {
+		t.Fatalf("CreateDiagnosis failed: %v", err)
+	}
+
+	waitForGoroutine()
+
+	if d.Status != "completed" {
+		t.Fatalf("expected completed, got %q: %s", d.Status, d.ErrorMessage)
 	}
 }

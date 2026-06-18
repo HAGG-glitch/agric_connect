@@ -35,7 +35,9 @@ func (c *Client) Available() bool {
 }
 
 func (c *Client) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
-	req.Model = c.model
+	if req.Model == "" {
+		req.Model = c.model
+	}
 	req.Stream = false
 
 	body, err := json.Marshal(req)
@@ -75,7 +77,9 @@ func (c *Client) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, erro
 }
 
 func (c *Client) ChatStream(ctx context.Context, req ChatRequest, tokenCh chan<- string) (string, int, int, error) {
-	req.Model = c.model
+	if req.Model == "" {
+		req.Model = c.model
+	}
 	req.Stream = true
 
 	body, err := json.Marshal(req)

@@ -15,6 +15,7 @@ var cropDiagnosisPrompt string
 type DiagnosisAIInput struct {
 	ImageData          []byte
 	ImageContentType   string
+	ImageURL           string
 	Crop               string
 	District           string
 	PlantPart          string
@@ -67,8 +68,13 @@ func (a *cropDiagnosisAI) Diagnose(ctx context.Context, input DiagnosisAIInput) 
 
 	systemMsg := buildDiagnosisSystemPrompt(input)
 
-	b64Image := base64.StdEncoding.EncodeToString(input.ImageData)
-	imageURL := fmt.Sprintf("data:%s;base64,%s", input.ImageContentType, b64Image)
+	var imageRef string
+	if input.ImageURL != "" {
+		imageRef = input.ImageURL
+	} else {
+		b64Image := base64.StdEncoding.EncodeToString(input.ImageData)
+		imageRef = fmt.Sprintf("data:%s;base64,%s", input.ImageContentType, b64Image)
+	}
 
 	userContent := fmt.Sprintf(`Crop: %s
 District: %s
@@ -90,7 +96,7 @@ Language: %s`,
 		{
 			Role: "user",
 			Content: fmt.Sprintf(`[Image: %s]
-%s`, imageURL, userContent),
+%s`, imageRef, userContent),
 		},
 	}
 

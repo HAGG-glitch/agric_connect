@@ -180,11 +180,12 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 			knowledgeCtx = knowledgeCtx[:s.cfg.MaxDiagnosisContextChars]
 		}
 
-		optImageData := optimizeImageForAI(fileData, contentType)
+		optImageData := OptimizeImageForAI(fileData, contentType)
+		aiContentType := "image/jpeg"
 
 		aiInput := ai.DiagnosisAIInput{
 			ImageData:          optImageData,
-			ImageContentType:   contentType,
+			ImageContentType:   aiContentType,
 			Crop:               input.Crop,
 			District:           input.District,
 			PlantPart:          input.PlantPart,
@@ -198,11 +199,16 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 			KnowledgeContext:   knowledgeCtx,
 		}
 
+		if imageURL, err := s.storage.SignedURL(procCtx, storagePath, 10*time.Minute); err == nil {
+			aiInput.ImageURL = imageURL
+			aiInput.ImageData = nil
+		}
+
 		result, err := s.visionAI.Diagnose(procCtx, aiInput)
 		if err != nil && strings.Contains(err.Error(), "input_length") {
 			log.Printf("vision diagnosis input length error for %s, retrying with reduced image: %v", diagID, err)
-			optImageData = compressImage(fileData, contentType)
-			aiInput.ImageData = optImageData
+			aiInput.ImageURL = ""
+			aiInput.ImageData = compressImage(fileData, contentType)
 			result, err = s.visionAI.Diagnose(procCtx, aiInput)
 		}
 		if err != nil {
@@ -333,19 +339,17 @@ func (s *service) cleanupImage(ctx context.Context, path string) {
 	}
 }
 
-func optimizeImageForAI(data []byte, contentType string) []byte {
-	if len(data) <= 300*1024 {
-		return data
-	}
-	if contentType == "image/webp" {
-		return data
-	}
+func OptimizeImageForAI(data []byte, contentType string) []byte {
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return data
 	}
+
+	maxDim := 768
+	img = resizeImageMaxDim(img, maxDim)
+
 	var buf bytes.Buffer
-	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 60}); err != nil {
+	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 75}); err != nil {
 		return data
 	}
 	return buf.Bytes()
@@ -356,11 +360,58 @@ func compressImage(data []byte, contentType string) []byte {
 	if err != nil {
 		return data
 	}
+
+	maxDim := 512
+	img = resizeImageMaxDim(img, maxDim)
+
 	var buf bytes.Buffer
-	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 30}); err != nil {
+	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 70}); err != nil {
 		return data
 	}
 	return buf.Bytes()
+}
+
+func resizeImageMaxDim(img image.Image, maxDim int) image.Image {
+	bounds := img.Bounds()
+	w := bounds.Dx()
+	h := bounds.Dy()
+	if w <= maxDim && h <= maxDim {
+		return img
+	}
+
+	ratio := float64(maxDim) / float64(w)
+	if float64(h)*ratio > float64(maxDim) {
+		ratio = float64(maxDim) / float64(h)
+	}
+
+	nw := int(float64(w) * ratio)
+	nh := int(float64(h) * ratio)
+	if nw < 1 {
+		nw = 1
+	}
+	if nh < 1 {
+		nh = 1
+	}
+
+	dst := image.NewRGBA(image.Rect(0, 0, nw, nh))
+	scaleImage(dst, img)
+	return dst
+}
+
+func scaleImage(dst *image.RGBA, src image.Image) {
+	bounds := dst.Bounds()
+	dw := bounds.Dx()
+	dh := bounds.Dy()
+	sw := src.Bounds().Dx()
+	sh := src.Bounds().Dy()
+
+	for dy := 0; dy < dh; dy++ {
+		for dx := 0; dx < dw; dx++ {
+			sx := dx * sw / dw
+			sy := dy * sh / dh
+			dst.Set(dx, dy, src.At(sx, sy))
+		}
+	}
 }
 
 func detectImageSignature(data []byte) (ok bool, isWebP bool) {

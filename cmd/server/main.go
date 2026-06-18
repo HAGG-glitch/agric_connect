@@ -33,6 +33,17 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	log.Printf("chat_model=%s", cfg.GroqChatModel)
+	log.Printf("vision_model=%s", cfg.GroqVisionModel)
+	log.Printf("transcription_model=%s", cfg.GroqTranscriptionModel)
+
+	if cfg.GroqVisionModel == cfg.GroqChatModel {
+		log.Printf("WARNING: GROQ_VISION_MODEL (%s) equals GROQ_CHAT_MODEL — vision model should be different", cfg.GroqVisionModel)
+	}
+	if cfg.GroqVisionModel == "llama-3.1-8b-instant" {
+		log.Printf("WARNING: GROQ_VISION_MODEL is set to llama-3.1-8b-instant which does not support image inputs")
+	}
+
 	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
