@@ -1,0 +1,101 @@
+{{template "layout_head" .}}
+<div class="max-w-6xl mx-auto p-4 md:p-8">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/admin/users" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
+      <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-[#1F2937]">All Reviews - Admin</h1>
+      <p class="text-sm text-[#6B7280]">View all officer reviews across the platform</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
+    <div class="flex flex-wrap gap-2">
+      <select id="status-filter" class="text-sm border border-[#D1D5DB] rounded-lg px-3 py-1.5">
+        <option value="">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="rejected">Rejected</option>
+      </select>
+      <button onclick="loadList()" class="bg-[#2E7D32] text-white px-4 py-1.5 rounded-lg text-sm">Filter</button>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-[#E5E7EB]">
+    <div id="review-list">
+      <p class="text-[#6B7280] text-sm py-8 text-center">Loading...</p>
+    </div>
+    <div id="pagination" class="flex items-center justify-between p-4 border-t border-[#E5E7EB]"></div>
+  </div>
+</div>
+
+<script>
+let currentPage = 1;
+
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/v1/auth/me');
+    if (!res.ok) { window.location.href = '/login'; return false; }
+    const data = await res.json();
+    if (data.role !== 'admin') { window.location.href = '/'; return false; }
+    return true;
+  } catch { window.location.href = '/login'; return false; }
+}
+
+async function loadList() {
+  const authed = await checkAuth();
+  if (!authed) return;
+
+  const status = document.getElementById('status-filter').value;
+  const params = new URLSearchParams({ page: currentPage, page_size: '20' });
+  if (status) params.set('status', status);
+
+  try {
+    const res = await fetch('/api/v1/admin/reviews?' + params);
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    const container = document.getElementById('review-list');
+
+    if (!data.reviews || data.reviews.length === 0) {
+      container.innerHTML = '<p class="text-[#6B7280] text-sm py-8 text-center">No reviews found</p>';
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-[#E5E7EB] bg-[#F9FAFB]"><th class="text-left p-3 font-medium">Diagnosis Crop</th><th class="text-left p-3 font-medium">Officer</th><th class="text-left p-3 font-medium">Review Status</th><th class="text-left p-3 font-medium">Confirmed Condition</th><th class="text-left p-3 font-medium">Date</th></tr></thead><tbody>' +
+      data.reviews.map(r => `
+        <tr class="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
+          <td class="p-3 text-[#1F2937] capitalize">${escapeHTML(r.diagnosis_crop || r.diagnosis?.crop || '-')}</td>
+          <td class="p-3 text-[#1F2937]">${escapeHTML(r.officer_name || r.officer?.full_name || '-')}</td>
+          <td class="p-3"><span class="text-xs px-2 py-1 rounded-full ${r.status === 'confirmed' ? 'bg-green-50 text-green-700' : r.status === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}">${r.status || 'pending'}</span></td>
+          <td class="p-3 text-[#6B7280]">${escapeHTML(r.confirmed_condition || r.condition || '-')}</td>
+          <td class="p-3 text-[#6B7280] text-xs">${r.created_at ? new Date(r.created_at).toLocaleDateString() : '-'}</td>
+        </tr>
+      `).join('') + '</tbody></table></div>';
+
+    const totalPages = Math.ceil(data.total / data.page_size) || 1;
+    document.getElementById('pagination').innerHTML = `
+      <button onclick="changePage(${currentPage - 1})" class="text-sm px-3 py-1 border rounded ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''}" ${currentPage <= 1 ? 'disabled' : ''}>Previous</button>
+      <span class="text-sm text-[#6B7280]">Page ${currentPage} of ${totalPages}</span>
+      <button onclick="changePage(${currentPage + 1})" class="text-sm px-3 py-1 border rounded ${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : ''}" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
+    `;
+  } catch (e) {
+    document.getElementById('review-list').innerHTML = '<p class="text-red-600 text-sm py-8 text-center">Failed to load reviews</p>';
+  }
+}
+
+function changePage(page) {
+  if (page < 1) return;
+  currentPage = page;
+  loadList();
+}
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadList();
+</script>
+{{template "layout_foot" .}}

@@ -1,0 +1,177 @@
+{{template "layout_head" .}}
+<div class="max-w-4xl mx-auto p-4 md:p-8" style="width: 100%;">
+  <div class="flex items-center mb-4">
+    <a href="/assistant" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
+      <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
+    </a>
+  </div>
+
+  <div class="flex items-center justify-between mb-6" style="width: 100%;">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl bg-[#2E7D32] flex items-center justify-center flex-shrink-0">
+        <i data-lucide="sprout" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-[#1F2937]">Welcome, {{.UserName}}</h1>
+        <p class="text-sm text-[#6B7280]">Farmer Dashboard</p>
+      </div>
+    </div>
+    <span class="text-xs px-3 py-1.5 rounded-full bg-[#2E7D32]/10 text-[#2E7D32] font-medium capitalize flex-shrink-0">{{.UserRole}}</span>
+  </div>
+
+  <div class="bg-white rounded-xl border border-[#E5E7EB] p-5 mb-6" style="width: 100%;">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="id-card" class="w-4 h-4 text-[#2E7D32]"></i>
+      <h2 class="font-semibold text-[#1F2937]">My Profile</h2>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+      <div>
+        <p class="text-[#6B7280] text-xs">Name</p>
+        <p class="font-medium text-[#1F2937]">{{.UserName}}</p>
+      </div>
+      <div>
+        <p class="text-[#6B7280] text-xs">Phone</p>
+        <p class="font-medium text-[#1F2937]" id="phone-display">{{.UserPhone}}</p>
+      </div>
+      <div>
+        <p class="text-[#6B7280] text-xs">District</p>
+        <p class="font-medium text-[#1F2937]">{{.UserDistrict}}</p>
+      </div>
+      <div>
+        <p class="text-[#6B7280] text-xs">Language</p>
+        <p class="font-medium text-[#1F2937] capitalize">{{.UserLanguage}}</p>
+      </div>
+      <div>
+        <p class="text-[#6B7280] text-xs">Role</p>
+        <p class="font-medium text-[#1F2937] capitalize">{{.UserRole}}</p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-1.5">
+    <i data-lucide="zap" class="w-4 h-4 text-[#2E7D32]"></i> Quick Actions
+  </h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" style="width: 100%;">
+    <a href="/assistant" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
+      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
+        <i data-lucide="bot" class="w-5 h-5 text-[#2E7D32]"></i>
+      </div>
+      <p class="text-sm font-medium text-[#1F2937]">Ask AI</p>
+      <p class="text-xs text-[#6B7280]">Get agricultural advice</p>
+    </a>
+    <a href="/diagnose" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
+      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
+        <i data-lucide="scan-line" class="w-5 h-5 text-[#2E7D32]"></i>
+      </div>
+      <p class="text-sm font-medium text-[#1F2937]">Diagnose Crop</p>
+      <p class="text-xs text-[#6B7280]">Identify crop diseases</p>
+    </a>
+    <a href="/diagnoses" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
+      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
+        <i data-lucide="history" class="w-5 h-5 text-[#2E7D32]"></i>
+      </div>
+      <p class="text-sm font-medium text-[#1F2937]">Diagnosis History</p>
+      <p class="text-xs text-[#6B7280]">View past diagnoses</p>
+    </a>
+    <a href="/market-prices" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
+      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
+        <i data-lucide="trending-up" class="w-5 h-5 text-[#2E7D32]"></i>
+      </div>
+      <p class="text-sm font-medium text-[#1F2937]">Market Prices</p>
+      <p class="text-xs text-[#6B7280]">Crop price trends</p>
+    </a>
+    <a href="/resources" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
+      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
+        <i data-lucide="book-open" class="w-5 h-5 text-[#2E7D32]"></i>
+      </div>
+      <p class="text-sm font-medium text-[#1F2937]">Learning Resources</p>
+      <p class="text-xs text-[#6B7280]">Farming guides &amp; tips</p>
+    </a>
+    <a href="/notifications" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all relative" style="width: 100%;">
+      {{if .UnreadCount}}
+      <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">{{.UnreadCount}}</span>
+      {{end}}
+      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
+        <i data-lucide="bell" class="w-5 h-5 text-[#2E7D32]"></i>
+      </div>
+      <p class="text-sm font-medium text-[#1F2937]">Notifications</p>
+      <p class="text-xs text-[#6B7280]">{{if .UnreadCount}}{{.UnreadCount}} unread{{else}}No new alerts{{end}}</p>
+    </a>
+    <a href="/profile" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
+      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
+        <i data-lucide="user" class="w-5 h-5 text-[#2E7D32]"></i>
+      </div>
+      <p class="text-sm font-medium text-[#1F2937]">Profile</p>
+      <p class="text-xs text-[#6B7280]">Manage your account</p>
+    </a>
+  </div>
+
+  <h2 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-1.5">
+    <i data-lucide="activity" class="w-4 h-4 text-[#2E7D32]"></i> Recent Activity
+  </h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" style="width: 100%;">
+    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4" style="width: 100%;">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-medium text-[#1F2937] flex items-center gap-1.5">
+          <i data-lucide="clipboard-list" class="w-4 h-4 text-[#2E7D32]"></i> Recent Diagnoses
+        </h3>
+        <a href="/diagnoses" class="text-xs text-[#2E7D32] hover:underline">View all</a>
+      </div>
+      {{if .RecentDiagnoses}}
+        {{range .RecentDiagnoses}}
+        <a href="/diagnoses/{{.id}}" class="flex items-center justify-between py-2.5 border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] px-2 -mx-2 rounded-lg transition-colors" style="width: 100%;">
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-[#1F2937] capitalize truncate">{{.crop}} &mdash; {{.probable_condition}}</p>
+            <p class="text-xs text-[#6B7280] mt-0.5">{{.created_at}}</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+            <span class="text-xs px-2 py-0.5 rounded-full {{if eq .status "completed"}}bg-green-50 text-green-700{{else if eq .status "processing"}}bg-blue-50 text-blue-700{{else if eq .status "failed"}}bg-red-50 text-red-700{{else}}bg-gray-50 text-gray-700{{end}}">{{.status}}</span>
+            {{if .urgency}}
+            <span class="text-xs px-2 py-0.5 rounded-full {{if eq .urgency "high"}}bg-red-50 text-red-600{{else if eq .urgency "medium"}}bg-amber-50 text-amber-600{{else}}bg-green-50 text-green-600{{end}}">{{.urgency}}</span>
+            {{end}}
+          </div>
+        </a>
+        {{end}}
+      {{else}}
+        <p class="text-sm text-[#6B7280] py-4 text-center">No diagnoses yet</p>
+      {{end}}
+    </div>
+    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4" style="width: 100%;">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-medium text-[#1F2937] flex items-center gap-1.5">
+          <i data-lucide="message-square" class="w-4 h-4 text-[#2E7D32]"></i> Recent Conversations
+        </h3>
+        <a href="/assistant" class="text-xs text-[#2E7D32] hover:underline">View all</a>
+      </div>
+      {{if .RecentConversations}}
+        {{range .RecentConversations}}
+        <a href="/assistant" class="flex items-center gap-3 py-2.5 border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] px-2 -mx-2 rounded-lg transition-colors" style="width: 100%;">
+          <div class="w-8 h-8 rounded-lg bg-[#F5F7F5] border border-[#E5E7EB] flex items-center justify-center flex-shrink-0">
+            <i data-lucide="message-circle" class="w-4 h-4 text-[#6B7280]"></i>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-[#1F2937] truncate">{{.title}}</p>
+            <p class="text-xs text-[#6B7280] mt-0.5">{{.created_at}}</p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-[#6B7280] flex-shrink-0"></i>
+        </a>
+        {{end}}
+      {{else}}
+        <p class="text-sm text-[#6B7280] py-4 text-center">No conversations yet</p>
+      {{end}}
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var el = document.getElementById('phone-display');
+  if (el) {
+    var phone = el.textContent.trim();
+    if (phone.length > 4) {
+      el.textContent = '*** *** ' + phone.slice(-4);
+    }
+  }
+})();
+</script>
+{{template "layout_foot" .}}

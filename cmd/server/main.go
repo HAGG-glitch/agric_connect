@@ -125,12 +125,15 @@ func main() {
 	chatHandler := handlers.NewChatHandler(chatSvc, orchestrator, cfg)
 	weatherHandler := handlers.NewWeatherHandler(weatherSvc)
 	healthHandler := handlers.NewHealthHandler(db)
-	diagnosisHandler := handlers.NewDiagnosisHandler(diagnosisSvc, cfg, objStore, chatSvc)
+	diagnosisHandler := handlers.NewDiagnosisHandler(diagnosisSvc, cfg, objStore, chatSvc, db)
 	transcriptionHandler := handlers.NewTranscriptionHandler(transcriptionSvc, cfg)
 	authHandler := handlers.NewAuthHandler(authSvc, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite, cfg.JWTRefreshSecret)
 	officerHandler := handlers.NewOfficerHandler(db, diagnosisSvc)
 	adminHandler := handlers.NewAdminHandler(db)
 	notifHandler := handlers.NewNotificationHandler(db)
+	marketHandler := handlers.NewMarketHandler(db)
+	resourceHandler := handlers.NewResourceHandler(db)
+	dashboardHandler := handlers.NewDashboardHandler(db)
 
 	router := gin.Default()
 	router.Use(middleware.RequestID())
@@ -176,9 +179,14 @@ func main() {
 	{
 		publicPages.GET("/", pageHandler.AssistantPage)
 		publicPages.GET("/assistant", pageHandler.AssistantPage)
+		publicPages.GET("/dashboard", dashboardHandler.DashboardPage)
 		publicPages.GET("/diagnose", diagnosisHandler.DiagnosePage)
 		publicPages.GET("/diagnoses", diagnosisHandler.HistoryPage)
 		publicPages.GET("/diagnoses/:id", diagnosisHandler.DetailPage)
+		publicPages.GET("/market-prices", marketHandler.MarketPricesPage)
+		publicPages.GET("/resources", resourceHandler.ResourcesPage)
+		publicPages.GET("/resources/:id", resourceHandler.ResourceDetailPage)
+		publicPages.GET("/notifications", notifHandler.NotificationsPage)
 		publicPages.GET("/profile", pageHandler.ProfilePage)
 	}
 
@@ -206,6 +214,9 @@ func main() {
 	adminPages.Use(middleware.RequireRole("admin"))
 	{
 		adminPages.GET("/admin/users", adminHandler.AdminPage)
+		adminPages.GET("/admin/diagnoses", adminHandler.AdminDiagnosesPage)
+		adminPages.GET("/admin/reviews", adminHandler.AdminReviewsPage)
+		adminPages.GET("/admin/audit-logs", adminHandler.AdminAuditLogsPage)
 	}
 
 	// API v1 — auth flows that must work without a prior session
@@ -249,6 +260,31 @@ func main() {
 		v1User.POST("/ai/transcribe", transcriptionHandler.Transcribe)
 	}
 
+	// API v1 — market prices read (auth, any role)
+	marketAPI := router.Group("/api/v1/market-prices")
+	marketAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	{
+		marketAPI.GET("", marketHandler.ListPrices)
+	}
+
+	// API v1 — market prices write (auth, officer/admin)
+	marketWriteAPI := router.Group("/api/v1/market-prices")
+	marketWriteAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	marketWriteAPI.Use(middleware.RequireRole("officer", "admin"))
+	{
+		marketWriteAPI.POST("", marketHandler.CreatePrice)
+		marketWriteAPI.PUT("/:id", marketHandler.UpdatePrice)
+		marketWriteAPI.DELETE("/:id", marketHandler.DeletePrice)
+	}
+
+	// API v1 — resources (auth, any role)
+	resAPI := router.Group("/api/v1/resources")
+	resAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
+	{
+		resAPI.GET("", resourceHandler.ListResources)
+		resAPI.GET("/:id", resourceHandler.GetResource)
+	}
+
 	// API v1 — officer (auth + role check)
 	officerAPI := router.Group("/api/v1/officer")
 	officerAPI.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
@@ -258,6 +294,7 @@ func main() {
 		officerAPI.GET("/diagnoses/:id", officerHandler.GetDiagnosis)
 		officerAPI.POST("/diagnoses/:id/reviews", officerHandler.CreateReview)
 		officerAPI.PUT("/diagnoses/:id/reviews/:reviewID", officerHandler.UpdateReview)
+		officerAPI.POST("/diagnoses/:id/claim", officerHandler.ClaimCase)
 	}
 
 	// API v1 — admin (auth + role check)
@@ -268,6 +305,9 @@ func main() {
 		adminAPI.GET("/users", adminHandler.ListUsers)
 		adminAPI.PATCH("/users/:userId/role", adminHandler.UpdateRole)
 		adminAPI.PATCH("/users/:userId/status", adminHandler.UpdateStatus)
+		adminAPI.GET("/diagnoses", adminHandler.ListDiagnoses)
+		adminAPI.GET("/reviews", adminHandler.ListReviews)
+		adminAPI.GET("/audit-logs", adminHandler.ListAuditLogs)
 	}
 
 	// API v1 — notifications (auth, any role)
@@ -276,6 +316,8 @@ func main() {
 	{
 		notifAPI.GET("", notifHandler.List)
 		notifAPI.PATCH("/:id/read", notifHandler.MarkRead)
+		notifAPI.PATCH("/read-all", notifHandler.MarkAllRead)
+		notifAPI.GET("/unread-count", notifHandler.UnreadCount)
 	}
 
 	// Determine port: Render provides PORT, fall back to APP_PORT

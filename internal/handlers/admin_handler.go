@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/agriconnect-ai/internal/auth"
@@ -45,6 +46,30 @@ func (h *AdminHandler) AdminPage(c *gin.Context) {
 type diagnosisModel struct{}
 
 func (diagnosisModel) TableName() string { return "crop_diagnoses" }
+
+func (h *AdminHandler) AdminDiagnosesPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin_diagnoses.html", gin.H{
+		"Title":        "AgriConnect AI - All Diagnoses",
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentAdminDiagnoses",
+	})
+}
+
+func (h *AdminHandler) AdminReviewsPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin_reviews.html", gin.H{
+		"Title":        "AgriConnect AI - All Reviews",
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentAdminReviews",
+	})
+}
+
+func (h *AdminHandler) AdminAuditLogsPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin_audit_logs.html", gin.H{
+		"Title":        "AgriConnect AI - Audit Logs",
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentAdminAuditLogs",
+	})
+}
 
 func (h *AdminHandler) ListUsers(c *gin.Context) {
 	var users []auth.User
@@ -192,7 +217,157 @@ func (h *AdminHandler) UpdateStatus(c *gin.Context) {
 		Metadata:    datatypes.JSON(metaJSON),
 		CreatedAt:   time.Now().UTC(),
 	}
-	if err := h.db.Create(logEntry).Error; err != nil {
+		if err := h.db.Create(logEntry).Error; err != nil {
 		log.Printf("failed to write audit log: %v", err)
 	}
+}
+
+func (h *AdminHandler) ListDiagnoses(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	crop := c.Query("crop")
+	status := c.Query("status")
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 20
+	}
+
+	query := h.db.Table("crop_diagnoses")
+	if crop != "" {
+		query = query.Where("crop = ?", crop)
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	var total int64
+	query.Count(&total)
+
+	type adminDiagView struct {
+		ID                 string    `json:"id"`
+		Crop               string    `json:"crop"`
+		ProbableCondition  string    `json:"probable_condition"`
+		Status             string    `json:"status"`
+		Urgency            string    `json:"urgency"`
+		District           string    `json:"district"`
+		UserID             string    `json:"user_id"`
+		ImageURL           string    `json:"image_url"`
+		CreatedAt          time.Time `json:"created_at"`
+	}
+	var results []adminDiagView
+	offset := (page - 1) * pageSize
+	if err := query.Select("id::text, crop, COALESCE(probable_condition,'') as probable_condition, status, COALESCE(urgency,'') as urgency, COALESCE(district,'') as district, user_id::text, COALESCE(image_url,'') as image_url, created_at").
+		Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load diagnoses"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"diagnoses": results,
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+	})
+}
+
+func (h *AdminHandler) ListReviews(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	status := c.Query("status")
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 20
+	}
+
+	query := h.db.Table("diagnosis_reviews").
+		Select(`diagnosis_reviews.id::text, diagnosis_reviews.diagnosis_id::text,
+			diagnosis_reviews.officer_id::text, diagnosis_reviews.review_status,
+			COALESCE(diagnosis_reviews.confirmed_condition,'') as confirmed_condition,
+			diagnosis_reviews.created_at, diagnosis_reviews.updated_at,
+			COALESCE(crop_diagnoses.crop,'') as crop_name,
+			COALESCE(users.full_name,'') as officer_name`).
+		Joins("LEFT JOIN crop_diagnoses ON crop_diagnoses.id::text = diagnosis_reviews.diagnosis_id::text").
+		Joins("LEFT JOIN users ON users.id::text = diagnosis_reviews.officer_id::text")
+
+	if status != "" {
+		query = query.Where("diagnosis_reviews.review_status = ?", status)
+	}
+
+	var total int64
+	query.Count(&total)
+
+	type reviewView struct {
+		ID                 string    `json:"id"`
+		DiagnosisID        string    `json:"diagnosis_id"`
+		CropName           string    `json:"crop_name"`
+		OfficerID          string    `json:"officer_id"`
+		OfficerName        string    `json:"officer_name"`
+		ReviewStatus       string    `json:"review_status"`
+		ConfirmedCondition string    `json:"confirmed_condition"`
+		CreatedAt          time.Time `json:"created_at"`
+		UpdatedAt          time.Time `json:"updated_at"`
+	}
+	var results []reviewView
+	offset := (page - 1) * pageSize
+	if err := query.Order("diagnosis_reviews.created_at DESC").Limit(pageSize).Offset(offset).Find(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load reviews"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"reviews":   results,
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+	})
+}
+
+func (h *AdminHandler) ListAuditLogs(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "30"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 30
+	}
+
+	query := h.db.Table("audit_logs").
+		Select(`audit_logs.id::text, audit_logs.action, audit_logs.entity_type,
+			audit_logs.entity_id::text, audit_logs.metadata, audit_logs.created_at,
+			COALESCE(users.full_name,'') as actor_name`).
+		Joins("LEFT JOIN users ON users.id::text = audit_logs.actor_user_id::text")
+
+	var total int64
+	query.Count(&total)
+
+	type auditLogView struct {
+		ID         string          `json:"id"`
+		ActorName  string          `json:"actor_name"`
+		Action     string          `json:"action"`
+		EntityType string          `json:"entity_type"`
+		EntityID   string          `json:"entity_id"`
+		Metadata   json.RawMessage `json:"metadata"`
+		CreatedAt  time.Time       `json:"created_at"`
+	}
+	var results []auditLogView
+	offset := (page - 1) * pageSize
+	if err := query.Order("audit_logs.created_at DESC").Limit(pageSize).Offset(offset).Find(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load audit logs"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"logs":      results,
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+	})
 }

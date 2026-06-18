@@ -27,10 +27,44 @@ func NewOfficerHandler(db *gorm.DB, diagnosisSvc diagnosis.Service) *OfficerHand
 }
 
 func (h *OfficerHandler) OfficerPage(c *gin.Context) {
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
+
+	var pendingCount, inReviewCount, completedCount int64
+
+	h.db.Model(&diagnosis.CropDiagnosis{}).
+		Where("status IN ? AND (district = ? OR ? OR ?)",
+			[]string{"ai_completed", "awaiting_review"},
+			user.District, user.District == "", user.Role == "admin").
+		Count(&pendingCount)
+
+	h.db.Model(&diagnosis.CropDiagnosis{}).
+		Where("status = ? AND (district = ? OR ? OR ?)",
+			"under_review",
+			user.District, user.District == "", user.Role == "admin").
+		Count(&inReviewCount)
+
+	h.db.Model(&diagnosis.CropDiagnosis{}).
+		Where("status = ? AND (district = ? OR ? OR ?)",
+			"reviewed",
+			user.District, user.District == "", user.Role == "admin").
+		Count(&completedCount)
+
+	var userRecord struct {
+		FullName string
+		District string
+	}
+	h.db.Table("users").Select("full_name, district").
+		Where("id = ?", user.ID).Scan(&userRecord)
+
 	c.HTML(http.StatusOK, "officer_dashboard.html", gin.H{
-		"Title":        "AgriConnect AI - Officer Dashboard",
-		"Year":         time.Now().Year(),
-		"ContentBlock": "contentOfficerDashboard",
+		"Title":         "AgriConnect AI - Officer Dashboard",
+		"Year":          time.Now().Year(),
+		"ContentBlock":  "contentOfficerDashboard",
+		"PendingCount":  pendingCount,
+		"InReviewCount": inReviewCount,
+		"CompletedCount": completedCount,
+		"OfficerName":   userRecord.FullName,
+		"OfficerDistrict": userRecord.District,
 	})
 }
 
@@ -312,6 +346,57 @@ func (h *OfficerHandler) UpdateReview(c *gin.Context) {
 	h.writeAuditLog(&user.ID, "review_updated", "diagnosis_review", &reviewID, "diagnosis_id", diagID.String())
 
 	c.JSON(http.StatusOK, gin.H{"review": review})
+}
+
+func (h *OfficerHandler) ClaimCase(c *gin.Context) {
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
+	idStr := c.Param("id")
+	diagID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid diagnosis ID"})
+		return
+	}
+
+	var d diagnosis.CropDiagnosis
+	if err := h.db.First(&d, "id = ?", diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
+		return
+	}
+
+	if user.Role != "admin" && user.District != "" && d.District != user.District {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: not your district"})
+		return
+	}
+
+	var existing auth.DiagnosisReview
+	if err := h.db.Where("diagnosis_id = ? AND review_status NOT IN ('closed')", diagID).First(&existing).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "This diagnosis is already claimed by another officer"})
+		return
+	}
+
+	review := &auth.DiagnosisReview{
+		ID:           uuid.New(),
+		DiagnosisID:  diagID,
+		OfficerID:    user.ID,
+		ReviewStatus: "in_review",
+		CreatedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
+	}
+
+	if err := h.db.Create(review).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to claim case"})
+		return
+	}
+
+	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", "under_review")
+
+	h.createNotification(d.UserID, "Diagnosis Claimed",
+		fmt.Sprintf("An extension officer has started reviewing your %s diagnosis.", d.Crop),
+		"review_started", "crop_diagnosis", diagID)
+
+	h.writeAuditLog(&user.ID, "case_claimed", "crop_diagnosis", &diagID, "officer_id", user.ID.String())
+
+	c.JSON(http.StatusOK, gin.H{"message": "Case claimed", "review_id": review.ID.String()})
 }
 
 func (h *OfficerHandler) createNotification(userID uuid.UUID, title, message, notifType, entityType string, entityID uuid.UUID) {

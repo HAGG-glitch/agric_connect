@@ -1,0 +1,88 @@
+{{template "layout_head" .}}
+<div class="max-w-6xl mx-auto p-4 md:p-8">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/admin/users" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
+      <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-[#1F2937]">Audit Logs - Admin</h1>
+      <p class="text-sm text-[#6B7280]">Track all administrative actions</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-[#E5E7EB]">
+    <div id="log-list">
+      <p class="text-[#6B7280] text-sm py-8 text-center">Loading...</p>
+    </div>
+    <div id="pagination" class="flex items-center justify-between p-4 border-t border-[#E5E7EB]"></div>
+  </div>
+</div>
+
+<script>
+let currentPage = 1;
+
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/v1/auth/me');
+    if (!res.ok) { window.location.href = '/login'; return false; }
+    const data = await res.json();
+    if (data.role !== 'admin') { window.location.href = '/'; return false; }
+    return true;
+  } catch { window.location.href = '/login'; return false; }
+}
+
+async function loadList() {
+  const authed = await checkAuth();
+  if (!authed) return;
+
+  const params = new URLSearchParams({ page: currentPage, page_size: '30', sort: 'desc' });
+
+  try {
+    const res = await fetch('/api/v1/admin/audit-logs?' + params);
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    const container = document.getElementById('log-list');
+
+    if (!data.logs || data.logs.length === 0) {
+      container.innerHTML = '<p class="text-[#6B7280] text-sm py-8 text-center">No audit logs found</p>';
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-[#E5E7EB] bg-[#F9FAFB]"><th class="text-left p-3 font-medium">Timestamp</th><th class="text-left p-3 font-medium">Actor</th><th class="text-left p-3 font-medium">Action</th><th class="text-left p-3 font-medium">Entity Type</th><th class="text-left p-3 font-medium">Entity ID</th><th class="text-left p-3 font-medium">Metadata</th></tr></thead><tbody>' +
+      data.logs.map(l => `
+        <tr class="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
+          <td class="p-3 text-[#6B7280] text-xs whitespace-nowrap">${new Date(l.timestamp || l.created_at).toLocaleString()}</td>
+          <td class="p-3 text-[#1F2937]">${escapeHTML(l.actor_name || l.actor?.full_name || l.actor || '-')}</td>
+          <td class="p-3"><span class="text-xs px-2 py-1 rounded-full bg-gray-50 text-gray-700">${escapeHTML(l.action)}</span></td>
+          <td class="p-3 text-[#6B7280]">${escapeHTML(l.entity_type || '-')}</td>
+          <td class="p-3 text-[#6B7280] text-xs font-mono">${escapeHTML(l.entity_id || '-')}</td>
+          <td class="p-3 text-[#6B7280] text-xs max-w-xs truncate">${l.metadata ? escapeHTML(typeof l.metadata === 'string' ? l.metadata : JSON.stringify(l.metadata)) : '-'}</td>
+        </tr>
+      `).join('') + '</tbody></table></div>';
+
+    const totalPages = Math.ceil(data.total / data.page_size) || 1;
+    document.getElementById('pagination').innerHTML = `
+      <button onclick="changePage(${currentPage - 1})" class="text-sm px-3 py-1 border rounded ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''}" ${currentPage <= 1 ? 'disabled' : ''}>Previous</button>
+      <span class="text-sm text-[#6B7280]">Page ${currentPage} of ${totalPages}</span>
+      <button onclick="changePage(${currentPage + 1})" class="text-sm px-3 py-1 border rounded ${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : ''}" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
+    `;
+  } catch (e) {
+    document.getElementById('log-list').innerHTML = '<p class="text-red-600 text-sm py-8 text-center">Failed to load audit logs</p>';
+  }
+}
+
+function changePage(page) {
+  if (page < 1) return;
+  currentPage = page;
+  loadList();
+}
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadList();
+</script>
+{{template "layout_foot" .}}

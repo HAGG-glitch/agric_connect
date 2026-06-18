@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/agriconnect-ai/internal/auth"
 	"github.com/agriconnect-ai/internal/config"
 	"github.com/agriconnect-ai/internal/diagnosis"
 	"github.com/agriconnect-ai/internal/services"
@@ -16,6 +17,7 @@ import (
 	"github.com/agriconnect-ai/internal/weather"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type DiagnosisHandler struct {
@@ -23,10 +25,11 @@ type DiagnosisHandler struct {
 	cfg      *config.Config
 	objStore storage.ObjectStorage
 	chatSvc  services.ChatService
+	db       *gorm.DB
 }
 
-func NewDiagnosisHandler(svc diagnosis.Service, cfg *config.Config, objStore storage.ObjectStorage, chatSvc services.ChatService) *DiagnosisHandler {
-	return &DiagnosisHandler{svc: svc, cfg: cfg, objStore: objStore, chatSvc: chatSvc}
+func NewDiagnosisHandler(svc diagnosis.Service, cfg *config.Config, objStore storage.ObjectStorage, chatSvc services.ChatService, db *gorm.DB) *DiagnosisHandler {
+	return &DiagnosisHandler{svc: svc, cfg: cfg, objStore: objStore, chatSvc: chatSvc, db: db}
 }
 
 func (h *DiagnosisHandler) DiagnosePage(c *gin.Context) {
@@ -86,9 +89,15 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 		confidenceBarClass = "bg-red-500"
 	}
 
+	var reviews []auth.DiagnosisReview
+	if h.db != nil {
+		h.db.Where("diagnosis_id = ?", id).Order("created_at DESC").Find(&reviews)
+	}
+
 	c.HTML(http.StatusOK, "diagnosis_detail.html", gin.H{
 		"Title":                 "AgriConnect AI - Diagnosis Detail",
 		"Diagnosis":             d,
+		"Reviews":               reviews,
 		"Year":                  time.Now().Year(),
 		"ContentBlock":          "contentDiagnosisDetail",
 		"ConfidencePercent":     confidence,

@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/agriconnect-ai/internal/auth"
+	"github.com/agriconnect-ai/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -15,6 +17,14 @@ type NotificationHandler struct {
 
 func NewNotificationHandler(db *gorm.DB) *NotificationHandler {
 	return &NotificationHandler{db: db}
+}
+
+func (h *NotificationHandler) NotificationsPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "notifications.html", gin.H{
+		"Title":        "AgriConnect AI - Notifications",
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentNotifications",
+	})
 }
 
 func (h *NotificationHandler) List(c *gin.Context) {
@@ -49,6 +59,24 @@ func (h *NotificationHandler) List(c *gin.Context) {
 	})
 }
 
+func (h *NotificationHandler) UnreadCount(c *gin.Context) {
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if !exists || authUser == nil {
+		c.JSON(http.StatusOK, gin.H{"unread_count": 0})
+		return
+	}
+	user, ok := authUser.(*middleware.AuthUser)
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{"unread_count": 0})
+		return
+	}
+
+	var count int64
+	h.db.Model(&auth.Notification{}).Where("user_id = ? AND is_read = ?", user.ID, false).Count(&count)
+
+	c.JSON(http.StatusOK, gin.H{"unread_count": count})
+}
+
 func (h *NotificationHandler) MarkRead(c *gin.Context) {
 	userID := getUserID(c)
 	idStr := c.Param("id")
@@ -68,4 +96,23 @@ func (h *NotificationHandler) MarkRead(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Marked as read"})
+}
+
+func (h *NotificationHandler) MarkAllRead(c *gin.Context) {
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if !exists || authUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+		return
+	}
+	user, ok := authUser.(*middleware.AuthUser)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+		return
+	}
+
+	h.db.Model(&auth.Notification{}).
+		Where("user_id = ? AND is_read = ?", user.ID, false).
+		Update("is_read", true)
+
+	c.JSON(http.StatusOK, gin.H{"message": "All notifications marked as read"})
 }

@@ -211,7 +211,7 @@ func TestDiagnosisHandler_Create_Success(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil, nil)
 
 	r := gin.New()
 	r.POST("/api/v1/diagnoses", func(c *gin.Context) {
@@ -251,7 +251,7 @@ func TestDiagnosisHandler_Create_MissingImage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	svc := &mockDiagnosisService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil, nil)
 
 	r := gin.New()
 	r.POST("/api/v1/diagnoses", func(c *gin.Context) {
@@ -286,7 +286,7 @@ func TestDiagnosisHandler_Create_InvalidDistrict(t *testing.T) {
 
 	imgData := createValidPNG(t)
 	svc := &mockDiagnosisService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil, nil)
 
 	r := gin.New()
 	r.POST("/api/v1/diagnoses", func(c *gin.Context) {
@@ -331,7 +331,7 @@ func TestDiagnosisHandler_Get_Unauthorized(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil, nil)
 
 	r := gin.New()
 	r.GET("/api/v1/diagnoses/:id", func(c *gin.Context) {
@@ -383,7 +383,7 @@ func TestDiagnosisHandler_Get_Success(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil, nil)
 
 	r := gin.New()
 	r.GET("/api/v1/diagnoses/:id", func(c *gin.Context) {
@@ -425,7 +425,7 @@ func TestDiagnosisHandler_Delete_Unauthorized(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil, nil)
 
 	r := gin.New()
 	r.DELETE("/api/v1/diagnoses/:id", func(c *gin.Context) {
@@ -464,7 +464,7 @@ func TestDiagnosisHandler_ServeImage_NotFound(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil, nil)
 
 	r := gin.New()
 	r.GET("/api/v1/diagnoses/:id/image", func(c *gin.Context) {
@@ -499,7 +499,7 @@ func TestDiagnosisHandler_ContinueInChat_Ownership(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil, nil)
 
 	r := gin.New()
 	r.POST("/api/v1/diagnoses/:id/continue-in-chat", func(c *gin.Context) {
@@ -541,7 +541,7 @@ func TestDiagnosisHandler_List_Pagination(t *testing.T) {
 		},
 	}
 
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), &mockObjectStorage{}, nil, nil)
 
 	r := gin.New()
 	r.GET("/api/v1/diagnoses", func(c *gin.Context) {
@@ -2241,7 +2241,7 @@ func TestDiagnosisHandler_ServeImage_UsesDownload(t *testing.T) {
 	objStore := &mockObjectStorage{}
 	objStore.SetDownloadData(imgData)
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	r.GET("/api/v1/diagnoses/:id/image", func(c *gin.Context) {
@@ -2292,7 +2292,7 @@ func TestDiagnosisHandler_ServeImage_Storage404Returns404(t *testing.T) {
 	objStore := &mockObjectStorage{}
 	objStore.downloadErr = fmt.Errorf("supabase download failed (HTTP 404): object not found at path")
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	r.GET("/api/v1/diagnoses/:id/image", func(c *gin.Context) {
@@ -2334,7 +2334,7 @@ func TestDiagnosisHandler_ServeImage_EmptyStoragePathIs404(t *testing.T) {
 
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	r.GET("/api/v1/diagnoses/:id/image", func(c *gin.Context) {
@@ -2370,7 +2370,7 @@ func TestDiagnosisHandler_HistoryPage_HasBackButton(t *testing.T) {
 	svc := &mockDiagnosisService{}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, cfg, objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, cfg, objStore, chatSvc, nil)
 
 	t.Run("handler is constructed", func(t *testing.T) {
 		if handler == nil {
@@ -2480,7 +2480,7 @@ func TestConfidenceDetail_RendersWithIntConfidence(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2522,7 +2522,7 @@ func TestConfidenceDetail_RendersWithFloat64Confidence(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2561,7 +2561,7 @@ func TestConfidenceDetail_RendersWithZeroConfidence(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2600,7 +2600,7 @@ func TestConfidenceDetail_DoesNotPanicOnTypeMismatch(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2640,7 +2640,7 @@ func TestConfidenceDetail_SixtyPercentShowsWidth60(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2679,7 +2679,7 @@ func TestConfidenceDetail_HighConfidenceGetsGreenClass(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2718,7 +2718,7 @@ func TestConfidenceDetail_MediumConfidenceGetsAmberClass(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2757,7 +2757,7 @@ func TestConfidenceDetail_LowConfidenceGetsRedClass(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2795,7 +2795,7 @@ func TestConfidenceDetail_FailedDiagnosisHidesConfidenceChart(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2837,7 +2837,7 @@ func TestConfidenceDetail_FailedDiagnosisHidesEmptyUrgency(t *testing.T) {
 	}
 	objStore := &mockObjectStorage{}
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -2890,7 +2890,7 @@ func TestConfidenceDetail_ImageRouteStillReturns200(t *testing.T) {
 	objStore := &mockObjectStorage{}
 	objStore.SetDownloadData(imgData)
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc, nil)
 
 	r := gin.New()
 	r.GET("/api/v1/diagnoses/:id/image", func(c *gin.Context) {

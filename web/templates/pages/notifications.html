@@ -1,0 +1,155 @@
+{{template "layout_head" .}}
+<div class="max-w-2xl mx-auto p-4 md:p-8">
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <a href="/dashboard" class="p-2 mr-1 hover:bg-[#F5F7F5] rounded-lg transition-colors">
+        <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
+      </a>
+      <div class="w-10 h-10 rounded-xl bg-[#2E7D32] flex items-center justify-center">
+        <i data-lucide="bell" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold text-[#1F2937]">Notifications</h1>
+        <p class="text-sm text-[#6B7280]">Stay updated with your farm alerts</p>
+      </div>
+    </div>
+    <button id="mark-all-read" onclick="markAllRead()"
+      class="text-sm px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-[#2E7D32] hover:bg-[#2E7D32]/5 transition-colors font-medium">
+      Mark All Read
+    </button>
+  </div>
+
+  <div id="notifications-list" class="space-y-2">
+    <div class="text-center py-16 text-[#6B7280]">
+      <div class="w-8 h-8 border-2 border-[#2E7D32] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p>Loading notifications...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    loadNotifications();
+  });
+
+  async function loadNotifications() {
+    const container = document.getElementById('notifications-list');
+    container.innerHTML =
+      '<div class="text-center py-16 text-[#6B7280]"><div class="w-8 h-8 border-2 border-[#2E7D32] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p>Loading notifications...</p></div>';
+
+    try {
+      const res = await fetch('/api/v1/notifications');
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+
+      const notifications = data.notifications || data;
+
+      if (!notifications || notifications.length === 0) {
+        container.innerHTML =
+          '<div class="text-center py-16 text-[#6B7280]"><i data-lucide="bell-off" class="w-10 h-10 mx-auto mb-4"></i><p class="font-medium text-[#1F2937]">No notifications yet</p><p class="text-sm mt-1">You\'re all caught up!</p></div>';
+        document.getElementById('mark-all-read').classList.add('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return;
+      }
+
+      const hasUnread = notifications.some(function(n) { return !n.read_at; });
+      document.getElementById('mark-all-read').classList.toggle('hidden', !hasUnread);
+
+      container.innerHTML = notifications.map(function(n) {
+        var isUnread = !n.read_at;
+        var badge = getTypeBadge(n.type || n.notification_type);
+        var timeAgo = formatTimeAgo(n.created_at);
+        var entityPath = getEntityPath(n);
+        var readClass = isUnread ? 'border-l-[#2E7D32] bg-[#F0F7F0]' : 'border-l-transparent bg-white';
+
+        return '<div onclick="handleNotificationClick(\'' + escapeHTML(n.id) + '\', \'' + escapeHTML(entityPath) + '\")" ' +
+          'class="' + readClass + ' border border-[#E5E7EB] rounded-xl p-4 cursor-pointer hover:shadow-sm transition-all ' + (isUnread ? 'hover:border-[#2E7D32]/40' : 'hover:border-[#D1D5DB]') + '">' +
+          '<div class="flex items-start gap-3">' +
+          '<div class="flex-1 min-w-0">' +
+          '<div class="flex items-center gap-2 mb-1">' +
+          '<span class="font-semibold text-sm text-[#1F2937]">' + escapeHTML(n.title) + '</span>' +
+          badge +
+          (isUnread ? '<span class="w-2 h-2 rounded-full bg-[#2E7D32] flex-shrink-0"></span>' : '') +
+          '</div>' +
+          '<p class="text-sm text-[#6B7280] line-clamp-2">' + escapeHTML(n.message) + '</p>' +
+          '<p class="text-xs text-[#9CA3AF] mt-1.5">' + timeAgo + '</p>' +
+          '</div>' +
+          '<i data-lucide="chevron-right" class="w-4 h-4 text-[#9CA3AF] flex-shrink-0 mt-1"></i>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (e) {
+      container.innerHTML =
+        '<div class="text-center py-16 text-red-500"><i data-lucide="alert-circle" class="w-10 h-10 mx-auto mb-4"></i><p>Failed to load notifications.</p><button onclick="loadNotifications()" class="mt-3 text-sm text-[#2E7D32] hover:underline font-medium">Retry</button></div>';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+  }
+
+  function getTypeBadge(type) {
+    var colors = {
+      diagnosis: 'bg-blue-50 text-blue-700',
+      weather: 'bg-amber-50 text-amber-700',
+      market: 'bg-green-50 text-green-700',
+      system: 'bg-gray-50 text-gray-700',
+      reminder: 'bg-purple-50 text-purple-700',
+    };
+    var cls = colors[type] || 'bg-gray-50 text-gray-700';
+    return '<span class="text-xs px-2 py-0.5 rounded-full ' + cls + ' capitalize">' + escapeHTML(type) + '</span>';
+  }
+
+  function formatTimeAgo(dateStr) {
+    if (!dateStr) return '';
+    var now = new Date();
+    var date = new Date(dateStr);
+    var diffMs = now - date;
+    var diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return 'Just now';
+    var diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return diffMin + 'm ago';
+    var diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return diffHr + 'h ago';
+    var diffDay = Math.floor(diffHr / 24);
+    if (diffDay < 7) return diffDay + 'd ago';
+    return date.toLocaleDateString();
+  }
+
+  function getEntityPath(n) {
+    if (n.entity_id && n.entity_type) {
+      if (n.entity_type === 'diagnosis') return '/diagnoses/' + n.entity_id;
+      if (n.entity_type === 'conversation') return '/assistant';
+      if (n.entity_type === 'market_price') return '/market-prices';
+      return '/' + n.entity_type + '/' + n.entity_id;
+    }
+    return '#';
+  }
+
+  async function handleNotificationClick(id, path) {
+    try {
+      await fetch('/api/v1/notifications/' + encodeURIComponent(id) + '/read', { method: 'PATCH' });
+    } catch (e) {
+      // Silently fail — navigation still happens
+    }
+    if (path && path !== '#') {
+      window.location.href = path;
+    }
+  }
+
+  async function markAllRead() {
+    var btn = document.getElementById('mark-all-read');
+    btn.disabled = true;
+    btn.textContent = 'Marking...';
+    try {
+      var res = await fetch('/api/v1/notifications/read-all', { method: 'PATCH' });
+      if (!res.ok) throw new Error('Failed');
+      loadNotifications();
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Mark All Read';
+      alert('Failed to mark notifications as read.');
+    }
+  }
+</script>
+{{template "layout_foot" .}}

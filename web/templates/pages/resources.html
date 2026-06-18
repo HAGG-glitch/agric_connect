@@ -1,0 +1,131 @@
+{{template "layout_head" .}}
+<div class="max-w-5xl mx-auto p-4 md:p-8">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/assistant" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
+      <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
+    </a>
+    <div class="w-10 h-10 rounded-xl bg-[#2E7D32] flex items-center justify-center">
+      <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-[#1F2937]">Learning Resources</h1>
+      <p class="text-sm text-[#6B7280]">Agricultural guides and best practices</p>
+    </div>
+  </div>
+
+  <div class="bg-white border border-[#E5E7EB] rounded-xl p-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <select id="filter-category" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-lg bg-white text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30 focus:border-[#2E7D32]">
+        <option value="">All Categories</option>
+        {{range .Categories}}<option value="{{.}}">{{.}}</option>{{end}}
+      </select>
+      <select id="filter-crop" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-lg bg-white text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30 focus:border-[#2E7D32]">
+        <option value="">All Crops</option>
+        {{range .Crops}}<option value="{{.}}">{{.}}</option>{{end}}
+      </select>
+      <select id="filter-language" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-lg bg-white text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30 focus:border-[#2E7D32]">
+        <option value="">All Languages</option>
+        <option value="english">English</option>
+        <option value="krio">Krio</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="resources-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="text-center py-12 text-[#6B7280] col-span-full">
+      <i data-lucide="search" class="w-8 h-8 mx-auto mb-3"></i>
+      <p>Loading resources...</p>
+    </div>
+  </div>
+
+  <div id="pagination" class="flex justify-center gap-2 mt-6 hidden">
+    <button id="prev-page" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-[#F5F7F5] disabled:opacity-40">Previous</button>
+    <span id="page-info" class="px-3 py-1.5 text-sm text-[#6B7280]"></span>
+    <button id="next-page" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-[#F5F7F5] disabled:opacity-40">Next</button>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    loadResources(1);
+  });
+
+  let currentPage = 1;
+
+  document.getElementById('filter-category')?.addEventListener('change', function() { loadResources(1); });
+  document.getElementById('filter-crop')?.addEventListener('change', function() { loadResources(1); });
+  document.getElementById('filter-language')?.addEventListener('change', function() { loadResources(1); });
+
+  async function loadResources(page) {
+    const container = document.getElementById('resources-list');
+    container.innerHTML = '<div class="text-center py-12 text-[#6B7280] col-span-full"><div class="w-6 h-6 border-2 border-[#2E7D32] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div><p>Loading...</p></div>';
+
+    const category = document.getElementById('filter-category').value;
+    const crop = document.getElementById('filter-crop').value;
+    const language = document.getElementById('filter-language').value;
+
+    try {
+      const params = new URLSearchParams({ page: page, page_size: 20 });
+      if (category) params.set('category', category);
+      if (crop) params.set('crop', crop);
+      if (language) params.set('language', language);
+
+      const res = await fetch('/api/v1/resources?' + params.toString());
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+
+      if (!data.resources || data.resources.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-[#6B7280] col-span-full"><i data-lucide="book-open" class="w-8 h-8 mx-auto mb-3"></i><p>No resources found.</p></div>';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        document.getElementById('pagination').classList.add('hidden');
+        return;
+      }
+
+      container.innerHTML = data.resources.map(function(r) {
+        return '<a href="/resources/' + r.id + '" class="bg-white border border-[#E5E7EB] rounded-xl p-4 hover:border-[#2E7D32]/30 hover:shadow-sm transition-all block">' +
+          '<div class="flex items-start justify-between gap-3 mb-2">' +
+          '<h3 class="font-semibold text-[#1F2937] text-sm leading-snug">' + escapeHTML(r.title) + '</h3>' +
+          (r.reviewed ? '<i data-lucide="check-circle" class="w-4 h-4 text-[#2E7D32] flex-shrink-0 mt-0.5"></i>' : '') +
+          '</div>' +
+          '<p class="text-sm text-[#6B7280] mb-3 line-clamp-2">' + escapeHTML(r.summary) + '</p>' +
+          '<div class="flex flex-wrap items-center gap-1.5">' +
+          (r.crop ? '<span class="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-2 py-0.5 rounded-full font-medium">' + escapeHTML(r.crop) + '</span>' : '') +
+          (r.category ? '<span class="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">' + escapeHTML(r.category) + '</span>' : '') +
+          '<span class="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded-full">' + escapeHTML(r.language) + '</span>' +
+          (r.source ? '<span class="text-xs text-[#6B7280] ml-auto">' + escapeHTML(r.source) + '</span>' : '') +
+          '</div>' +
+          '</a>';
+      }).join('');
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+
+      const totalPages = Math.ceil(data.total / data.page_size) || 1;
+      const pagination = document.getElementById('pagination');
+      if (totalPages > 1) {
+        pagination.classList.remove('hidden');
+        document.getElementById('page-info').textContent = 'Page ' + page + ' of ' + totalPages;
+        document.getElementById('prev-page').disabled = page <= 1;
+        document.getElementById('next-page').disabled = page >= totalPages;
+        currentPage = page;
+      } else {
+        pagination.classList.add('hidden');
+      }
+    } catch (e) {
+      container.innerHTML = '<div class="text-center py-12 text-red-500 col-span-full"><p>Failed to load resources.</p></div>';
+    }
+  }
+
+  document.getElementById('prev-page')?.addEventListener('click', function() {
+    if (currentPage > 1) loadResources(currentPage - 1);
+  });
+  document.getElementById('next-page')?.addEventListener('click', function() {
+    loadResources(currentPage + 1);
+  });
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+{{template "layout_foot" .}}

@@ -1,0 +1,50 @@
+{{template "layout_head" .}}
+<div class="max-w-3xl mx-auto p-4 md:p-8">
+  {{if .Error}}
+  <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+    <i data-lucide="alert-circle" class="w-8 h-8 text-red-500 mx-auto mb-3"></i>
+    <p class="text-red-700">{{.Error}}</p>
+    <a href="/resources" class="text-[#2E7D32] hover:underline text-sm mt-2 inline-block">Back to resources</a>
+  </div>
+  {{else}}
+  {{$r := .Resource}}
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/resources" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
+      <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
+    </a>
+    <div class="w-10 h-10 rounded-xl bg-[#2E7D32] flex items-center justify-center">
+      <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-[#1F2937]">{{$r.Title}}</h1>
+      <p class="text-sm text-[#6B7280]">Learning Resource</p>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2 mb-6">
+    {{if $r.Crop}}<span class="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-2 py-1 rounded-full font-medium">{{$r.Crop}}</span>{{end}}
+    {{if $r.Category}}<span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">{{$r.Category}}</span>{{end}}
+    <span class="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-full capitalize">{{$r.Language}}</span>
+    {{if $r.Reviewed}}<span class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i>Reviewed</span>{{end}}
+    {{if $r.Source}}<span class="text-xs text-[#6B7280]">{{$r.Source}}</span>{{end}}
+  </div>
+
+  <div class="bg-white border border-[#E5E7EB] rounded-xl p-6">
+    <div class="prose prose-sm max-w-none text-[#4B5563] whitespace-pre-wrap">{{$r.Content}}</div>
+  </div>
+
+  <div class="mt-6 text-center">
+    <a href="/resources" class="inline-flex items-center gap-1 text-sm text-[#2E7D32] hover:underline">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      Back to all resources
+    </a>
+  </div>
+  {{end}}
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  });
+</script>
+{{template "layout_foot" .}}

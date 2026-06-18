@@ -61,7 +61,21 @@
     </div>
   </div>
 
-  {{else}}
+  {{else if and .Reviews (gt (len .Reviews) 0)}}
+  {{$r := index .Reviews 0}}
+  <div class="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3">
+      <i data-lucide="clipboard-check" class="w-4 h-4 text-[#2E7D32]"></i>
+      <h3 class="font-semibold text-[#1F2937] text-sm">Officer Review</h3>
+      <span class="text-xs px-2 py-0.5 rounded-full font-medium {{if eq $r.ReviewStatus "confirmed"}}bg-green-100 text-green-700{{else if eq $r.ReviewStatus "in_review"}}bg-blue-100 text-blue-700{{else if eq $r.ReviewStatus "closed"}}bg-gray-100 text-gray-700{{else}}bg-amber-100 text-amber-700{{end}} ml-auto">{{$r.ReviewStatus}}</span>
+    </div>
+    {{if $r.ConfirmedCondition}}<p class="text-sm text-[#4B5563] mb-2"><span class="font-medium">Confirmed Condition:</span> {{$r.ConfirmedCondition}}</p>{{end}}
+    {{if $r.OfficerComment}}<p class="text-sm text-[#4B5563] mb-2"><span class="font-medium">Officer Notes:</span> {{$r.OfficerComment}}</p>{{end}}
+    {{if $r.Recommendation}}<p class="text-sm text-[#4B5563] mb-2"><span class="font-medium">Recommendation:</span> {{$r.Recommendation}}</p>{{end}}
+    {{if $r.Urgency}}<p class="text-sm text-[#4B5563] mb-2"><span class="font-medium">Urgency:</span> <span class="capitalize">{{$r.Urgency}}</span></p>{{end}}
+    {{if $r.RequiresFieldVisit}}<p class="text-sm text-amber-600"><i data-lucide="truck" class="w-3 h-3 inline"></i> Field visit required</p>{{end}}
+  </div>
+{{else}}
   <div class="space-y-4">
     <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
       <h3 class="font-semibold text-[#1F2937] mb-3 text-sm">Diagnosis Summary</h3>
