@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -53,8 +54,9 @@ func (t *audioTranscriber) Transcribe(ctx context.Context, input TranscriptionIn
 		return nil, fmt.Errorf("writing model field: %w", err)
 	}
 
-	if input.LanguageHint != "" && input.LanguageHint != "auto" {
-		if err := w.WriteField("language", input.LanguageHint); err != nil {
+	providerLang, includeLang := normalizeTranscriptionLanguage(input.LanguageHint)
+	if includeLang {
+		if err := w.WriteField("language", providerLang); err != nil {
 			return nil, fmt.Errorf("writing language field: %w", err)
 		}
 	}
@@ -123,6 +125,17 @@ func extFromAudioType(audioType string) string {
 		return "ogg"
 	default:
 		return "webm"
+	}
+}
+
+func normalizeTranscriptionLanguage(value string) (providerLang string, include bool) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "english", "en":
+		return "en", true
+	case "", "auto", "krio":
+		return "", false
+	default:
+		return "", false
 	}
 }
 

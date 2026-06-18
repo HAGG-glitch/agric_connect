@@ -12,6 +12,9 @@ const State = {
 // ─── Initialization ────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  const assistantRoot = document.querySelector("[data-assistant-root]");
+  if (!assistantRoot) return;
+
   loadConversations();
 
   // Restore last state from sessionStorage

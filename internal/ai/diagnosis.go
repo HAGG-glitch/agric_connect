@@ -48,12 +48,16 @@ type CropDiagnosisAI interface {
 }
 
 type cropDiagnosisAI struct {
-	client *Client
-	model  string
+	client     *Client
+	model      string
+	maxTokens  int
 }
 
-func NewCropDiagnosisAI(client *Client, model string) CropDiagnosisAI {
-	return &cropDiagnosisAI{client: client, model: model}
+func NewCropDiagnosisAI(client *Client, model string, maxTokens int) CropDiagnosisAI {
+	if maxTokens <= 0 {
+		maxTokens = 512
+	}
+	return &cropDiagnosisAI{client: client, model: model, maxTokens: maxTokens}
 }
 
 func (a *cropDiagnosisAI) Diagnose(ctx context.Context, input DiagnosisAIInput) (*DiagnosisAIResult, error) {
@@ -93,7 +97,7 @@ Language: %s`,
 	req := ChatRequest{
 		Model:       a.model,
 		Messages:    messages,
-		MaxTokens:   2000,
+		MaxTokens:   a.maxTokens,
 		Temperature: 0.2,
 	}
 

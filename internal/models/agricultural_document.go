@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type AgriculturalDocument struct {
@@ -18,7 +19,7 @@ type AgriculturalDocument struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func (d *AgriculturalDocument) BeforeCreate(_ interface{}) error {
+func (d *AgriculturalDocument) BeforeCreate(tx *gorm.DB) error {
 	if d.ID == uuid.Nil {
 		d.ID = uuid.New()
 	}

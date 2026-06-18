@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type CropDiagnosis struct {
@@ -56,7 +57,7 @@ func (CropDiagnosis) TableName() string {
 	return "crop_diagnoses"
 }
 
-func (d *CropDiagnosis) BeforeCreate(_ interface{}) error {
+func (d *CropDiagnosis) BeforeCreate(tx *gorm.DB) error {
 	if d.ID == uuid.Nil {
 		d.ID = uuid.New()
 	}

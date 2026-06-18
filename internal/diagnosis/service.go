@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/jpeg"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -175,8 +176,14 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 			log.Printf("knowledge retrieval for diagnosis %s: %v", diagID, err)
 		}
 
+		if s.cfg.MaxDiagnosisContextChars > 0 && len(knowledgeCtx) > s.cfg.MaxDiagnosisContextChars {
+			knowledgeCtx = knowledgeCtx[:s.cfg.MaxDiagnosisContextChars]
+		}
+
+		optImageData := optimizeImageForAI(fileData, contentType)
+
 		aiInput := ai.DiagnosisAIInput{
-			ImageData:          fileData,
+			ImageData:          optImageData,
 			ImageContentType:   contentType,
 			Crop:               input.Crop,
 			District:           input.District,
@@ -192,6 +199,12 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 		}
 
 		result, err := s.visionAI.Diagnose(procCtx, aiInput)
+		if err != nil && strings.Contains(err.Error(), "input_length") {
+			log.Printf("vision diagnosis input length error for %s, retrying with reduced image: %v", diagID, err)
+			optImageData = compressImage(fileData, contentType)
+			aiInput.ImageData = optImageData
+			result, err = s.visionAI.Diagnose(procCtx, aiInput)
+		}
 		if err != nil {
 			log.Printf("vision diagnosis failed for %s: %v", diagID, err)
 			diag.Status = "failed"
@@ -318,6 +331,36 @@ func (s *service) cleanupImage(ctx context.Context, path string) {
 	if err := s.storage.Delete(ctx, path); err != nil {
 		log.Printf("failed to clean up image %s: %v", path, err)
 	}
+}
+
+func optimizeImageForAI(data []byte, contentType string) []byte {
+	if len(data) <= 300*1024 {
+		return data
+	}
+	if contentType == "image/webp" {
+		return data
+	}
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return data
+	}
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 60}); err != nil {
+		return data
+	}
+	return buf.Bytes()
+}
+
+func compressImage(data []byte, contentType string) []byte {
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return data
+	}
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 30}); err != nil {
+		return data
+	}
+	return buf.Bytes()
 }
 
 func detectImageSignature(data []byte) (ok bool, isWebP bool) {

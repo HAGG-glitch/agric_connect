@@ -86,7 +86,7 @@ func main() {
 	}
 
 	// Diagnosis
-	diagnosisAI := ai.NewCropDiagnosisAI(aiClient, cfg.GroqVisionModel)
+	diagnosisAI := ai.NewCropDiagnosisAI(aiClient, cfg.GroqVisionModel, cfg.GroqVisionMaxOutputTokens)
 	diagnosisSvc := diagnosis.NewService(diagnosisRepo, objStore, diagnosisAI, knowledgeSvc, cfg)
 
 	// Transcription
