@@ -5,8 +5,6 @@ import (
 	"log"
 	"math"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -222,64 +220,19 @@ func (h *DiagnosisHandler) ServeImage(c *gin.Context) {
 		return
 	}
 
-	if _, isLocal := h.objStore.(*storage.LocalStorage); isLocal {
-		contentType := d.ImageContentType
-		if contentType == "" {
-			contentType = "application/octet-stream"
-		}
-		relPath := d.ImageStoragePath
-		fullPath := filepath.Clean(filepath.Join(h.objStore.(*storage.LocalStorage).FullPath(""), relPath))
-		localDir := filepath.Clean(h.objStore.(*storage.LocalStorage).FullPath(""))
-		if !strings.HasPrefix(fullPath, localDir) {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+	reader, err := h.objStore.Download(c.Request.Context(), d.ImageStoragePath)
+	if err != nil {
+		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Image file was not found in storage. The database record exists, but the stored file could not be retrieved."})
 			return
 		}
-		f, err := os.Open(fullPath)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Image not found"})
-			return
-		}
-		defer f.Close()
-		c.Header("Content-Type", contentType)
-		c.Header("X-Content-Type-Options", "nosniff")
-		c.Status(http.StatusOK)
-		io.Copy(c.Writer, f)
-		return
-	}
-
-	signedURL, err := h.objStore.SignedURL(c.Request.Context(), d.ImageStoragePath, 5*time.Minute)
-	if err != nil {
-		log.Printf("failed to get signed URL for diagnosis %s: %v", id, err)
+		log.Printf("failed to download image for diagnosis %s: %v", id, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serve image"})
 		return
 	}
+	defer reader.Close()
 
-	proxyReq, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, signedURL, nil)
-	if err != nil {
-		log.Printf("failed to create proxy request for diagnosis %s: %v", id, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serve image"})
-		return
-	}
-
-	proxyClient := &http.Client{Timeout: 30 * time.Second}
-	proxyResp, err := proxyClient.Do(proxyReq)
-	if err != nil {
-		log.Printf("failed to fetch image for diagnosis %s: %v", id, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serve image"})
-		return
-	}
-	defer proxyResp.Body.Close()
-
-	if proxyResp.StatusCode != http.StatusOK {
-		log.Printf("image proxy upstream returned %d for diagnosis %s", proxyResp.StatusCode, id)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serve image"})
-		return
-	}
-
-	contentType := proxyResp.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = d.ImageContentType
-	}
+	contentType := d.ImageContentType
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
@@ -288,7 +241,7 @@ func (h *DiagnosisHandler) ServeImage(c *gin.Context) {
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Header("Cache-Control", "private, max-age=300")
 	c.Status(http.StatusOK)
-	io.Copy(c.Writer, proxyResp.Body)
+	io.Copy(c.Writer, reader)
 }
 
 func (h *DiagnosisHandler) ContinueInChat(c *gin.Context) {

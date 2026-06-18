@@ -10,6 +10,14 @@ import (
 	"strings"
 )
 
+type ResponseFormatType string
+
+const (
+	ResponseFormatJSONSchema ResponseFormatType = "json_schema"
+	ResponseFormatJSONObject ResponseFormatType = "json_object"
+	ResponseFormatNone       ResponseFormatType = "none"
+)
+
 //go:embed prompts/crop_diagnosis.txt
 var cropDiagnosisPrompt string
 
@@ -50,52 +58,81 @@ type CropDiagnosisAI interface {
 }
 
 type cropDiagnosisAI struct {
-	client     *Client
-	model      string
-	maxTokens  int
+	client             *Client
+	model              string
+	maxTokens          int
+	responseFormatType ResponseFormatType
 }
 
-func NewCropDiagnosisAI(client *Client, model string, maxTokens int) CropDiagnosisAI {
+func NewCropDiagnosisAI(client *Client, model string, maxTokens int, responseFormatType string) CropDiagnosisAI {
 	if maxTokens <= 0 {
 		maxTokens = 512
 	}
-	return &cropDiagnosisAI{client: client, model: model, maxTokens: maxTokens}
+	rft := ResponseFormatJSONSchema
+	switch ResponseFormatType(responseFormatType) {
+	case ResponseFormatJSONObject:
+		rft = ResponseFormatJSONObject
+	case ResponseFormatNone:
+		rft = ResponseFormatNone
+	}
+	return &cropDiagnosisAI{
+		client:             client,
+		model:              model,
+		maxTokens:          maxTokens,
+		responseFormatType: rft,
+	}
 }
 
-func buildJSONSchemaFormat() *ResponseFormat {
-	schema := map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"crop":                   map[string]interface{}{"type": "string"},
-			"probable_condition":     map[string]interface{}{"type": "string"},
-			"confidence":             map[string]interface{}{"type": "integer", "minimum": 0, "maximum": 100},
-			"confidence_label":       map[string]interface{}{"type": "string"},
-			"description":            map[string]interface{}{"type": "string"},
-			"observed_signs":         map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
-			"possible_alternatives":  map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
-			"recommended_actions":    map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
-			"prevention_tips":        map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
-			"urgency":                map[string]interface{}{"type": "string", "enum": []interface{}{"low", "medium", "high", "urgent"}},
-			"requires_expert_review": map[string]interface{}{"type": "boolean"},
-			"disclaimer":             map[string]interface{}{"type": "string"},
-		},
-		"required": []interface{}{
-			"probable_condition", "confidence", "description",
-			"observed_signs", "possible_alternatives",
-			"recommended_actions", "prevention_tips",
-			"urgency", "requires_expert_review", "disclaimer",
-		},
-		"additionalProperties": false,
+func (a *cropDiagnosisAI) buildResponseFormat() *ResponseFormat {
+	switch a.responseFormatType {
+	case ResponseFormatNone:
+		return nil
+	case ResponseFormatJSONObject:
+		return &ResponseFormat{Type: "json_object"}
+	default:
+		schema := map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"crop":                   map[string]interface{}{"type": "string"},
+				"probable_condition":     map[string]interface{}{"type": "string"},
+				"confidence":             map[string]interface{}{"type": "integer", "minimum": 0, "maximum": 100},
+				"confidence_label":       map[string]interface{}{"type": "string"},
+				"description":            map[string]interface{}{"type": "string"},
+				"observed_signs":         map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+				"possible_alternatives":  map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+				"recommended_actions":    map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+				"prevention_tips":        map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+				"urgency":                map[string]interface{}{"type": "string", "enum": []interface{}{"low", "medium", "high", "urgent"}},
+				"requires_expert_review": map[string]interface{}{"type": "boolean"},
+				"disclaimer":             map[string]interface{}{"type": "string"},
+			},
+			"required": []interface{}{
+				"crop", "probable_condition", "confidence", "confidence_label",
+				"description", "observed_signs", "possible_alternatives",
+				"recommended_actions", "prevention_tips",
+				"urgency", "requires_expert_review", "disclaimer",
+			},
+			"additionalProperties": false,
+		}
+		schemaBytes, _ := json.Marshal(schema)
+		return &ResponseFormat{
+			Type: "json_schema",
+			JSONSchema: &JSONSchema{
+				Name:   "crop_diagnosis_result",
+				Schema: schemaBytes,
+				Strict: true,
+			},
+		}
 	}
-	schemaBytes, _ := json.Marshal(schema)
-	return &ResponseFormat{
-		Type: "json_schema",
-		JSONSchema: &JSONSchema{
-			Name:   "crop_diagnosis_result",
-			Schema: schemaBytes,
-			Strict: true,
-		},
-	}
+}
+
+func containsJSONSchemaError(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "invalid JSON schema") ||
+		strings.Contains(msg, "json_schema") ||
+		strings.Contains(msg, "response_format") ||
+		strings.Contains(msg, "must be listed in `required`") ||
+		strings.Contains(msg, "additionalProperties")
 }
 
 func (a *cropDiagnosisAI) Diagnose(ctx context.Context, input DiagnosisAIInput) (*DiagnosisAIResult, error) {
@@ -137,17 +174,32 @@ Language: %s`,
 		},
 	}
 
+	currentRF := a.responseFormatType
+
 	req := ChatRequest{
 		Model:          a.model,
 		Messages:       messages,
 		MaxTokens:      a.maxTokens,
 		Temperature:    0.2,
-		ResponseFormat: buildJSONSchemaFormat(),
+		ResponseFormat: a.buildResponseFormat(),
 	}
 
 	resp, err := a.client.Chat(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("vision API call failed: %w", err)
+		// Fallback: json_schema rejected → retry once with json_object
+		if currentRF == ResponseFormatJSONSchema && containsJSONSchemaError(err) {
+			log.Printf("json_schema rejected, falling back to json_object: %v", err)
+			currentRF = ResponseFormatJSONObject
+			a.responseFormatType = ResponseFormatJSONObject
+			req.ResponseFormat = a.buildResponseFormat()
+			a.responseFormatType = ResponseFormatJSONSchema // restore for next call
+			resp, err = a.client.Chat(ctx, req)
+			if err != nil {
+				return nil, fmt.Errorf("vision API call failed (json_object fallback): %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("vision API call failed: %w", err)
+		}
 	}
 
 	if len(resp.Choices) == 0 {
@@ -205,7 +257,7 @@ Symptom: %s
 		Messages:       messages,
 		MaxTokens:      a.maxTokens,
 		Temperature:    0.1,
-		ResponseFormat: buildJSONSchemaFormat(),
+		ResponseFormat: a.buildResponseFormat(),
 	}
 
 	resp, err := a.client.Chat(ctx, req)

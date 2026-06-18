@@ -6,10 +6,36 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 )
+
+// NormalizePath strips accidental bucket prefix from a stored object path.
+// The bucket is configured separately, so paths should not include it.
+func NormalizePath(path, bucket string) string {
+	path = strings.TrimLeft(path, "/")
+	if bucket != "" {
+		if strings.HasPrefix(path, bucket+"/") {
+			path = strings.TrimPrefix(path, bucket+"/")
+		} else if path == bucket {
+			path = ""
+		}
+	}
+	return path
+}
+
+// redactToken removes the token query parameter from a signed URL for logging.
+func redactToken(url string) string {
+	if idx := strings.Index(url, "token="); idx >= 0 {
+		return url[:idx+6] + "<redacted>"
+	}
+	if idx := strings.Index(url, "?"); idx >= 0 {
+		return url[:idx]
+	}
+	return url
+}
 
 type SupabaseStorage struct {
 	url        string
@@ -46,7 +72,10 @@ func (s *SupabaseStorage) Save(ctx context.Context, input SaveObjectInput) (Stor
 		return StoredObject{}, fmt.Errorf("object path is required")
 	}
 
-	uploadURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.url, s.bucket, input.Path)
+	normalizedPath := NormalizePath(input.Path, s.bucket)
+	log.Printf("storage_save: bucket=%s, original_path=%q, normalized_path=%q", s.bucket, input.Path, normalizedPath)
+
+	uploadURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.url, s.bucket, normalizedPath)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, bytes.NewReader(data))
 	if err != nil {
 		return StoredObject{}, fmt.Errorf("creating request: %w", err)
@@ -66,11 +95,14 @@ func (s *SupabaseStorage) Save(ctx context.Context, input SaveObjectInput) (Stor
 
 	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		log.Printf("storage_upload_failed: bucket=%s, path=%q, status=%d, body=%s", s.bucket, normalizedPath, resp.StatusCode, string(body))
 		return StoredObject{}, fmt.Errorf("supabase upload failed (HTTP %d): %s", resp.StatusCode, string(body))
 	}
 
+	log.Printf("storage_upload_ok: bucket=%s, path=%q, size=%d", s.bucket, normalizedPath, int64(len(data)))
+
 	return StoredObject{
-		Path:        input.Path,
+		Path:        normalizedPath,
 		ContentType: input.ContentType,
 		SizeBytes:   int64(len(data)),
 	}, nil
@@ -81,7 +113,8 @@ func (s *SupabaseStorage) Delete(ctx context.Context, path string) error {
 		return fmt.Errorf("object path is required")
 	}
 
-	delURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.url, s.bucket, path)
+	normalizedPath := NormalizePath(path, s.bucket)
+	delURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.url, s.bucket, normalizedPath)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, delURL, nil)
 	if err != nil {
 		return fmt.Errorf("creating delete request: %w", err)
@@ -107,7 +140,10 @@ func (s *SupabaseStorage) SignedURL(ctx context.Context, path string, expiry tim
 		return "", fmt.Errorf("object path is required")
 	}
 
-	signURL := fmt.Sprintf("%s/storage/v1/object/sign/%s/%s", s.url, s.bucket, path)
+	normalizedPath := NormalizePath(path, s.bucket)
+	log.Printf("storage_signed_url: bucket=%s, original_path=%q, normalized_path=%q", s.bucket, path, normalizedPath)
+
+	signURL := fmt.Sprintf("%s/storage/v1/object/sign/%s/%s", s.url, s.bucket, normalizedPath)
 	bodyPayload := map[string]int{"expiresIn": int(expiry.Seconds())}
 	bodyBytes, _ := json.Marshal(bodyPayload)
 
@@ -155,4 +191,38 @@ func (s *SupabaseStorage) SignedURL(ctx context.Context, path string, expiry tim
 	}
 
 	return baseURL + "/" + raw, nil
+}
+
+func (s *SupabaseStorage) Download(ctx context.Context, path string) (io.ReadCloser, error) {
+	if path == "" {
+		return nil, fmt.Errorf("object path is required")
+	}
+
+	normalizedPath := NormalizePath(path, s.bucket)
+	downloadURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.url, s.bucket, normalizedPath)
+	log.Printf("storage_download: bucket=%s, normalized_path=%q, host=%s, path_without_token=%s",
+		s.bucket, normalizedPath, s.url, redactToken(downloadURL))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating download request: %w", err)
+	}
+	req.Header.Set("apikey", s.secretKey)
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("downloading from supabase: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		resp.Body.Close()
+		return nil, fmt.Errorf("supabase download failed (HTTP 404): object not found at path %q", normalizedPath)
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+		return nil, fmt.Errorf("supabase download failed (HTTP %d): %s", resp.StatusCode, string(body))
+	}
+
+	return resp.Body, nil
 }

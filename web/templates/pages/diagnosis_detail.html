@@ -27,7 +27,7 @@
   <div class="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
     <div class="flex flex-col sm:flex-row items-start gap-4">
       <div class="w-24 h-24 rounded-lg bg-[#F5F7F5] flex-shrink-0 overflow-hidden border border-[#E5E7EB]">
-        <img src="/api/v1/diagnoses/{{$d.ID}}/image" alt="Crop image" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\'flex items-center justify-center w-full h-full text-xs text-[#6B7280]\'>Image could not be loaded. Try refreshing.</div>'">
+        <img src="/api/v1/diagnoses/{{$d.ID}}/image" alt="Crop image" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\'flex flex-col items-center justify-center w-full h-full p-2\'><div class=\'text-xs text-[#6B7280] text-center\'>Image could not be loaded.<br>The upload record exists, but the stored file could not be retrieved.</div><button onclick=\'window.location.reload()\' class=\'text-xs text-[#2E7D32] hover:underline mt-1 bg-transparent border-none cursor-pointer\'>Try refreshing</button></div>'">
       </div>
       <div class="flex-1 min-w-0">
         <h2 class="text-lg font-bold text-[#1F2937]">{{if eq $d.Status "completed"}}{{$d.ProbableCondition}}{{else}}Crop Diagnosis{{end}}</h2>

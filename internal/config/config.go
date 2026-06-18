@@ -37,6 +37,7 @@ type Config struct {
 	RateLimitWeatherPerMinute  int
 
 	GroqVisionModel          string
+	GroqVisionResponseFormat string
 	GroqTranscriptionModel   string
 	StorageDriver            string
 	LocalUploadDir           string
@@ -44,6 +45,7 @@ type Config struct {
 	SupabaseSecretKey        string
 	SupabaseServiceRoleKey   string
 	SupabaseStorageBucket    string
+	VerifyStorageUpload      bool
 	MaxImageSizeMB           int
 	MinImageWidth            int
 	MinImageHeight           int
@@ -92,6 +94,7 @@ func Load() (*Config, error) {
 		RateLimitWeatherPerMinute:  getEnvInt("RATE_LIMIT_WEATHER_PER_MINUTE", 30),
 		CookieSecure:                getEnvBool("COOKIE_SECURE", false),
 		GroqVisionModel:             getEnv("GROQ_VISION_MODEL", "llama-3.2-11b-vision-preview"),
+		GroqVisionResponseFormat:    getEnv("GROQ_VISION_RESPONSE_FORMAT", "json_schema"),
 		GroqTranscriptionModel:      getEnv("GROQ_TRANSCRIPTION_MODEL", "whisper-large-v3"),
 		StorageDriver:               getEnv("STORAGE_DRIVER", "local"),
 		LocalUploadDir:              getEnv("LOCAL_UPLOAD_DIR", "./data/uploads"),
@@ -99,6 +102,7 @@ func Load() (*Config, error) {
 		SupabaseSecretKey:           getEnv("SUPABASE_SECRET_KEY", ""),
 		SupabaseServiceRoleKey:      getEnv("SUPABASE_SERVICE_ROLE_KEY", ""),
 		SupabaseStorageBucket:       getEnv("SUPABASE_STORAGE_BUCKET", "crop-diagnosis-images"),
+		VerifyStorageUpload:         getEnvBool("VERIFY_STORAGE_UPLOAD", false),
 		MaxImageSizeMB:              getEnvInt("MAX_IMAGE_SIZE_MB", 5),
 		MinImageWidth:               getEnvInt("MIN_IMAGE_WIDTH", 256),
 		MinImageHeight:              getEnvInt("MIN_IMAGE_HEIGHT", 256),

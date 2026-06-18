@@ -73,6 +73,21 @@ func (s *LocalStorage) SignedURL(ctx context.Context, path string, expiry time.D
 	return path, nil
 }
 
+func (s *LocalStorage) Download(ctx context.Context, path string) (io.ReadCloser, error) {
+	fullPath := filepath.Join(s.uploadDir, path)
+	if !strings.HasPrefix(filepath.Clean(fullPath), s.uploadDir) {
+		return nil, fmt.Errorf("path traversal detected")
+	}
+	f, err := os.Open(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("file not found: %w", err)
+		}
+		return nil, fmt.Errorf("opening file: %w", err)
+	}
+	return f, nil
+}
+
 func (s *LocalStorage) FullPath(path string) string {
 	return filepath.Join(s.uploadDir, path)
 }

@@ -128,6 +128,22 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 		return nil, fmt.Errorf("storage: %w", err)
 	}
 
+	storedPath := obj.Path
+	log.Printf("diagnosis_upload: diagnosis_id=%s, storage_driver=%T, bucket=%s, "+
+		"original_path=%q, normalized_stored_path=%q, size=%d, content_type=%s",
+		diagID, s.storage, "", storagePath, storedPath, obj.SizeBytes, contentType)
+
+	if s.cfg.VerifyStorageUpload {
+		log.Printf("storage_verify: verifying uploaded object diagnosis_id=%s path=%q", diagID, storedPath)
+		verifyReader, verifyErr := s.storage.Download(ctx, storedPath)
+		if verifyErr != nil {
+			log.Printf("storage_verify_failed: diagnosis_id=%s path=%q error=%v", diagID, storedPath, verifyErr)
+			return nil, fmt.Errorf("storage verification failed: object not readable after upload: %w", verifyErr)
+		}
+		verifyReader.Close()
+		log.Printf("storage_verify_ok: diagnosis_id=%s path=%q", diagID, storedPath)
+	}
+
 	diag := &CropDiagnosis{
 		ID:                 diagID,
 		UserID:             userID,
@@ -139,7 +155,7 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 		RecentWeather:      input.RecentWeather,
 		FertiliserHistory:  input.FertiliserHistory,
 		PesticideHistory:   input.PesticideHistory,
-		ImageStoragePath:   storagePath,
+		ImageStoragePath:   storedPath,
 		ImageOriginalName:  header.Filename,
 		ImageContentType:   contentType,
 		ImageSizeBytes:     obj.SizeBytes,
@@ -163,7 +179,7 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 	}
 
 	if err := s.repo.Create(ctx, diag); err != nil {
-		s.cleanupImage(ctx, storagePath)
+		s.cleanupImage(ctx, storedPath)
 		return nil, fmt.Errorf("database: %w", err)
 	}
 
@@ -199,7 +215,7 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 			KnowledgeContext:   knowledgeCtx,
 		}
 
-		if imageURL, err := s.storage.SignedURL(procCtx, storagePath, 10*time.Minute); err == nil {
+		if imageURL, err := s.storage.SignedURL(procCtx, storedPath, 10*time.Minute); err == nil {
 			aiInput.ImageURL = imageURL
 			aiInput.ImageData = nil
 		}

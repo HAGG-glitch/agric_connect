@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -2092,20 +2093,139 @@ func TestSupabaseStorage_SignedURL_SymmetricFallback(t *testing.T) {
 	}
 }
 
-// ── Diagnosis Image Handler Proxy Tests ────────────────────────────────────────
+// ── Supabase Path Normalization and Download Tests ────────────────────────────
 
-func TestDiagnosisHandler_ServeImage_ChecksStorageType(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	cfg := &config.Config{
-		MaxImageSizeMB:          5,
-		MinImageWidth:           10,
-		MinImageHeight:          10,
-		MaxImagePixels:          25000000,
-		AllowedImageTypes:       []string{"image/jpeg", "image/png", "image/webp"},
-		DiagnosisRequestTimeout: 5,
+func TestSupabase_PathNormalization_StripsBucketPrefix(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		bucket   string
+		expected string
+	}{
+		{"no prefix", "users/123/diag/456/img.jpg", "my-bucket", "users/123/diag/456/img.jpg"},
+		{"with bucket prefix", "my-bucket/users/123/diag/456/img.jpg", "my-bucket", "users/123/diag/456/img.jpg"},
+		{"leading slash", "/users/123/diag/456/img.jpg", "my-bucket", "users/123/diag/456/img.jpg"},
+		{"bucket prefix and leading slash", "/my-bucket/users/123/img.jpg", "my-bucket", "users/123/img.jpg"},
+		{"empty bucket", "users/123/img.jpg", "", "users/123/img.jpg"},
+		{"path is just bucket name", "my-bucket", "my-bucket", ""},
+		{"partial match no strip", "my-bucket-extra/img.jpg", "my-bucket", "my-bucket-extra/img.jpg"},
 	}
-	diagID := uuid.New()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := storage.NormalizePath(tt.path, tt.bucket)
+			if got != tt.expected {
+				t.Errorf("normalizePath(%q, %q) = %q, want %q", tt.path, tt.bucket, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSupabase_Download_UsesServiceKey(t *testing.T) {
+	client := &http.Client{
+		Transport: &mockRoundTripper{
+			fn: func(req *http.Request) (*http.Response, error) {
+				if req.Header.Get("apikey") == "" {
+					t.Error("expected apikey header to be set")
+				}
+				if req.Method != "GET" {
+					t.Errorf("expected GET, got %s", req.Method)
+				}
+				if !strings.Contains(req.URL.String(), "/storage/v1/object/test-bucket/normalized/path.jpg") {
+					t.Errorf("unexpected URL: %s", req.URL.String())
+				}
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader("image-data")),
+					Header:     http.Header{"Content-Type": []string{"image/jpeg"}},
+				}, nil
+			},
+		},
+	}
+	store := storage.NewSupabaseStorageWithClient("https://test.supabase.co", "test-service-key", "test-bucket", client)
+
+	reader, err := store.Download(context.Background(), "normalized/path.jpg")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer reader.Close()
+
+	data, _ := io.ReadAll(reader)
+	if string(data) != "image-data" {
+		t.Errorf("expected image-data, got %s", string(data))
+	}
+}
+
+func TestSupabase_Download_PathNormalization(t *testing.T) {
+	client := &http.Client{
+		Transport: &mockRoundTripper{
+			fn: func(req *http.Request) (*http.Response, error) {
+				// The path in the URL should NOT include the bucket prefix
+				if strings.Contains(req.URL.String(), "test-bucket/test-bucket/") {
+					t.Errorf("double bucket prefix in URL: %s", req.URL.String())
+				}
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader("data")),
+					Header:     http.Header{"Content-Type": []string{"image/jpeg"}},
+				}, nil
+			},
+		},
+	}
+	store := storage.NewSupabaseStorageWithClient("https://test.supabase.co", "key", "test-bucket", client)
+
+	// Path with bucket prefix should be normalized
+	reader, err := store.Download(context.Background(), "test-bucket/users/123/img.jpg")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	reader.Close()
+}
+
+func TestSupabase_Download_404ReturnsNotFound(t *testing.T) {
+	client := &http.Client{
+		Transport: &mockRoundTripper{
+			fn: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusNotFound,
+					Body:       io.NopCloser(strings.NewReader(`{"error":"not found"}`)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
+	store := storage.NewSupabaseStorageWithClient("https://test.supabase.co", "key", "test-bucket", client)
+
+	_, err := store.Download(context.Background(), "missing/path.jpg")
+	if err == nil {
+		t.Fatal("expected error for 404")
+	}
+	if !strings.Contains(err.Error(), "404") {
+		t.Errorf("expected 404 in error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "object not found") {
+		t.Errorf("expected 'object not found' in error, got: %v", err)
+	}
+}
+
+func TestSupabase_Download_EmptyPath(t *testing.T) {
+	client := &http.Client{}
+	store := storage.NewSupabaseStorageWithClient("https://test.supabase.co", "key", "test-bucket", client)
+
+	_, err := store.Download(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty path")
+	}
+	if !strings.Contains(err.Error(), "object path is required") {
+		t.Errorf("expected 'object path is required', got: %v", err)
+	}
+}
+
+func TestDiagnosisHandler_ServeImage_UsesDownload(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
 	userID := uuid.New()
+	diagID := uuid.New()
+	imgData := createValidPNG(t)
 
 	svc := &mockDiagnosisService{
 		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
@@ -2119,20 +2239,121 @@ func TestDiagnosisHandler_ServeImage_ChecksStorageType(t *testing.T) {
 	}
 
 	objStore := &mockObjectStorage{}
+	objStore.SetDownloadData(imgData)
 	chatSvc := &mockChatService{}
-	handler := handlers.NewDiagnosisHandler(svc, cfg, objStore, chatSvc)
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Params = []gin.Param{{Key: "id", Value: diagID.String()}}
-	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/diagnoses/"+diagID.String()+"/image", nil)
-	c.Set("user_id", userID.String())
-	handler.ServeImage(c)
+	r := gin.New()
+	r.GET("/api/v1/diagnoses/:id/image", func(c *gin.Context) {
+		c.Set("user_id", userID.String())
+		handler.ServeImage(c)
+	})
 
-	if w.Code == http.StatusInternalServerError {
-		t.Logf("serve image with mock storage returns 500 (expected since mock is not LocalStorage): body=%s", w.Body.String())
-	} else {
-		t.Logf("serve image returned %d", w.Code)
+	req := httptest.NewRequest("GET", "/api/v1/diagnoses/"+diagID.String()+"/image", nil)
+	resp := httptest.NewRecorder()
+	r.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", resp.Code, resp.Body.String())
+	}
+
+	contentType := resp.Header().Get("Content-Type")
+	if contentType != "image/png" {
+		t.Errorf("expected Content-Type image/png, got %q", contentType)
+	}
+
+	cacheControl := resp.Header().Get("Cache-Control")
+	if cacheControl != "private, max-age=300" {
+		t.Errorf("expected Cache-Control 'private, max-age=300', got %q", cacheControl)
+	}
+
+	if resp.Body.Len() != len(imgData) {
+		t.Errorf("expected body length %d, got %d", len(imgData), resp.Body.Len())
+	}
+}
+
+func TestDiagnosisHandler_ServeImage_Storage404Returns404(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	userID := uuid.New()
+	diagID := uuid.New()
+
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return &diagnosis.CropDiagnosis{
+				ID:               id,
+				UserID:           uid,
+				ImageStoragePath: "test/missing.png",
+				ImageContentType: "image/png",
+			}, nil
+		},
+	}
+
+	objStore := &mockObjectStorage{}
+	objStore.downloadErr = fmt.Errorf("supabase download failed (HTTP 404): object not found at path")
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	r.GET("/api/v1/diagnoses/:id/image", func(c *gin.Context) {
+		c.Set("user_id", userID.String())
+		handler.ServeImage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/api/v1/diagnoses/"+diagID.String()+"/image", nil)
+	resp := httptest.NewRecorder()
+	r.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", resp.Code, resp.Body.String())
+	}
+
+	var body map[string]string
+	decodeJSON(t, resp.Body, &body)
+	if !strings.Contains(body["error"], "not found") {
+		t.Errorf("expected 'not found' error, got %q", body["error"])
+	}
+}
+
+// ── Diagnosis Image Handler Proxy Tests ────────────────────────────────────────
+
+func TestDiagnosisHandler_ServeImage_EmptyStoragePathIs404(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	diagID := uuid.New()
+	userID := uuid.New()
+
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return &diagnosis.CropDiagnosis{
+				ID:               id,
+				UserID:           uid,
+				ImageStoragePath: "",
+			}, nil
+		},
+	}
+
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	r.GET("/api/v1/diagnoses/:id/image", func(c *gin.Context) {
+		c.Set("user_id", userID.String())
+		handler.ServeImage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/api/v1/diagnoses/"+diagID.String()+"/image", nil)
+	resp := httptest.NewRecorder()
+	r.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", resp.Code, resp.Body.String())
+	}
+
+	var body map[string]string
+	decodeJSON(t, resp.Body, &body)
+	if body["error"] != "Image not found" {
+		t.Errorf("expected 'Image not found', got %q", body["error"])
 	}
 }
 
@@ -2236,6 +2457,94 @@ func TestTranscriptionService_KrioFallsBackToGroqWhenNoKrioProvider(t *testing.T
 	}
 	if result.Transcript != "groq krio result" {
 		t.Errorf("expected groq result, got %q", result.Transcript)
+	}
+}
+
+// ── Storage Integration Test ────────────────────────────────────────────────────
+// Run with: go test -run TestStorage_UploadDownloadVerify -v
+// Requires RUN_SUPABASE_INTEGRATION_TESTS=true env var and valid Supabase credentials.
+
+func TestStorage_UploadDownloadVerify(t *testing.T) {
+	if os.Getenv("RUN_SUPABASE_INTEGRATION_TESTS") != "true" {
+		t.Skip("Skipping integration test: set RUN_SUPABASE_INTEGRATION_TESTS=true")
+	}
+
+	supabaseURL := os.Getenv("SUPABASE_URL")
+	secretKey := os.Getenv("SUPABASE_SECRET_KEY")
+	bucket := os.Getenv("SUPABASE_STORAGE_BUCKET")
+	if supabaseURL == "" || secretKey == "" || bucket == "" {
+		t.Skip("Skipping: SUPABASE_URL, SUPABASE_SECRET_KEY, SUPABASE_STORAGE_BUCKET must be set")
+	}
+
+	timestamp := time.Now().UnixMilli()
+	testPath := fmt.Sprintf("debug-tests/%d/%s.jpg", timestamp, uuid.New().String())
+
+	store := storage.NewSupabaseStorage(supabaseURL, secretKey, bucket)
+
+	testData := []byte("integration-test-image-data-" + uuid.New().String())
+
+	// Save
+	obj, err := store.Save(context.Background(), storage.SaveObjectInput{
+		Content:     bytes.NewReader(testData),
+		ContentType: "image/jpeg",
+		Path:        testPath,
+	})
+	if err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
+
+	t.Logf("uploaded path: original=%q normalized=%q size=%d", testPath, obj.Path, obj.SizeBytes)
+
+	// Verify normalized path is clean
+	if strings.Contains(obj.Path, bucket+"/") {
+		t.Errorf("normalized path should not contain bucket prefix: %q", obj.Path)
+	}
+
+	// SignedURL
+	signedURL, err := store.SignedURL(context.Background(), obj.Path, 5*time.Minute)
+	if err != nil {
+		t.Fatalf("SignedURL failed after upload: %v", err)
+	}
+	if signedURL == "" {
+		t.Fatal("SignedURL returned empty")
+	}
+
+	// Download via SignedURL
+	client := &http.Client{Timeout: 10 * time.Second}
+	signedReq, _ := http.NewRequest("GET", signedURL, nil)
+	signedResp, signedErr := client.Do(signedReq)
+	if signedErr != nil {
+		t.Fatalf("HTTP GET signed URL failed: %v", signedErr)
+	}
+	defer signedResp.Body.Close()
+
+	if signedResp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(io.LimitReader(signedResp.Body, 4096))
+		t.Fatalf("signed URL download status %d, body: %s", signedResp.StatusCode, string(bodyBytes))
+	}
+	t.Logf("signed URL download status: %d", signedResp.StatusCode)
+
+	// Download via service key
+	reader, err := store.Download(context.Background(), obj.Path)
+	if err != nil {
+		t.Fatalf("Download via service key failed: %v", err)
+	}
+	defer reader.Close()
+
+	downloadedData, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("reading download data: %v", err)
+	}
+	if !bytes.Equal(downloadedData, testData) {
+		t.Errorf("downloaded data mismatch: got %d bytes, want %d bytes", len(downloadedData), len(testData))
+	}
+	t.Logf("service key download: %d bytes, content matches", len(downloadedData))
+
+	// Cleanup
+	if err := store.Delete(context.Background(), obj.Path); err != nil {
+		t.Errorf("Cleanup delete failed: %v", err)
+	} else {
+		t.Logf("cleaned up test object at %q", obj.Path)
 	}
 }
 

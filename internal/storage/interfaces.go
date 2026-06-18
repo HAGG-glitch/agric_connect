@@ -22,4 +22,5 @@ type ObjectStorage interface {
 	Save(ctx context.Context, input SaveObjectInput) (StoredObject, error)
 	Delete(ctx context.Context, path string) error
 	SignedURL(ctx context.Context, path string, expiry time.Duration) (string, error)
+	Download(ctx context.Context, path string) (io.ReadCloser, error)
 }

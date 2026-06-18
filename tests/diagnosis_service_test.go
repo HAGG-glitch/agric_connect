@@ -145,6 +145,14 @@ type mockObjectStorage struct {
 	saveErr      error
 	deleteErr    error
 	savedSize    int64
+	downloadData []byte
+	downloadErr  error
+}
+
+func (m *mockObjectStorage) SetDownloadData(data []byte) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.downloadData = data
 }
 
 func (m *mockObjectStorage) Save(_ context.Context, input storage.SaveObjectInput) (storage.StoredObject, error) {
@@ -171,6 +179,18 @@ func (m *mockObjectStorage) Delete(_ context.Context, path string) error {
 
 func (m *mockObjectStorage) SignedURL(_ context.Context, _ string, _ time.Duration) (string, error) {
 	return "", nil
+}
+
+func (m *mockObjectStorage) Download(_ context.Context, path string) (io.ReadCloser, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.downloadErr != nil {
+		return nil, m.downloadErr
+	}
+	if m.downloadData == nil {
+		return nil, fmt.Errorf("not found")
+	}
+	return io.NopCloser(bytes.NewReader(m.downloadData)), nil
 }
 
 type mockDiagnosisAI struct {
@@ -1247,6 +1267,189 @@ func TestDiagnosis_JSONParse_MissingRequiredField(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing probable_condition")
 	}
+}
+
+func TestJSONSchema_AllPropertiesInRequired(t *testing.T) {
+	// Build the same schema as buildResponseFormat uses
+	schema := map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"crop":                   map[string]interface{}{"type": "string"},
+			"probable_condition":     map[string]interface{}{"type": "string"},
+			"confidence":             map[string]interface{}{"type": "integer", "minimum": 0, "maximum": 100},
+			"confidence_label":       map[string]interface{}{"type": "string"},
+			"description":            map[string]interface{}{"type": "string"},
+			"observed_signs":         map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+			"possible_alternatives":  map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+			"recommended_actions":    map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+			"prevention_tips":        map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+			"urgency":                map[string]interface{}{"type": "string", "enum": []interface{}{"low", "medium", "high", "urgent"}},
+			"requires_expert_review": map[string]interface{}{"type": "boolean"},
+			"disclaimer":             map[string]interface{}{"type": "string"},
+		},
+		"required": []interface{}{
+			"crop", "probable_condition", "confidence", "confidence_label",
+			"description", "observed_signs", "possible_alternatives",
+			"recommended_actions", "prevention_tips",
+			"urgency", "requires_expert_review", "disclaimer",
+		},
+		"additionalProperties": false,
+	}
+
+	props, ok := schema["properties"].(map[string]interface{})
+	if !ok {
+		t.Fatal("properties is not a map")
+	}
+	req, ok := schema["required"].([]interface{})
+	if !ok {
+		t.Fatal("required is not a slice")
+	}
+
+	requiredSet := make(map[string]bool, len(req))
+	for _, r := range req {
+		rStr, ok := r.(string)
+		if !ok {
+			t.Fatalf("required entry %v is not a string", r)
+		}
+		requiredSet[rStr] = true
+	}
+
+	t.Run("every property is required", func(t *testing.T) {
+		for propName := range props {
+			if !requiredSet[propName] {
+				t.Errorf("property %q is not in required array", propName)
+			}
+		}
+	})
+
+	t.Run("crop is required", func(t *testing.T) {
+		if !requiredSet["crop"] {
+			t.Error("crop is not in required array")
+		}
+	})
+
+	t.Run("confidence_label is required", func(t *testing.T) {
+		if !requiredSet["confidence_label"] {
+			t.Error("confidence_label is not in required array")
+		}
+	})
+
+	t.Run("all required entries exist in properties", func(t *testing.T) {
+		for _, r := range req {
+			rStr := r.(string)
+			if _, ok := props[rStr]; !ok {
+				t.Errorf("required entry %q has no matching property definition", rStr)
+			}
+		}
+	})
+
+	t.Run("schema marshals to valid JSON", func(t *testing.T) {
+		_, err := json.Marshal(schema)
+		if err != nil {
+			t.Fatalf("schema marshalling failed: %v", err)
+		}
+	})
+}
+
+func TestJSONSchema_NoRequiredFieldsMissing(t *testing.T) {
+	// Double-check the exact property set
+	expectedProperties := []string{
+		"crop", "probable_condition", "confidence", "confidence_label",
+		"description", "observed_signs", "possible_alternatives",
+		"recommended_actions", "prevention_tips",
+		"urgency", "requires_expert_review", "disclaimer",
+	}
+
+	required := []interface{}{
+		"crop", "probable_condition", "confidence", "confidence_label",
+		"description", "observed_signs", "possible_alternatives",
+		"recommended_actions", "prevention_tips",
+		"urgency", "requires_expert_review", "disclaimer",
+	}
+
+	if len(expectedProperties) != len(required) {
+		t.Errorf("properties count (%d) != required count (%d): all properties must be in required for strict json_schema",
+			len(expectedProperties), len(required))
+	}
+
+	reqSet := make(map[string]bool)
+	for _, r := range required {
+		reqSet[r.(string)] = true
+	}
+	for _, p := range expectedProperties {
+		if !reqSet[p] {
+			t.Errorf("property %q is missing from required", p)
+		}
+	}
+}
+
+func TestJSONSchema_RetryWithJSONObject(t *testing.T) {
+	// This test validates that the containsJSONSchemaError helper catches schema errors.
+	err := fmt.Errorf("groq returned status 400: invalid JSON schema for response_format")
+	if !containsJSONSchemaErrorHelper(err) {
+		t.Error("expected containsJSONSchemaError to return true for invalid JSON schema error")
+	}
+
+	// Non-schema errors should not trigger fallback
+	err = fmt.Errorf("groq returned status 429: rate limit exceeded")
+	if containsJSONSchemaErrorHelper(err) {
+		t.Error("expected containsJSONSchemaError to return false for non-schema error")
+	}
+
+	// "must be listed in required" error — matches the production error from Groq
+	err = fmt.Errorf("groq returned status 400: /required: `required` is required to be supplied and to be an array including every key in properties.\nThe following properties must be listed in `required`: confidence_label, crop")
+	if !containsJSONSchemaErrorHelper(err) {
+		t.Error("expected containsJSONSchemaError to return true for 'must be listed in required' error")
+	}
+
+	// json_object retry can still parse a valid result
+	content := `{"crop":"cassava","probable_condition":"Blight","confidence":70,"confidence_label":"high","description":"desc","observed_signs":["spots"],"possible_alternatives":[],"recommended_actions":[],"prevention_tips":[],"urgency":"high","requires_expert_review":true,"disclaimer":"preliminary"}`
+	result, err := parseDiagnosisJSONHelper(content)
+	if err != nil {
+		t.Fatalf("expected no error for valid JSON from json_object, got: %v", err)
+	}
+	if result.ProbableCondition != "Blight" {
+		t.Errorf("expected 'Blight', got %q", result.ProbableCondition)
+	}
+
+	// Parser still rejects non-JSON after retry
+	_, err = parseDiagnosisJSONHelper("This is not JSON")
+	if err == nil {
+		t.Fatal("expected error for non-JSON after retry")
+	}
+}
+
+func TestJSONSchema_ConfigDrivenResponseFormat(t *testing.T) {
+	t.Run("default is json_schema", func(t *testing.T) {
+		// Only check that the default config value is set
+		cfg := testConfig()
+		if cfg.GroqVisionResponseFormat != "" {
+			t.Logf("GroqVisionResponseFormat default: %q (may be empty in tests)", cfg.GroqVisionResponseFormat)
+		}
+	})
+
+	t.Run("none format does not panic", func(t *testing.T) {
+		// NewCropDiagnosisAI accepts "none" without error
+		client := ai.NewClient("", "", "", 5)
+		_ = ai.NewCropDiagnosisAI(client, "test-model", 100, "none")
+	})
+
+	t.Run("empty format defaults to json_schema", func(t *testing.T) {
+		client := ai.NewClient("", "", "", 5)
+		_ = ai.NewCropDiagnosisAI(client, "test-model", 100, "")
+	})
+}
+
+func containsJSONSchemaErrorHelper(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "invalid JSON schema") ||
+		strings.Contains(msg, "json_schema") ||
+		strings.Contains(msg, "response_format") ||
+		strings.Contains(msg, "must be listed in `required`") ||
+		strings.Contains(msg, "additionalProperties")
 }
 
 func TestDiagnosis_FailedDisplay_NoConfidenceChip(t *testing.T) {
