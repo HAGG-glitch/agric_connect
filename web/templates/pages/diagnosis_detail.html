@@ -34,8 +34,8 @@
         <div class="flex flex-wrap gap-2 mt-2">
           <span class="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-2 py-1 rounded-full font-medium capitalize">{{$d.Crop}}</span>
           {{if eq $d.Status "completed"}}
-          <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">Confidence: {{printf "%.0f" $d.Confidence}}%</span>
-          <span class="text-xs {{if eq $d.Urgency "urgent"}}bg-red-50 text-red-600{{else if eq $d.Urgency "high"}}bg-orange-50 text-orange-600{{else}}bg-green-50 text-green-600{{end}} px-2 py-1 rounded-full capitalize">{{$d.Urgency}} urgency</span>
+          {{if .HasConfidence}}<span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">Confidence: {{.ConfidenceDisplayText}}</span>{{end}}
+          {{if and $d.Urgency (ne $d.Urgency "")}}<span class="text-xs {{if eq $d.Urgency "urgent"}}bg-red-50 text-red-600{{else if eq $d.Urgency "high"}}bg-orange-50 text-orange-600{{else}}bg-green-50 text-green-600{{end}} px-2 py-1 rounded-full capitalize">{{$d.Urgency}} urgency</span>{{end}}
           {{end}}
         </div>
       </div>
@@ -66,19 +66,23 @@
     <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
       <h3 class="font-semibold text-[#1F2937] mb-3 text-sm">Diagnosis Summary</h3>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {{if .HasConfidence}}
         <div>
           <p class="text-xs text-[#6B7280] mb-1">Confidence</p>
           <div class="flex items-center gap-2">
             <div class="flex-1 h-2 bg-[#E5E7EB] rounded-full overflow-hidden">
-              <div class="h-full rounded-full {{if ge $d.Confidence 70}}bg-green-500{{else if ge $d.Confidence 40}}bg-amber-500{{else}}bg-red-500{{end}}" style="width: {{$d.Confidence}}%"></div>
+              <div class="h-full rounded-full {{.ConfidenceBarClass}}" style="width: {{.ConfidenceWidth}}"></div>
             </div>
-            <span class="text-xs font-medium text-[#1F2937]">{{printf "%.0f" $d.Confidence}}%</span>
+            <span class="text-xs font-medium text-[#1F2937]">{{.ConfidenceDisplayText}}</span>
           </div>
         </div>
+        {{end}}
+        {{if eq $d.Urgency "urgent"}}{{else if eq $d.Urgency "high"}}{{else if eq $d.Urgency ""}}{{else}}
         <div>
           <p class="text-xs text-[#6B7280] mb-1">Urgency</p>
           <span class="inline-block text-xs font-medium px-2 py-0.5 rounded {{if eq $d.Urgency "urgent"}}bg-red-100 text-red-700{{else if eq $d.Urgency "high"}}bg-orange-100 text-orange-700{{else}}bg-green-100 text-green-700{{end}} capitalize">{{$d.Urgency}}</span>
         </div>
+        {{end}}
         <div>
           <p class="text-xs text-[#6B7280] mb-1">AI Analysis</p>
           <span class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-green-100 text-green-700">Completed</span>

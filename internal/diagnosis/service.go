@@ -129,9 +129,9 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 	}
 
 	storedPath := obj.Path
-	log.Printf("diagnosis_upload: diagnosis_id=%s, storage_driver=%T, bucket=%s, "+
+	log.Printf("diagnosis_upload: diagnosis_id=%s, storage_driver=%T, bucket=%q, "+
 		"original_path=%q, normalized_stored_path=%q, size=%d, content_type=%s",
-		diagID, s.storage, "", storagePath, storedPath, obj.SizeBytes, contentType)
+		diagID, s.storage, s.cfg.SupabaseStorageBucket, storagePath, storedPath, obj.SizeBytes, contentType)
 
 	if s.cfg.VerifyStorageUpload {
 		log.Printf("storage_verify: verifying uploaded object diagnosis_id=%s path=%q", diagID, storedPath)

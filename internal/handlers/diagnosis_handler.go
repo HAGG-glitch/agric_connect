@@ -66,11 +66,36 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 		return
 	}
 
+	confidence := int(math.Round(d.Confidence))
+	if confidence < 0 {
+		confidence = 0
+	}
+	if confidence > 100 {
+		confidence = 100
+	}
+
+	hasConfidence := d.Status == "completed" && confidence > 0
+
+	var confidenceBarClass string
+	switch {
+	case confidence >= 70:
+		confidenceBarClass = "bg-green-600"
+	case confidence >= 40:
+		confidenceBarClass = "bg-amber-500"
+	default:
+		confidenceBarClass = "bg-red-500"
+	}
+
 	c.HTML(http.StatusOK, "diagnosis_detail.html", gin.H{
-		"Title":        "AgriConnect AI - Diagnosis Detail",
-		"Diagnosis":    d,
-		"Year":         time.Now().Year(),
-		"ContentBlock": "contentDiagnosisDetail",
+		"Title":                 "AgriConnect AI - Diagnosis Detail",
+		"Diagnosis":             d,
+		"Year":                  time.Now().Year(),
+		"ContentBlock":          "contentDiagnosisDetail",
+		"ConfidencePercent":     confidence,
+		"ConfidenceWidth":       strconv.Itoa(confidence) + "%",
+		"ConfidenceBarClass":    confidenceBarClass,
+		"HasConfidence":         hasConfidence,
+		"ConfidenceDisplayText": strconv.Itoa(confidence) + "%",
 	})
 }
 

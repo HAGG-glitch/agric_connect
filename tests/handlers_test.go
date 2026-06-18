@@ -2460,6 +2460,453 @@ func TestTranscriptionService_KrioFallsBackToGroqWhenNoKrioProvider(t *testing.T
 	}
 }
 
+// ── Confidence Template Tests ───────────────────────────────────────────────────
+// Tests that the diagnosis detail template renders correctly with various confidence
+// values and types, without template comparison errors.
+
+func TestConfidenceDetail_RendersWithIntConfidence(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:         uuid.New(),
+		UserID:     uuid.New(),
+		Status:     "completed",
+		Confidence: 75.0,
+		Crop:       "cassava",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "75%") {
+		t.Errorf("expected 75%% in rendered template, got: %s", body[:500])
+	}
+	if strings.Contains(body, "ge $d.Confidence") {
+		t.Error("template still contains ge comparison, remove it")
+	}
+}
+
+func TestConfidenceDetail_RendersWithFloat64Confidence(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:         uuid.New(),
+		UserID:     uuid.New(),
+		Status:     "completed",
+		Confidence: 60.5,
+		Crop:       "rice",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "61%") {
+		t.Errorf("expected 61%% (rounded) in rendered template, got: %s", body[:500])
+	}
+}
+
+func TestConfidenceDetail_RendersWithZeroConfidence(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:         uuid.New(),
+		UserID:     uuid.New(),
+		Status:     "completed",
+		Confidence: 0,
+		Crop:       "maize",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if strings.Contains(body, "Confidence: 0%") {
+		t.Error("zero confidence should hide confidence chip")
+	}
+}
+
+func TestConfidenceDetail_DoesNotPanicOnTypeMismatch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:         uuid.New(),
+		UserID:     uuid.New(),
+		Status:     "completed",
+		Confidence: 42.0,
+		Crop:       "cassava",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	// Should not panic — 200 means template rendered without panic
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 (no panic), got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "42%") {
+		t.Errorf("expected 42%% in rendered template, got: %s", body[:500])
+	}
+}
+
+func TestConfidenceDetail_SixtyPercentShowsWidth60(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:         uuid.New(),
+		UserID:     uuid.New(),
+		Status:     "completed",
+		Confidence: 60.0,
+		Crop:       "rice",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, `width: 60%`) {
+		t.Errorf("expected width: 60%% in template, got: %s", body[:800])
+	}
+}
+
+func TestConfidenceDetail_HighConfidenceGetsGreenClass(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:         uuid.New(),
+		UserID:     uuid.New(),
+		Status:     "completed",
+		Confidence: 85.0,
+		Crop:       "cassava",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "bg-green-600") {
+		t.Errorf("expected green bar class for high confidence, got: %s", body[:800])
+	}
+}
+
+func TestConfidenceDetail_MediumConfidenceGetsAmberClass(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:         uuid.New(),
+		UserID:     uuid.New(),
+		Status:     "completed",
+		Confidence: 55.0,
+		Crop:       "cassava",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "bg-amber-500") {
+		t.Errorf("expected amber bar class for medium confidence, got: %s", body[:800])
+	}
+}
+
+func TestConfidenceDetail_LowConfidenceGetsRedClass(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:         uuid.New(),
+		UserID:     uuid.New(),
+		Status:     "completed",
+		Confidence: 20.0,
+		Crop:       "cassava",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "bg-red-500") {
+		t.Errorf("expected red bar class for low confidence, got: %s", body[:800])
+	}
+}
+
+func TestConfidenceDetail_FailedDiagnosisHidesConfidenceChart(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:     uuid.New(),
+		UserID: uuid.New(),
+		Status: "failed",
+		Crop:   "cassava",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "AI Analysis Could Not Be Completed") {
+		t.Error("expected failure message in failed diagnosis")
+	}
+	if strings.Contains(body, "Confidence") && strings.Contains(body, "bg-") {
+		t.Error("failed diagnosis should not show confidence chart")
+	}
+}
+
+func TestConfidenceDetail_FailedDiagnosisHidesEmptyUrgency(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	d := &diagnosis.CropDiagnosis{
+		ID:      uuid.New(),
+		UserID:  uuid.New(),
+		Status:  "failed",
+		Crop:    "cassava",
+		Urgency: "",
+	}
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return d, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	setupTemplateEngine(r)
+	r.GET("/diagnoses/:id", func(c *gin.Context) {
+		c.Set("user_id", d.UserID.String())
+		handler.DetailPage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/diagnoses/"+d.ID.String(), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if strings.Contains(body, "urgency") && !strings.Contains(body, "Analysis Could Not Be Completed") {
+		t.Error("failed diagnosis with empty urgency should not show urgency chip")
+	}
+}
+
+func TestConfidenceDetail_TemplateNoGeComparison(t *testing.T) {
+	// Read the template file and verify it contains no ge $d.Confidence
+	tmplData, err := os.ReadFile("../web/templates/pages/diagnosis_detail.html")
+	if err != nil {
+		t.Fatalf("reading template: %v", err)
+	}
+	if strings.Contains(string(tmplData), "ge $d.Confidence") {
+		t.Error("template still contains 'ge $d.Confidence' comparison")
+	}
+}
+
+func TestConfidenceDetail_ImageRouteStillReturns200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	userID := uuid.New()
+	diagID := uuid.New()
+	imgData := createValidPNG(t)
+
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return &diagnosis.CropDiagnosis{
+				ID:               id,
+				UserID:           uid,
+				ImageStoragePath: "test/path.png",
+				ImageContentType: "image/png",
+			}, nil
+		},
+	}
+	objStore := &mockObjectStorage{}
+	objStore.SetDownloadData(imgData)
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, diagnosisHandlerConfig(), objStore, chatSvc)
+
+	r := gin.New()
+	r.GET("/api/v1/diagnoses/:id/image", func(c *gin.Context) {
+		c.Set("user_id", userID.String())
+		handler.ServeImage(c)
+	})
+
+	req := httptest.NewRequest("GET", "/api/v1/diagnoses/"+diagID.String()+"/image", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
 // ── Storage Integration Test ────────────────────────────────────────────────────
 // Run with: go test -run TestStorage_UploadDownloadVerify -v
 // Requires RUN_SUPABASE_INTEGRATION_TESTS=true env var and valid Supabase credentials.
