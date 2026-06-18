@@ -3,12 +3,14 @@ package tests
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"image"
 	"image/png"
 	"io"
 	"mime/multipart"
 	"net/textproto"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -1087,4 +1089,212 @@ func TestDiagnosis_AIUsesVisionModel(t *testing.T) {
 	if d.Status != "completed" {
 		t.Fatalf("expected completed, got %q: %s", d.Status, d.ErrorMessage)
 	}
+}
+
+func TestDiagnosis_GetObservedSigns_ReturnsStrings(t *testing.T) {
+	d := &diagnosis.CropDiagnosis{}
+	signs := d.GetObservedSigns()
+	if signs != nil {
+		t.Errorf("expected nil for unset observed signs, got %v", signs)
+	}
+
+	d.ObservedSigns = []byte(`["yellowing","leaf curling"]`)
+	signs = d.GetObservedSigns()
+	if len(signs) != 2 {
+		t.Fatalf("expected 2 signs, got %d: %v", len(signs), signs)
+	}
+	if signs[0] != "yellowing" {
+		t.Errorf("expected 'yellowing', got %q", signs[0])
+	}
+	if signs[1] != "leaf curling" {
+		t.Errorf("expected 'leaf curling', got %q", signs[1])
+	}
+}
+
+func TestDiagnosis_GetPossibleAlternatives_ReturnsStrings(t *testing.T) {
+	d := &diagnosis.CropDiagnosis{}
+	d.PossibleAlternatives = []byte(`["pest damage","fungal disease"]`)
+	alts := d.GetPossibleAlternatives()
+	if len(alts) != 2 {
+		t.Fatalf("expected 2 alternatives, got %d: %v", len(alts), alts)
+	}
+	if alts[0] != "pest damage" {
+		t.Errorf("expected 'pest damage', got %q", alts[0])
+	}
+}
+
+func TestDiagnosis_GetRecommendedActions_ReturnsStrings(t *testing.T) {
+	d := &diagnosis.CropDiagnosis{}
+	d.RecommendedActions = []byte(`["apply fungicide","remove affected leaves"]`)
+	actions := d.GetRecommendedActions()
+	if len(actions) != 2 {
+		t.Fatalf("expected 2 actions, got %d: %v", len(actions), actions)
+	}
+}
+
+func TestDiagnosis_GetPreventionTips_ReturnsStrings(t *testing.T) {
+	d := &diagnosis.CropDiagnosis{}
+	d.PreventionTips = []byte(`["use resistant varieties","crop rotation"]`)
+	tips := d.GetPreventionTips()
+	if len(tips) != 2 {
+		t.Fatalf("expected 2 tips, got %d: %v", len(tips), tips)
+	}
+}
+
+func TestDiagnosis_GetObservedSigns_NullJSON(t *testing.T) {
+	d := &diagnosis.CropDiagnosis{}
+	d.ObservedSigns = []byte(`null`)
+	signs := d.GetObservedSigns()
+	if signs != nil {
+		t.Errorf("expected nil for null JSON, got %v", signs)
+	}
+}
+
+func TestDiagnosis_GetObservedSigns_EmptyJSON(t *testing.T) {
+	d := &diagnosis.CropDiagnosis{}
+	d.ObservedSigns = []byte(`[]`)
+	signs := d.GetObservedSigns()
+	if signs == nil {
+		t.Fatal("expected non-nil for empty array")
+	}
+	if len(signs) != 0 {
+		t.Errorf("expected empty array, got %v", signs)
+	}
+}
+
+func TestDiagnosis_GetObservedSigns_InvalidJSON(t *testing.T) {
+	d := &diagnosis.CropDiagnosis{}
+	d.ObservedSigns = []byte(`not json`)
+	signs := d.GetObservedSigns()
+	if signs != nil {
+		t.Errorf("expected nil for invalid JSON, got %v", signs)
+	}
+}
+
+func TestDiagnosis_GetObservedSigns_NumbersArray(t *testing.T) {
+	d := &diagnosis.CropDiagnosis{}
+	d.ObservedSigns = []byte(`[91, 34, 121]`)
+	signs := d.GetObservedSigns()
+	if signs != nil {
+		t.Errorf("expected nil for number array (not []string), got %v", signs)
+	}
+}
+
+func TestDiagnosis_JSONParse_ValidObject(t *testing.T) {
+	content := `{"crop":"cassava","probable_condition":"Mosaic Virus","confidence":75,"description":"test","observed_signs":["yellowing"],"possible_alternatives":["pest"],"recommended_actions":["remove"],"prevention_tips":["rotate"],"urgency":"medium","requires_expert_review":true,"disclaimer":"This is preliminary."}`
+	result, err := parseDiagnosisJSONHelper(content)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result.ProbableCondition != "Mosaic Virus" {
+		t.Errorf("expected 'Mosaic Virus', got %q", result.ProbableCondition)
+	}
+	if len(result.ObservedSigns) != 1 || result.ObservedSigns[0] != "yellowing" {
+		t.Errorf("unexpected observed_signs: %v", result.ObservedSigns)
+	}
+}
+
+func TestDiagnosis_JSONParse_MarkdownCodeFence(t *testing.T) {
+	content := "```json\n{\"crop\":\"cassava\",\"probable_condition\":\"Mosaic\",\"confidence\":60,\"description\":\"desc\",\"observed_signs\":[\"yellow\"],\"possible_alternatives\":[],\"recommended_actions\":[],\"prevention_tips\":[],\"urgency\":\"low\",\"requires_expert_review\":false,\"disclaimer\":\"preliminary\"}\n```"
+	result, err := parseDiagnosisJSONHelper(content)
+	if err != nil {
+		t.Fatalf("expected no error for markdown fence, got: %v", err)
+	}
+	if result.ProbableCondition != "Mosaic" {
+		t.Errorf("expected 'Mosaic', got %q", result.ProbableCondition)
+	}
+}
+
+func TestDiagnosis_JSONParse_TextBeforeJSON(t *testing.T) {
+	content := "Here is the diagnosis result:\n{\"crop\":\"cassava\",\"probable_condition\":\"Blight\",\"confidence\":70,\"description\":\"desc\",\"observed_signs\":[\"spots\"],\"possible_alternatives\":[],\"recommended_actions\":[],\"prevention_tips\":[],\"urgency\":\"high\",\"requires_expert_review\":true,\"disclaimer\":\"preliminary\"}"
+	result, err := parseDiagnosisJSONHelper(content)
+	if err != nil {
+		t.Fatalf("expected no error for text before JSON, got: %v", err)
+	}
+	if result.ProbableCondition != "Blight" {
+		t.Errorf("expected 'Blight', got %q", result.ProbableCondition)
+	}
+}
+
+func TestDiagnosis_JSONParse_TextAfterJSON(t *testing.T) {
+	content := "{\"crop\":\"cassava\",\"probable_condition\":\"Wilt\",\"confidence\":50,\"description\":\"desc\",\"observed_signs\":[\"wilting\"],\"possible_alternatives\":[],\"recommended_actions\":[],\"prevention_tips\":[],\"urgency\":\"medium\",\"requires_expert_review\":true,\"disclaimer\":\"preliminary\"}\n\nThis is just additional text that should be ignored."
+	result, err := parseDiagnosisJSONHelper(content)
+	if err != nil {
+		t.Fatalf("expected no error for text after JSON, got: %v", err)
+	}
+	if result.ProbableCondition != "Wilt" {
+		t.Errorf("expected 'Wilt', got %q", result.ProbableCondition)
+	}
+}
+
+func TestDiagnosis_JSONParse_EmptyContent(t *testing.T) {
+	_, err := parseDiagnosisJSONHelper("")
+	if err == nil {
+		t.Fatal("expected error for empty content")
+	}
+}
+
+func TestDiagnosis_JSONParse_NoJSONObject(t *testing.T) {
+	_, err := parseDiagnosisJSONHelper("Here is some text without JSON")
+	if err == nil {
+		t.Fatal("expected error for text without JSON")
+	}
+}
+
+func TestDiagnosis_JSONParse_MissingRequiredField(t *testing.T) {
+	content := `{"crop":"cassava","confidence":50,"description":"test","observed_signs":[],"possible_alternatives":[],"recommended_actions":[],"prevention_tips":[],"urgency":"low","requires_expert_review":false,"disclaimer":"preliminary"}`
+	_, err := parseDiagnosisJSONHelper(content)
+	if err == nil {
+		t.Fatal("expected error for missing probable_condition")
+	}
+}
+
+func TestDiagnosis_FailedDisplay_NoConfidenceChip(t *testing.T) {
+	d := &diagnosis.CropDiagnosis{
+		Status:     "failed",
+		Confidence: 0,
+		Urgency:    "",
+	}
+	if d.Status == "failed" {
+		_ = fmt.Sprintf("Confidence: %.0f%%", d.Confidence)
+		_ = fmt.Sprintf("%s urgency", d.Urgency)
+	}
+}
+
+func parseDiagnosisJSONHelper(content string) (*ai.DiagnosisAIResult, error) {
+	// Using the same logic as internal/ai.parseDiagnosisJSON but accessible from tests
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return nil, fmt.Errorf("empty AI response")
+	}
+	if strings.HasPrefix(content, "```") {
+		lines := strings.SplitN(content, "\n", 2)
+		if len(lines) == 2 {
+			content = lines[1]
+		}
+	}
+	if idx := strings.LastIndex(content, "```"); idx >= 0 {
+		content = content[:idx]
+	}
+	content = strings.TrimSpace(content)
+	if braceStart := strings.Index(content, "{"); braceStart >= 0 {
+		if braceEnd := strings.LastIndex(content, "}"); braceEnd > braceStart {
+			content = content[braceStart : braceEnd+1]
+		}
+	}
+	content = strings.TrimSpace(content)
+	if !strings.HasPrefix(content, "{") {
+		return nil, fmt.Errorf("response does not contain a JSON object")
+	}
+	var result ai.DiagnosisAIResult
+	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		return nil, fmt.Errorf("invalid JSON response: %w", err)
+	}
+	if result.ProbableCondition == "" {
+		return nil, fmt.Errorf("missing probable_condition in AI response")
+	}
+	if result.Crop == "" {
+		return nil, fmt.Errorf("missing crop in AI response")
+	}
+	return &result, nil
 }

@@ -102,7 +102,17 @@ func main() {
 
 	// Transcription
 	audioTranscriber := ai.NewAudioTranscriber(cfg.GroqAPIKey, cfg.GroqBaseURL, cfg.GroqTranscriptionModel)
-	transcriptionSvc := transcription.NewService(audioTranscriber)
+	var krioTranscriber ai.AudioTranscriber
+	if cfg.KrioSTTProvider == "huggingface" && cfg.HuggingFaceAPIKey != "" {
+		krioTranscriber = ai.NewHuggingFaceSTT(cfg.HuggingFaceAPIKey, cfg.HuggingFaceSTTModel, cfg.HuggingFaceSTTTimeout)
+		log.Printf("krio_stt_provider=huggingface model=%s", cfg.HuggingFaceSTTModel)
+	} else {
+		krioTranscriber = audioTranscriber
+		if cfg.KrioSTTProvider == "huggingface" && cfg.HuggingFaceAPIKey == "" {
+			log.Printf("WARNING: KRIO_STT_PROVIDER=huggingface but HUGGINGFACE_API_KEY is empty, falling back to Groq")
+		}
+	}
+	transcriptionSvc := transcription.NewServiceWithKrio(audioTranscriber, krioTranscriber)
 
 	// Auth
 	accessDur, _ := time.ParseDuration(cfg.JWTAccessDuration)

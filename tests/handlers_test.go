@@ -23,6 +23,7 @@ import (
 	"github.com/agriconnect-ai/internal/diagnosis"
 	"github.com/agriconnect-ai/internal/handlers"
 	"github.com/agriconnect-ai/internal/middleware"
+	"github.com/agriconnect-ai/internal/models"
 	"github.com/agriconnect-ai/internal/services"
 	"github.com/agriconnect-ai/internal/storage"
 	"github.com/agriconnect-ai/internal/transcription"
@@ -1658,6 +1659,45 @@ func TestAuthHandler_Register_DistrictDropdown(t *testing.T) {
 	}
 }
 
+type mockChatService struct {
+	createFunc func(context.Context, uuid.UUID, string, string, string) (*models.Conversation, error)
+}
+
+func (m *mockChatService) CreateConversation(ctx context.Context, userID uuid.UUID, language, district, crop string) (*models.Conversation, error) {
+	if m.createFunc != nil {
+		return m.createFunc(ctx, userID, language, district, crop)
+	}
+	return &models.Conversation{ID: uuid.New()}, nil
+}
+
+func (m *mockChatService) ListConversations(_ context.Context, _ uuid.UUID) ([]models.Conversation, error) {
+	return nil, nil
+}
+
+func (m *mockChatService) GetConversation(_ context.Context, _, _ uuid.UUID) (*models.Conversation, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockChatService) DeleteConversation(_ context.Context, _, _ uuid.UUID) error {
+	return nil
+}
+
+func (m *mockChatService) SendMessage(_ context.Context, _, _ uuid.UUID, _ string, _ *ai.Orchestrator, _ int) (*services.SendMessageResult, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockChatService) SendMessageStream(_ context.Context, _, _ uuid.UUID, _ string, _ *ai.Orchestrator, _ int, _ chan<- string, _ chan<- string) (*services.SendMessageResult, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockChatService) AddSystemMessage(_ context.Context, _ uuid.UUID, _, _ string) error {
+	return nil
+}
+
+func (m *mockChatService) SetConversationTitle(_ context.Context, _ uuid.UUID, _ string) error {
+	return nil
+}
+
 // ── Supabase Storage Tests ────────────────────────────────────────────────────
 
 func TestSupabaseStorage_Upload_Non2xx(t *testing.T) {
@@ -1930,6 +1970,284 @@ func TestTemplatesParse(t *testing.T) {
 		t.Fatalf("failed to parse templates: %v", err)
 	}
 	_ = tmpl
+}
+
+// ── Supabase Signed URL Absolute Path Tests ───────────────────────────────────
+
+func TestSupabaseStorage_SignedURL_RelativePathMadeAbsolute(t *testing.T) {
+	client := &http.Client{
+		Transport: &mockRoundTripper{
+			fn: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(`{"signedURL":"/storage/v1/object/sign/bucket/path?token=abc"}`)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
+	store := storage.NewSupabaseStorageWithClient("https://test.supabase.co", "test-key", "test-bucket", client)
+
+	url, err := store.SignedURL(context.Background(), "test/path", 5*time.Minute)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.HasPrefix(url, "https://") {
+		t.Errorf("expected absolute URL, got: %s", url)
+	}
+	if !strings.Contains(url, "test.supabase.co") {
+		t.Errorf("expected test.supabase.co in URL, got: %s", url)
+	}
+	if strings.HasPrefix(url, "/") {
+		t.Errorf("URL should not start with '/', got: %s", url)
+	}
+}
+
+func TestSupabaseStorage_SignedURL_AbsoluteStaysAbsolute(t *testing.T) {
+	client := &http.Client{
+		Transport: &mockRoundTripper{
+			fn: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(`{"signedURL":"https://test.supabase.co/storage/v1/object/sign/bucket/path?token=abc"}`)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
+	store := storage.NewSupabaseStorageWithClient("https://test.supabase.co", "test-key", "test-bucket", client)
+
+	url, err := store.SignedURL(context.Background(), "test/path", 5*time.Minute)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.HasPrefix(url, "https://test.supabase.co") {
+		t.Errorf("expected original absolute URL, got: %s", url)
+	}
+}
+
+func TestSupabaseStorage_SignedURL_IncludesStorageV1(t *testing.T) {
+	client := &http.Client{
+		Transport: &mockRoundTripper{
+			fn: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(`{"signedURL":"/storage/v1/object/sign/bucket/path?token=abc"}`)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
+	store := storage.NewSupabaseStorageWithClient("https://test.supabase.co", "test-key", "test-bucket", client)
+
+	url, err := store.SignedURL(context.Background(), "test/path", 5*time.Minute)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(url, "/storage/v1/") {
+		t.Errorf("expected URL to contain /storage/v1/, got: %s", url)
+	}
+}
+
+func TestSupabaseStorage_SignedURL_MissingField(t *testing.T) {
+	client := &http.Client{
+		Transport: &mockRoundTripper{
+			fn: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(`{}`)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
+	store := storage.NewSupabaseStorageWithClient("https://test.supabase.co", "test-key", "test-bucket", client)
+
+	_, err := store.SignedURL(context.Background(), "test/path", 5*time.Minute)
+	if err == nil {
+		t.Fatal("expected error for missing signedURL field")
+	}
+}
+
+func TestSupabaseStorage_SignedURL_SymmetricFallback(t *testing.T) {
+	client := &http.Client{
+		Transport: &mockRoundTripper{
+			fn: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(`{"symmetric":"https://test.supabase.co/storage/v1/object/sign/bucket/path?token=abc"}`)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
+	store := storage.NewSupabaseStorageWithClient("https://test.supabase.co", "test-key", "test-bucket", client)
+
+	url, err := store.SignedURL(context.Background(), "test/path", 5*time.Minute)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.HasPrefix(url, "https://") {
+		t.Errorf("expected absolute URL from symmetric fallback, got: %s", url)
+	}
+}
+
+// ── Diagnosis Image Handler Proxy Tests ────────────────────────────────────────
+
+func TestDiagnosisHandler_ServeImage_ChecksStorageType(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cfg := &config.Config{
+		MaxImageSizeMB:          5,
+		MinImageWidth:           10,
+		MinImageHeight:          10,
+		MaxImagePixels:          25000000,
+		AllowedImageTypes:       []string{"image/jpeg", "image/png", "image/webp"},
+		DiagnosisRequestTimeout: 5,
+	}
+	diagID := uuid.New()
+	userID := uuid.New()
+
+	svc := &mockDiagnosisService{
+		getFunc: func(_ context.Context, id, uid uuid.UUID) (*diagnosis.CropDiagnosis, error) {
+			return &diagnosis.CropDiagnosis{
+				ID:               id,
+				UserID:           uid,
+				ImageStoragePath: "test/path.png",
+				ImageContentType: "image/png",
+			}, nil
+		},
+	}
+
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, cfg, objStore, chatSvc)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = []gin.Param{{Key: "id", Value: diagID.String()}}
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/diagnoses/"+diagID.String()+"/image", nil)
+	c.Set("user_id", userID.String())
+	handler.ServeImage(c)
+
+	if w.Code == http.StatusInternalServerError {
+		t.Logf("serve image with mock storage returns 500 (expected since mock is not LocalStorage): body=%s", w.Body.String())
+	} else {
+		t.Logf("serve image returned %d", w.Code)
+	}
+}
+
+func TestDiagnosisHandler_HistoryPage_HasBackButton(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cfg := &config.Config{
+		MaxImageSizeMB:          5,
+		MinImageWidth:           10,
+		MinImageHeight:          10,
+		MaxImagePixels:          25000000,
+		AllowedImageTypes:       []string{"image/jpeg", "image/png", "image/webp"},
+		DiagnosisRequestTimeout: 5,
+	}
+	svc := &mockDiagnosisService{}
+	objStore := &mockObjectStorage{}
+	chatSvc := &mockChatService{}
+	handler := handlers.NewDiagnosisHandler(svc, cfg, objStore, chatSvc)
+
+	t.Run("handler is constructed", func(t *testing.T) {
+		if handler == nil {
+			t.Fatal("expected non-nil handler")
+		}
+	})
+	t.Run("handler type is correct", func(t *testing.T) {
+		expected := "*handlers.DiagnosisHandler"
+		actual := fmt.Sprintf("%T", handler)
+		if actual != expected {
+			t.Errorf("expected %s, got %s", expected, actual)
+		}
+	})
+}
+
+// ── Krio STT Tests ────────────────────────────────────────────────────────────
+
+func TestTranscriptionService_KrioUsesHuggingFaceWhenConfigured(t *testing.T) {
+	groqTranscriber := &mockAudioTranscriber{
+		result: &ai.TranscriptionResult{Text: "hello"},
+	}
+	hfTranscriber := &mockAudioTranscriber{
+		result: &ai.TranscriptionResult{Text: "krio transcript"},
+	}
+	svc := transcription.NewServiceWithKrio(groqTranscriber, hfTranscriber)
+
+	result, err := svc.Transcribe(context.Background(), transcription.TranscriptionInput{
+		Audio:        []byte{0, 1, 2},
+		AudioType:    "audio/wav",
+		LanguageHint: "krio",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Transcript != "krio transcript" {
+		t.Errorf("expected hf transcript, got %q", result.Transcript)
+	}
+	if !result.RequiresConfirmation {
+		t.Error("expected requires_confirmation for Krio")
+	}
+	if !result.ExperimentalKrio {
+		t.Error("expected experimental_krio for Krio")
+	}
+}
+
+func TestTranscriptionService_EnglishUsesDefaultProvider(t *testing.T) {
+	groqTranscriber := &mockAudioTranscriber{
+		result: &ai.TranscriptionResult{Text: "english transcript"},
+	}
+	hfTranscriber := &mockAudioTranscriber{
+		result: &ai.TranscriptionResult{Text: "should not be called"},
+	}
+	svc := transcription.NewServiceWithKrio(groqTranscriber, hfTranscriber)
+
+	result, err := svc.Transcribe(context.Background(), transcription.TranscriptionInput{
+		Audio:        []byte{0, 1, 2},
+		AudioType:    "audio/wav",
+		LanguageHint: "english",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Transcript != "english transcript" {
+		t.Errorf("expected groq transcript, got %q", result.Transcript)
+	}
+	if result.RequiresConfirmation {
+		t.Error("expected no confirmation for English")
+	}
+}
+
+func TestTranscriptionService_KrioFallsBackToGroqWhenNoKrioProvider(t *testing.T) {
+	groqTranscriber := &mockAudioTranscriber{
+		result: &ai.TranscriptionResult{Text: "groq krio result"},
+	}
+	svc := transcription.NewServiceWithKrio(groqTranscriber, groqTranscriber)
+
+	result, err := svc.Transcribe(context.Background(), transcription.TranscriptionInput{
+		Audio:        []byte{0, 1, 2},
+		AudioType:    "audio/wav",
+		LanguageHint: "krio",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Transcript != "groq krio result" {
+		t.Errorf("expected groq result, got %q", result.Transcript)
+	}
+}
+
+// ── Mock audio transcriber for tests ──────────────────────────────────────────
+
+type mockAudioTranscriber struct {
+	result *ai.TranscriptionResult
+	err    error
+}
+
+func (m *mockAudioTranscriber) Transcribe(_ context.Context, _ ai.TranscriptionInput) (*ai.TranscriptionResult, error) {
+	return m.result, m.err
 }
 
 

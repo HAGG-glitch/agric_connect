@@ -10,17 +10,6 @@ import (
 	"github.com/agriconnect-ai/internal/transcription"
 )
 
-// ── mocks ────────────────────────────────────────────────────────────────────
-
-type mockAudioTranscriber struct {
-	result *ai.TranscriptionResult
-	err    error
-}
-
-func (m *mockAudioTranscriber) Transcribe(_ context.Context, _ ai.TranscriptionInput) (*ai.TranscriptionResult, error) {
-	return m.result, m.err
-}
-
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 func testAudioData() []byte {

@@ -25,16 +25,18 @@
   </div>
 
   <div class="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
-    <div class="flex items-start gap-4">
+    <div class="flex flex-col sm:flex-row items-start gap-4">
       <div class="w-24 h-24 rounded-lg bg-[#F5F7F5] flex-shrink-0 overflow-hidden border border-[#E5E7EB]">
-        <img src="/api/v1/diagnoses/{{$d.ID}}/image" alt="Crop image" class="w-full h-full object-cover">
+        <img src="/api/v1/diagnoses/{{$d.ID}}/image" alt="Crop image" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\'flex items-center justify-center w-full h-full text-xs text-[#6B7280]\'>Image could not be loaded. Try refreshing.</div>'">
       </div>
-      <div class="flex-1">
-        <h2 class="text-lg font-bold text-[#1F2937]">{{$d.ProbableCondition}}</h2>
+      <div class="flex-1 min-w-0">
+        <h2 class="text-lg font-bold text-[#1F2937]">{{if eq $d.Status "completed"}}{{$d.ProbableCondition}}{{else}}Crop Diagnosis{{end}}</h2>
         <div class="flex flex-wrap gap-2 mt-2">
           <span class="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-2 py-1 rounded-full font-medium capitalize">{{$d.Crop}}</span>
+          {{if eq $d.Status "completed"}}
           <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">Confidence: {{printf "%.0f" $d.Confidence}}%</span>
           <span class="text-xs {{if eq $d.Urgency "urgent"}}bg-red-50 text-red-600{{else if eq $d.Urgency "high"}}bg-orange-50 text-orange-600{{else}}bg-green-50 text-green-600{{end}} px-2 py-1 rounded-full capitalize">{{$d.Urgency}} urgency</span>
+          {{end}}
         </div>
       </div>
     </div>
@@ -62,6 +64,33 @@
   {{else}}
   <div class="space-y-4">
     <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
+      <h3 class="font-semibold text-[#1F2937] mb-3 text-sm">Diagnosis Summary</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">Confidence</p>
+          <div class="flex items-center gap-2">
+            <div class="flex-1 h-2 bg-[#E5E7EB] rounded-full overflow-hidden">
+              <div class="h-full rounded-full {{if ge $d.Confidence 70}}bg-green-500{{else if ge $d.Confidence 40}}bg-amber-500{{else}}bg-red-500{{end}}" style="width: {{$d.Confidence}}%"></div>
+            </div>
+            <span class="text-xs font-medium text-[#1F2937]">{{printf "%.0f" $d.Confidence}}%</span>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">Urgency</p>
+          <span class="inline-block text-xs font-medium px-2 py-0.5 rounded {{if eq $d.Urgency "urgent"}}bg-red-100 text-red-700{{else if eq $d.Urgency "high"}}bg-orange-100 text-orange-700{{else}}bg-green-100 text-green-700{{end}} capitalize">{{$d.Urgency}}</span>
+        </div>
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">AI Analysis</p>
+          <span class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-green-100 text-green-700">Completed</span>
+        </div>
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">Officer Review</p>
+          <span class="inline-block text-xs font-medium px-2 py-0.5 rounded {{if $d.RequiresExpertReview}}bg-amber-100 text-amber-700{{else}}bg-green-100 text-green-700{{end}}">{{if $d.RequiresExpertReview}}Pending{{else}}Not Required{{end}}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
       <h3 class="font-semibold text-[#1F2937] mb-2">Description</h3>
       <p class="text-sm text-[#4B5563]">{{$d.Description}}</p>
     </div>
@@ -75,9 +104,9 @@
       </div>
       <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
         <h3 class="font-semibold text-[#1F2937] mb-2 text-sm">Possible Alternatives</h3>
-        <ul class="text-sm text-[#4B5563] space-y-1">
-          {{range $d.GetPossibleAlternatives}}<li>&bull; {{.}}</li>{{else}}<li class="text-[#6B7280]">None</li>{{end}}
-        </ul>
+        <div class="flex flex-wrap gap-1.5">
+          {{range $d.GetPossibleAlternatives}}<span class="text-xs bg-[#F5F7F5] text-[#4B5563] px-2 py-1 rounded-lg border border-[#E5E7EB]">{{.}}</span>{{else}}<p class="text-sm text-[#6B7280]">None</p>{{end}}
+        </div>
       </div>
     </div>
 

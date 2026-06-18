@@ -59,6 +59,12 @@ type Config struct {
 	JWTRefreshSecret  string
 	JWTAccessDuration string
 	JWTRefreshDuration string
+
+	TranscriptionProvider string
+	KrioSTTProvider       string
+	HuggingFaceAPIKey     string
+	HuggingFaceSTTModel   string
+	HuggingFaceSTTTimeout int
 }
 
 func Load() (*Config, error) {
@@ -107,6 +113,12 @@ func Load() (*Config, error) {
 		JWTRefreshSecret:            getEnv("JWT_REFRESH_SECRET", ""),
 		JWTAccessDuration:           getEnv("JWT_ACCESS_DURATION", "15m"),
 		JWTRefreshDuration:          getEnv("JWT_REFRESH_DURATION", "168h"),
+
+		TranscriptionProvider: getEnv("TRANSCRIPTION_PROVIDER", "groq"),
+		KrioSTTProvider:       getEnv("KRIO_STT_PROVIDER", "groq"),
+		HuggingFaceAPIKey:     getEnv("HUGGINGFACE_API_KEY", ""),
+		HuggingFaceSTTModel:   getEnv("HUGGINGFACE_STT_MODEL", "openai/whisper-large-v3"),
+		HuggingFaceSTTTimeout: getEnvInt("HUGGINGFACE_STT_TIMEOUT_SECONDS", 60),
 	}
 
 	if cfg.DatabaseURL == "" {

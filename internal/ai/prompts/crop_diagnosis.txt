@@ -12,7 +12,7 @@ Rules:
 7. Use simple English when language is English.
 8. Use clear, simple Krio when language is Krio.
 9. Do not invent unusual Krio terminology.
-10. Return only JSON matching the required schema.
+10. Return only valid JSON. Do not include markdown. Do not include code fences. Do not begin with "Here is". Do not add commentary before or after the JSON. The first character of the response must be "{". The last character of the response must be "}". All list fields must be arrays of strings.
 
 Required JSON schema:
 {

@@ -212,9 +212,15 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 			result, err = s.visionAI.Diagnose(procCtx, aiInput)
 		}
 		if err != nil {
-			log.Printf("vision diagnosis failed for %s: %v", diagID, err)
+			errStr := err.Error()
+			log.Printf("vision diagnosis failed for %s: model=%s, error=%v", diagID, s.cfg.GroqVisionModel, err)
+			if strings.Contains(errStr, "parsing") || strings.Contains(errStr, "invalid JSON") || strings.Contains(errStr, "missing") {
+				errMsg := "The image was uploaded, but the AI returned a response that could not be processed. Please try again."
+				diag.ErrorMessage = errMsg
+			} else {
+				diag.ErrorMessage = "AI diagnosis service encountered an error."
+			}
 			diag.Status = "failed"
-			diag.ErrorMessage = "AI diagnosis service encountered an error."
 			diag.UpdatedAt = time.Now().UTC()
 			if uerr := s.repo.Update(procCtx, diag); uerr != nil {
 				log.Printf("failed to update diagnosis %s: %v", diagID, uerr)

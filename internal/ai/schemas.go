@@ -1,5 +1,7 @@
 package ai
 
+import "encoding/json"
+
 // Message represents a chat message for the AI API.
 type Message struct {
 	Role       string     `json:"role"`
@@ -34,14 +36,28 @@ type ToolFunction struct {
 	Parameters  interface{} `json:"parameters"`
 }
 
+// ResponseFormat defines a JSON schema or JSON object response format.
+type ResponseFormat struct {
+	Type       string          `json:"type"`
+	JSONSchema *JSONSchema     `json:"json_schema,omitempty"`
+}
+
+// JSONSchema contains the schema definition for structured output.
+type JSONSchema struct {
+	Name   string          `json:"name"`
+	Schema json.RawMessage `json:"schema"`
+	Strict bool            `json:"strict"`
+}
+
 // ChatRequest is the request body for the chat completion API.
 type ChatRequest struct {
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	Tools       []Tool    `json:"tools,omitempty"`
-	Stream      bool      `json:"stream"`
-	MaxTokens   int       `json:"max_tokens,omitempty"`
-	Temperature float64   `json:"temperature,omitempty"`
+	Model          string          `json:"model"`
+	Messages       []Message       `json:"messages"`
+	Tools          []Tool          `json:"tools,omitempty"`
+	Stream         bool            `json:"stream"`
+	MaxTokens      int             `json:"max_tokens,omitempty"`
+	Temperature    float64         `json:"temperature,omitempty"`
+	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
 }
 
 // ChatResponse is the response from the chat completion API.

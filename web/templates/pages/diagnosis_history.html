@@ -18,6 +18,28 @@
     </a>
   </div>
 
+  <div id="diagnoses-summary" class="hidden mb-6">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="bg-white border border-[#E5E7EB] rounded-xl p-3 text-center">
+        <p class="text-2xl font-bold text-[#1F2937]" id="summary-total">0</p>
+        <p class="text-xs text-[#6B7280]">Total</p>
+      </div>
+      <div class="bg-white border border-[#E5E7EB] rounded-xl p-3 text-center">
+        <p class="text-2xl font-bold text-green-600" id="summary-completed">0</p>
+        <p class="text-xs text-[#6B7280]">Completed</p>
+      </div>
+      <div class="bg-white border border-[#E5E7EB] rounded-xl p-3 text-center">
+        <p class="text-2xl font-bold text-red-600" id="summary-failed">0</p>
+        <p class="text-xs text-[#6B7280]">Failed</p>
+      </div>
+      <div class="bg-white border border-[#E5E7EB] rounded-xl p-3 text-center">
+        <p class="text-2xl font-bold text-blue-600" id="summary-processing">0</p>
+        <p class="text-xs text-[#6B7280]">Processing</p>
+      </div>
+    </div>
+    <div id="summary-crops" class="flex flex-wrap gap-1.5 mt-2 justify-center"></div>
+  </div>
+
   <div id="diagnoses-list" class="space-y-3">
     <div class="text-center py-12 text-[#6B7280]">
       <i data-lucide="search" class="w-8 h-8 mx-auto mb-3"></i>
@@ -51,9 +73,12 @@
 
       if (!data.diagnoses || data.diagnoses.length === 0) {
         container.innerHTML = '<div class="text-center py-12 text-[#6B7280]"><i data-lucide="search" class="w-8 h-8 mx-auto mb-3"></i><p>No diagnoses yet.</p><a href="/diagnose" class="text-[#2E7D32] hover:underline text-sm mt-2 inline-block">Submit your first diagnosis</a></div>';
+        document.getElementById('diagnoses-summary').classList.add('hidden');
         if (typeof lucide !== 'undefined') lucide.createIcons();
         return;
       }
+
+      updateSummary(data.diagnoses, data.total);
 
       container.innerHTML = data.diagnoses.map(d => {
         const statusColors = { processing: 'text-blue-600 bg-blue-50', completed: 'text-green-600 bg-green-50', failed: 'text-red-600 bg-red-50' };
@@ -98,6 +123,27 @@
     } catch (e) {
       container.innerHTML = '<div class="text-center py-12 text-red-500"><p>Failed to load diagnoses.</p></div>';
     }
+  }
+
+  function updateSummary(diagnoses, total) {
+    let completed = 0, failed = 0, processing = 0;
+    const cropCounts = {};
+    for (const d of diagnoses) {
+      if (d.status === 'completed') completed++;
+      else if (d.status === 'failed') failed++;
+      else if (d.status === 'processing') processing++;
+      if (d.crop) cropCounts[d.crop] = (cropCounts[d.crop] || 0) + 1;
+    }
+    document.getElementById('summary-total').textContent = total;
+    document.getElementById('summary-completed').textContent = completed;
+    document.getElementById('summary-failed').textContent = failed;
+    document.getElementById('summary-processing').textContent = processing;
+    const cropsContainer = document.getElementById('summary-crops');
+    const sorted = Object.entries(cropCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    cropsContainer.innerHTML = sorted.map(([crop, count]) =>
+      '<span class="text-xs bg-[#F5F7F5] text-[#4B5563] px-2 py-1 rounded-lg border border-[#E5E7EB]">' + escapeHTML(crop) + ' (' + count + ')</span>'
+    ).join('');
+    document.getElementById('diagnoses-summary').classList.remove('hidden');
   }
 
   document.getElementById('prev-page')?.addEventListener('click', function() {

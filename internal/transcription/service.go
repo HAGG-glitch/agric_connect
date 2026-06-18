@@ -3,6 +3,7 @@ package transcription
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/agriconnect-ai/internal/ai"
@@ -14,10 +15,15 @@ type Service interface {
 
 type service struct {
 	transcriber ai.AudioTranscriber
+	krioSTT     ai.AudioTranscriber
 }
 
 func NewService(transcriber ai.AudioTranscriber) Service {
-	return &service{transcriber: transcriber}
+	return &service{transcriber: transcriber, krioSTT: transcriber}
+}
+
+func NewServiceWithKrio(transcriber, krioSTT ai.AudioTranscriber) Service {
+	return &service{transcriber: transcriber, krioSTT: krioSTT}
 }
 
 func (s *service) Transcribe(ctx context.Context, input TranscriptionInput) (*TranscriptionResponse, error) {
@@ -30,7 +36,16 @@ func (s *service) Transcribe(ctx context.Context, input TranscriptionInput) (*Tr
 		langHint = "auto"
 	}
 
-	result, err := s.transcriber.Transcribe(ctx, ai.TranscriptionInput{
+	activeTranscriber := s.transcriber
+	usingKrioProvider := false
+
+	if strings.ToLower(langHint) == "krio" && s.krioSTT != nil && s.krioSTT != s.transcriber {
+		activeTranscriber = s.krioSTT
+		usingKrioProvider = true
+		log.Printf("using Krio STT provider for transcription")
+	}
+
+	result, err := activeTranscriber.Transcribe(ctx, ai.TranscriptionInput{
 		AudioData:    input.Audio,
 		AudioType:    input.AudioType,
 		LanguageHint: langHint,
@@ -46,7 +61,7 @@ func (s *service) Transcribe(ctx context.Context, input TranscriptionInput) (*Tr
 	requiresConfirmation := false
 	experimentalKrio := false
 
-	if input.LanguageHint == "krio" || result.DetectedLanguage == "krio" {
+	if input.LanguageHint == "krio" || result.DetectedLanguage == "krio" || usingKrioProvider {
 		requiresConfirmation = true
 		experimentalKrio = true
 	}
