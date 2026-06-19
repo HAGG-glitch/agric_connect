@@ -39,5 +39,6 @@ Thumbs.db
 .env.production
 # Docker
 docker-data/
-prompt.md
-report.md
+# Documentation reports (keep only README.md)
+*.md
+!README.md
