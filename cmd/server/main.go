@@ -213,7 +213,8 @@ func main() {
 	adminPages.Use(middleware.OptionalAuth(cfg.JWTAccessSecret, db))
 	adminPages.Use(middleware.RequireRole("admin"))
 	{
-		adminPages.GET("/admin/users", adminHandler.AdminPage)
+		adminPages.GET("/admin", adminHandler.AdminPage)
+	adminPages.GET("/admin/users", adminHandler.AdminPage)
 		adminPages.GET("/admin/diagnoses", adminHandler.AdminDiagnosesPage)
 		adminPages.GET("/admin/reviews", adminHandler.AdminReviewsPage)
 		adminPages.GET("/admin/audit-logs", adminHandler.AdminAuditLogsPage)

@@ -1,36 +1,43 @@
 # AgriConnect AI
 
-Agricultural advisory web application for smallholder farmers in Sierra Leone.
+Agricultural advisory web application for smallholder farmers in Sierra Leone. Features AI-powered crop diagnosis, weather intelligence, market prices, agricultural resources, and role-based dashboards for farmers, extension officers, and administrators.
 
-## Implemented Scope
+## Features
 
-- **Phase 1** — Agricultural AI Chat (Gin web server, PostgreSQL, Groq integration, English/Krio responses, conversation management, streaming)
-- **Phase 2** — Agricultural Knowledge Retrieval (PostgreSQL document storage, crop/topic detection, context retrieval)
-- **Phase 3** — Weather Intelligence (Sierra Leone district mapping, Open-Meteo integration, weather caching, weather-aware AI responses)
-- **Phase 4** — AI Crop Image Diagnosis (image upload with drag-and-drop, crop/part/symptom form, Groq vision integration, structured AI result, diagnosis history, continue-in-chat)
-- **Phase 5** — Voice Recording & Transcription (browser MediaRecorder, Groq Whisper transcription, Krio experimental warning, editable transcript insertion into chat)
+- **AI Chat Assistant** — Conversational AI in English and Krio using Groq LLM
+- **Crop Image Diagnosis** — Upload crop images for AI-powered symptom analysis with Groq Vision
+- **Weather Intelligence** — District-specific forecasts via Open-Meteo with AI-enhanced interpretation
+- **Voice Recording & Transcription** — Groq Whisper transcription with Krio language support
+- **Market Prices** — Commodity price tracking by district and market (officer-managed)
+- **Agricultural Resources** — Curated knowledge base with crop-specific documents
+- **Role-Based Dashboards** — Tailored views for farmers, extension officers, and admins
+- **Notifications** — In-app alerts for diagnosis updates, reviews, and market changes
+- **Officer Review Workflow** — Claim, review, and close diagnosis cases with district scoping
+- **Admin Panel** — User management, diagnosis oversight, audit logs
 
 ## Architecture
 
 ```
 cmd/server/main.go          — Application entry point
-internal/config/             — Environment-based configuration
-internal/database/           — PostgreSQL connection and migrations
-internal/models/             — GORM models (conversation, message, document, weather cache)
-internal/repositories/       — Data access layer
-internal/services/           — Business logic (chat, knowledge, weather)
-internal/diagnosis/          — Crop diagnosis service, repository, validation, schemas
-internal/transcription/      — Audio transcription service, validation, schemas
-internal/storage/            — Object storage abstraction (local + Supabase)
-internal/ai/                 — Groq client, prompt builder, response orchestrator, vision, transcription
-internal/weather/            — Open-Meteo client, district coordinates
-internal/handlers/           — HTTP handlers (page, chat, conversation, weather, health, diagnosis, transcription)
-internal/middleware/         — Request ID, recovery, anonymous user, rate limiting
-web/templates/               — Gin HTML templates (layouts, pages, partials)
-web/static/                  — CSS (Tailwind) and JavaScript
-migrations/                  — SQL migration files
-seed/                        — Agricultural knowledge base seed data
-scripts/                     — Utility programs (seed.go)
+internal/auth/              — Authentication, JWT, user service
+internal/config/            — Environment-based configuration
+internal/database/          — PostgreSQL connection and migrations
+internal/models/            — GORM models
+internal/repositories/      — Data access layer
+internal/services/          — Business logic (chat, knowledge, weather)
+internal/handlers/          — HTTP handlers (page, API, auth, admin, officer)
+internal/middleware/        — Auth, rate limiting, request ID, anonymous user
+internal/diagnosis/         — Crop diagnosis service, repository, validation
+internal/transcription/     — Audio transcription service
+internal/storage/           — Object storage abstraction (local + Supabase)
+internal/ai/                — Groq client, prompts, vision, transcription
+internal/weather/           — Open-Meteo client, district coordinates
+internal/validation/        — Input validation utilities
+web/templates/              — Gin HTML templates (layouts, pages, partials)
+web/static/                 — Tailwind CSS and JavaScript
+migrations/                 — SQL migration files (auto-executed on startup)
+seed/                       — Agricultural knowledge base seed data
+scripts/                    — Utility programs
 ```
 
 ## Prerequisites
@@ -77,12 +84,7 @@ This starts both the application and PostgreSQL database.
 
 ## Database Migrations
 
-Migrations run automatically on application startup. To run them manually:
-
-```bash
-# Up migrations
-go run ./cmd/server
-```
+Migrations run automatically on application startup. They are SQL files in `migrations/` named with a `000NNN` prefix and executed in order.
 
 ## Seeding Agricultural Documents
 
@@ -91,6 +93,17 @@ go run ./scripts/seed.go
 ```
 
 This loads agricultural knowledge for rice, cassava, maize, and groundnut from `seed/agricultural_documents.json`.
+
+## Seeding Demo Data
+
+On first run, the application seeds demo users and sample market prices. All demo accounts use password `demo123`:
+
+| Role | Name | Phone |
+|------|------|-------|
+| Admin | Admin User | `23276100001` |
+| Extension Officer | Fatmata Kamara | `23276100002` |
+| Extension Officer | Amadu Sesay (Krio) | `23276100003` |
+| Farmer | Demo Farmer | `23276100004` |
 
 ## Tailwind Compilation
 
@@ -106,21 +119,19 @@ npx tailwindcss -i ./web/static/css/input.css -o ./web/static/css/app.css --watc
 
 Set `GROQ_API_KEY` in your `.env` file. The application uses `llama-3.1-8b-instant` by default but any Groq-compatible model can be configured via `GROQ_CHAT_MODEL`.
 
-Without a configured key, the UI shows a clear configuration error and the AI features are unavailable.
+### Vision Model
 
-### Vision Model (Phase 4)
+Configured via `GROQ_VISION_MODEL` (default: `llama-3.2-11b-vision-preview`). Used for crop image diagnosis.
 
-Configured via `GROQ_VISION_MODEL` (default: `llama-3.2-11b-vision-preview`). Used for crop image diagnosis. If the configured model cannot process images, the diagnosis is marked as failed.
+### Transcription Model
 
-### Transcription Model (Phase 5)
-
-Configured via `GROQ_TRANSCRIPTION_MODEL` (default: `whisper-large-v3`). Used for voice recording transcription. Supports English and Krio language hints.
+Configured via `GROQ_TRANSCRIPTION_MODEL` (default: `whisper-large-v3`). Supports English and Krio language hints.
 
 ## Storage Configuration
 
 ### Local Storage (Development)
 
-Default driver. Files stored under `LOCAL_UPLOAD_DIR` (default: `./data/uploads`). Images are served only through an ownership-checked HTTP handler, not as public static files.
+Default driver. Files stored under `LOCAL_UPLOAD_DIR` (default: `./data/uploads`). Images are served only through an ownership-checked HTTP handler.
 
 ### Supabase Storage (Production)
 
@@ -152,51 +163,139 @@ go vet ./...
 go build ./cmd/server
 ```
 
+## Configuration Reference
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `8080` | Server port |
+| `DATABASE_URL` | — | PostgreSQL connection string |
+| `GROQ_API_KEY` | — | Groq API key |
+| `GROQ_CHAT_MODEL` | `llama-3.1-8b-instant` | Chat model |
+| `GROQ_VISION_MODEL` | `llama-3.2-11b-vision-preview` | Vision model |
+| `GROQ_TRANSCRIPTION_MODEL` | `whisper-large-v3` | Transcription model |
+| `STORAGE_DRIVER` | `local` | Storage backend (`local` or `supabase`) |
+| `JWT_SECRET` | auto-generated | JWT signing secret |
+| `ALLOW_ANONYMOUS_ASSISTANT` | `false` | Allow unauthenticated access to AI assistant |
+| `WEATHER_CACHE_MINUTES` | `20` | Weather cache duration |
+| `MAX_IMAGE_SIZE_MB` | `5` | Max image upload size |
+| `MAX_AUDIO_SIZE_MB` | `10` | Max audio upload size |
+| `MAX_RECORDING_SECONDS` | `60` | Max recording duration |
+
 ## API Routes
+
+### Page Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | No | Landing page (or role-based redirect if authenticated) |
+| GET | `/login` | No | Login page |
+| GET | `/register` | No | Registration page |
+| GET | `/assistant` | Optional | AI chat assistant |
+| GET | `/dashboard` | Farmer | Farmer dashboard |
+| GET | `/officer` | Officer | Officer dashboard |
+| GET | `/admin` | Admin | Admin dashboard |
+| GET | `/diagnose` | Any | Crop diagnosis form |
+| GET | `/diagnoses` | Any | Diagnosis history |
+| GET | `/diagnoses/:id` | Any | Diagnosis detail |
+| GET | `/market-prices` | Any | Market prices page |
+| GET | `/resources` | Any | Agricultural resources list |
+| GET | `/resources/:id` | Any | Resource detail |
+| GET | `/notifications` | Any | User notifications |
+| GET | `/admin/diagnoses` | Admin | Admin diagnosis oversight |
+| GET | `/admin/reviews` | Admin | Admin review management |
+| GET | `/admin/audit-logs` | Admin | Audit log viewer |
+| GET | `/admin/users` | Admin | User management |
+
+### Authentication API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | Health check (database connectivity) |
-| GET | `/assistant` | Main assistant page |
-| GET | `/diagnose` | Crop diagnosis form |
-| GET | `/diagnoses` | Diagnosis history |
-| GET | `/diagnoses/:id` | Diagnosis detail |
-| GET | `/login` | Login page |
-| GET | `/register` | Registration page |
-| GET | `/officer` | Officer dashboard |
-| GET | `/admin/users` | Admin user management |
-| POST | `/api/v1/auth/register` | Register a new user |
-| POST | `/api/v1/auth/login` | Login |
+| POST | `/api/v1/auth/register` | Register new user |
+| POST | `/api/v1/auth/login` | Login (returns role-based redirect) |
 | POST | `/api/v1/auth/refresh` | Refresh access token |
 | POST | `/api/v1/auth/logout` | Logout |
 | GET | `/api/v1/auth/me` | Get current user profile |
+| PATCH | `/api/v1/auth/profile` | Update profile |
+
+### AI Chat API
+
+| Method | Path | Description |
+|--------|------|-------------|
 | POST | `/api/v1/conversations` | Create conversation |
 | GET | `/api/v1/conversations` | List conversations |
 | GET | `/api/v1/conversations/:id` | Get conversation with messages |
 | DELETE | `/api/v1/conversations/:id` | Delete conversation |
 | POST | `/api/v1/conversations/:id/messages` | Send message (non-streaming) |
 | POST | `/api/v1/conversations/:id/messages/stream` | Send message (SSE streaming) |
+
+### Weather API
+
+| Method | Path | Description |
+|--------|------|-------------|
 | GET | `/api/v1/weather?district=Bo` | Get weather for a district |
+
+### Diagnosis API
+
+| Method | Path | Description |
+|--------|------|-------------|
 | POST | `/api/v1/diagnoses` | Submit a crop diagnosis (multipart) |
 | GET | `/api/v1/diagnoses` | List diagnoses (paginated) |
 | GET | `/api/v1/diagnoses/:id` | Get diagnosis detail |
 | DELETE | `/api/v1/diagnoses/:id` | Delete diagnosis |
 | GET | `/api/v1/diagnoses/:id/image` | Serve diagnosis image (ownership-checked) |
 | POST | `/api/v1/diagnoses/:id/continue-in-chat` | Continue diagnosis in AI chat |
+
+### Transcription API
+
+| Method | Path | Description |
+|--------|------|-------------|
 | POST | `/api/v1/ai/transcribe` | Transcribe audio recording (multipart) |
-| GET | `/api/v1/officer/diagnoses` | Officer diagnosis queue (paginated, filterable) |
-| GET | `/api/v1/officer/diagnoses/:id` | Officer get diagnosis detail with reviews |
-| POST | `/api/v1/officer/diagnoses/:id/reviews` | Create review for a diagnosis |
-| PUT | `/api/v1/officer/diagnoses/:id/reviews/:reviewID` | Update an existing review |
+
+### Market Prices API
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/v1/market-prices` | Any | List market prices |
+| POST | `/api/v1/market-prices` | Officer/Admin | Create market price |
+| PUT | `/api/v1/market-prices/:id` | Officer/Admin | Update market price |
+| DELETE | `/api/v1/market-prices/:id` | Officer/Admin | Delete market price |
+
+### Resources API
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/v1/resources` | Any | List reviewed resources |
+| GET | `/api/v1/resources/:id` | Any | Get resource detail |
+
+### Notifications API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/notifications` | List user notifications |
+| PATCH | `/api/v1/notifications/read-all` | Mark all as read |
+| PATCH | `/api/v1/notifications/:id/read` | Mark notification as read |
+| GET | `/api/v1/notifications/unread-count` | Get unread notification count |
+
+### Officer API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/officer/diagnoses` | Diagnosis queue (paginated, filterable) |
+| GET | `/api/v1/officer/diagnoses/:id` | Diagnosis detail with reviews |
+| POST | `/api/v1/officer/diagnoses/:id/claim` | Claim a diagnosis case |
+| POST | `/api/v1/officer/diagnoses/:id/reviews` | Create review |
+| PUT | `/api/v1/officer/diagnoses/:id/reviews/:reviewID` | Update review |
+
+### Admin API
+
+| Method | Path | Description |
+|--------|------|-------------|
 | GET | `/api/v1/admin/users` | List all users |
 | PATCH | `/api/v1/admin/users/:userId/role` | Update user role |
 | PATCH | `/api/v1/admin/users/:userId/status` | Update user active status |
-| GET | `/api/v1/notifications` | List user notifications |
-| PATCH | `/api/v1/notifications/:id/read` | Mark notification as read |
-
-## Anonymous User Behavior
-
-Users are identified by an HTTP-only cookie (`agriconnect_user`) set on first visit. No registration is required. Conversation and diagnosis ownership is enforced server-side. Diagnosis images are only accessible by the anonymous owner.
+| GET | `/api/v1/admin/diagnoses` | List all diagnoses |
+| GET | `/api/v1/admin/reviews` | List all reviews |
+| GET | `/api/v1/admin/audit-logs` | List audit logs |
 
 ## Security Notes
 
@@ -211,6 +310,8 @@ Users are identified by an HTTP-only cookie (`agriconnect_user`) set on first vi
 - Diagnosis images require ownership verification before serving
 - Audio recordings are deleted after transcription, never retained by default
 - Supabase service-role key is kept server-side only
+- JWT tokens are HTTP-only cookies with configurable expiration
+- Role-based access control enforced on all admin and officer endpoints
 
 ## Known Limitations
 
