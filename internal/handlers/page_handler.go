@@ -67,7 +67,7 @@ func (h *PageHandler) AssistantPage(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "assistant.html", gin.H{
+	data := gin.H{
 		"Title":         "AgriConnect AI - Agricultural Assistant",
 		"UserID":        userID,
 		"Districts":     weather.SupportedDistricts,
@@ -75,7 +75,20 @@ func (h *PageHandler) AssistantPage(c *gin.Context) {
 		"AIAvailable":   h.cfg.AIAvailable(),
 		"Year":          time.Now().Year(),
 		"ContentBlock":  "contentAssistant",
-	})
+		"ActivePage":    "assistant",
+	}
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			data["UserName"] = user.FullName
+			data["UserRole"] = user.Role
+			data["UserLanguage"] = user.PreferredLanguage
+			if data["UserDistrict"] == "" {
+				data["UserDistrict"] = user.District
+			}
+		}
+	}
+	c.HTML(http.StatusOK, "assistant.html", data)
 }
 
 func (h *PageHandler) ProfilePage(c *gin.Context) {
@@ -92,18 +105,36 @@ func (h *PageHandler) ProfilePage(c *gin.Context) {
 
 	userView, err := h.authSvc.GetUser(c.Request.Context(), user.ID)
 	if err != nil {
-		c.HTML(http.StatusNotFound, "profile.html", gin.H{
-			"Title":  "AgriConnect AI - Profile",
-			"Error":  "User not found",
-			"Year":   time.Now().Year(),
-		})
+	c.HTML(http.StatusNotFound, "profile.html", gin.H{
+		"Title":      "AgriConnect AI - Profile",
+		"Error":      "User not found",
+		"Year":       time.Now().Year(),
+		"ActivePage": "profile",
+		"ContentBlock": "contentProfile",
+	})
 		return
 	}
 
-	c.HTML(http.StatusOK, "profile.html", gin.H{
-		"Title":     "AgriConnect AI - Profile",
-		"User":      userView,
-		"Districts": weather.SupportedDistricts,
-		"Year":      time.Now().Year(),
-	})
+	backURL := "/dashboard"
+	switch user.Role {
+	case "admin":
+		backURL = "/admin"
+	case "officer":
+		backURL = "/officer"
+	}
+
+	data := gin.H{
+		"Title":      "AgriConnect AI - Profile",
+		"User":       userView,
+		"Districts":  weather.SupportedDistricts,
+		"Year":       time.Now().Year(),
+		"ActivePage": "profile",
+		"BackURL":    backURL,
+		"ContentBlock": "contentProfile",
+		"UserName":   user.FullName,
+		"UserRole":   user.Role,
+		"UserDistrict": user.District,
+		"UserLanguage": user.PreferredLanguage,
+	}
+	c.HTML(http.StatusOK, "profile.html", data)
 }

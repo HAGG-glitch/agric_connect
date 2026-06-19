@@ -87,6 +87,7 @@ func (h *DashboardHandler) DashboardPage(c *gin.Context) {
 		"RecentDiagnoses":     recentDiags,
 		"RecentConversations": recentConvs,
 		"UnreadCount":    unreadCount,
+		"ActivePage":     "dashboard",
 	})
 }
 

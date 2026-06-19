@@ -20,11 +20,22 @@ func NewNotificationHandler(db *gorm.DB) *NotificationHandler {
 }
 
 func (h *NotificationHandler) NotificationsPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "notifications.html", gin.H{
+	data := gin.H{
 		"Title":        "AgriConnect AI - Notifications",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentNotifications",
-	})
+		"ActivePage":   "notifications",
+	}
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			data["UserName"] = user.FullName
+			data["UserRole"] = user.Role
+			data["UserDistrict"] = user.District
+			data["UserLanguage"] = user.PreferredLanguage
+		}
+	}
+	c.HTML(http.StatusOK, "notifications.html", data)
 }
 
 func (h *NotificationHandler) List(c *gin.Context) {

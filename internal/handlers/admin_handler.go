@@ -31,7 +31,7 @@ func (h *AdminHandler) AdminPage(c *gin.Context) {
 	h.db.Model(&diagnosisModel{}).Count(&diagCount)
 	h.db.Model(&diagnosisModel{}).Where("status IN ?", []string{"ai_completed", "awaiting_review", "under_review"}).Count(&pendingReviewCount)
 
-	c.HTML(http.StatusOK, "admin_users.html", gin.H{
+	data := gin.H{
 		"Title":          "AgriConnect AI - Admin",
 		"Year":           time.Now().Year(),
 		"FarmerCount":    farmerCount,
@@ -40,7 +40,24 @@ func (h *AdminHandler) AdminPage(c *gin.Context) {
 		"DiagnosisCount": diagCount,
 		"PendingReviews": pendingReviewCount,
 		"ContentBlock":   "contentAdminUsers",
-	})
+		"ActivePage":     "admin",
+	}
+	h.addUserData(c, data)
+	c.HTML(http.StatusOK, "admin_users.html", data)
+}
+
+func (h *AdminHandler) addUserData(c *gin.Context, data gin.H) {
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			data["UserName"] = user.FullName
+			data["UserRole"] = user.Role
+			data["UserDistrict"] = user.District
+		}
+	}
+	if data["UnreadCount"] == nil {
+		data["UnreadCount"] = int64(0)
+	}
 }
 
 type diagnosisModel struct{}
@@ -48,27 +65,36 @@ type diagnosisModel struct{}
 func (diagnosisModel) TableName() string { return "crop_diagnoses" }
 
 func (h *AdminHandler) AdminDiagnosesPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "admin_diagnoses.html", gin.H{
+	data := gin.H{
 		"Title":        "AgriConnect AI - All Diagnoses",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentAdminDiagnoses",
-	})
+		"ActivePage":   "admin-diagnoses",
+	}
+	h.addUserData(c, data)
+	c.HTML(http.StatusOK, "admin_diagnoses.html", data)
 }
 
 func (h *AdminHandler) AdminReviewsPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "admin_reviews.html", gin.H{
+	data := gin.H{
 		"Title":        "AgriConnect AI - All Reviews",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentAdminReviews",
-	})
+		"ActivePage":   "admin-reviews",
+	}
+	h.addUserData(c, data)
+	c.HTML(http.StatusOK, "admin_reviews.html", data)
 }
 
 func (h *AdminHandler) AdminAuditLogsPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "admin_audit_logs.html", gin.H{
+	data := gin.H{
 		"Title":        "AgriConnect AI - Audit Logs",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentAdminAuditLogs",
-	})
+		"ActivePage":   "admin-audit",
+	}
+	h.addUserData(c, data)
+	c.HTML(http.StatusOK, "admin_audit_logs.html", data)
 }
 
 func (h *AdminHandler) ListUsers(c *gin.Context) {

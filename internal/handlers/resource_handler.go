@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/agriconnect-ai/internal/middleware"
 	"github.com/agriconnect-ai/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -39,24 +40,36 @@ func (h *ResourceHandler) ResourcesPage(c *gin.Context) {
 		crops = []string{}
 	}
 
-	c.HTML(http.StatusOK, "resources.html", gin.H{
+	data := gin.H{
 		"Title":        "AgriConnect AI - Learning Resources",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentResources",
 		"Categories":   categories,
 		"Crops":        crops,
-	})
+		"ActivePage":   "resources",
+	}
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			data["UserName"] = user.FullName
+			data["UserRole"] = user.Role
+			data["UserDistrict"] = user.District
+			data["UserLanguage"] = user.PreferredLanguage
+		}
+	}
+	c.HTML(http.StatusOK, "resources.html", data)
 }
 
 func (h *ResourceHandler) ResourceDetailPage(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
-	if err != nil {
+	if 	err != nil {
 		c.HTML(http.StatusNotFound, "resource_detail.html", gin.H{
-			"Title":       "Resource Not Found",
-			"Error":       "Invalid resource ID",
+			"Title":        "Resource Not Found",
+			"Error":        "Invalid resource ID",
 			"ContentBlock": "contentResourceDetail",
-			"Year":        time.Now().Year(),
+			"Year":         time.Now().Year(),
+			"ActivePage":   "resource-detail",
 		})
 		return
 	}
@@ -64,20 +77,32 @@ func (h *ResourceHandler) ResourceDetailPage(c *gin.Context) {
 	var doc models.AgriculturalDocument
 	if err := h.db.First(&doc, "id = ?", id).Error; err != nil {
 		c.HTML(http.StatusNotFound, "resource_detail.html", gin.H{
-			"Title":       "Resource Not Found",
-			"Error":       "Resource not found",
+			"Title":        "Resource Not Found",
+			"Error":        "Resource not found",
 			"ContentBlock": "contentResourceDetail",
-			"Year":        time.Now().Year(),
+			"Year":         time.Now().Year(),
+			"ActivePage":   "resource-detail",
 		})
 		return
 	}
 
-	c.HTML(http.StatusOK, "resource_detail.html", gin.H{
+	data := gin.H{
 		"Title":        doc.Title + " - AgriConnect AI",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentResourceDetail",
 		"Resource":     doc,
-	})
+		"ActivePage":   "resource-detail",
+	}
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			data["UserName"] = user.FullName
+			data["UserRole"] = user.Role
+			data["UserDistrict"] = user.District
+			data["UserLanguage"] = user.PreferredLanguage
+		}
+	}
+	c.HTML(http.StatusOK, "resource_detail.html", data)
 }
 
 func (h *ResourceHandler) ListResources(c *gin.Context) {

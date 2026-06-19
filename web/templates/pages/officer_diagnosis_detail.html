@@ -1,9 +1,8 @@
-{{template "app.html" .}}
-
-{{define "contentOfficerDiagnosisDetail"}}
-<div class="max-w-4xl mx-auto p-4 md:p-8">
+{{template "layout_head" .}}
+{{template "app_layout" .}}
+<div class="max-w-4xl mx-auto">
   <div class="flex items-center gap-3 mb-6">
-    <a href="/officer/diagnoses" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
+    <a href="/officer/diagnoses" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors" aria-label="Back">
       <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
     </a>
     <div>
@@ -110,30 +109,25 @@ async function loadDiagnosis() {
     document.getElementById('content').classList.remove('hidden');
     document.getElementById('diagnosis-meta').textContent = d.crop + ' - ' + (d.district || 'No district');
 
-    // AI Assessment
-    document.getElementById('ai-assessment').innerHTML = `
-      <div class="space-y-2">
-        <p class="text-sm"><span class="font-medium">Condition:</span> ${d.probable_condition || 'Pending'}</p>
-        <p class="text-sm"><span class="font-medium">Confidence:</span> ${Math.round(d.confidence || 0)}%</p>
-        <p class="text-sm"><span class="font-medium">Urgency:</span> <span class="${d.urgency === 'urgent' ? 'text-red-600' : ''}">${d.urgency || 'unknown'}</span></p>
-        <p class="text-sm text-[#4B5563]">${d.description || ''}</p>
-      </div>
-    `;
+    document.getElementById('ai-assessment').innerHTML =
+      '<div class="space-y-2">' +
+        '<p class="text-sm"><span class="font-medium">Condition:</span> ' + (d.probable_condition || 'Pending') + '</p>' +
+        '<p class="text-sm"><span class="font-medium">Confidence:</span> ' + Math.round(d.confidence || 0) + '%</p>' +
+        '<p class="text-sm"><span class="font-medium">Urgency:</span> <span class="' + (d.urgency === 'urgent' ? 'text-red-600' : '') + '">' + (d.urgency || 'unknown') + '</span></p>' +
+        '<p class="text-sm text-[#4B5563]">' + (d.description || '') + '</p>' +
+      '</div>';
 
-    // Farmer info
-    document.getElementById('farmer-info').innerHTML = `
-      <div class="space-y-2 text-sm">
-        <p><span class="font-medium">Crop:</span> ${d.crop}</p>
-        <p><span class="font-medium">District:</span> ${d.district || 'Not specified'}</p>
-        <p><span class="font-medium">Plant Part:</span> ${d.plant_part || 'Not specified'}</p>
-        <p><span class="font-medium">Symptoms:</span> ${d.symptom_description || 'Not specified'}</p>
-        <p><span class="font-medium">Status:</span> ${d.status}</p>
-      </div>
-    `;
+    document.getElementById('farmer-info').innerHTML =
+      '<div class="space-y-2 text-sm">' +
+        '<p><span class="font-medium">Crop:</span> ' + d.crop + '</p>' +
+        '<p><span class="font-medium">District:</span> ' + (d.district || 'Not specified') + '</p>' +
+        '<p><span class="font-medium">Plant Part:</span> ' + (d.plant_part || 'Not specified') + '</p>' +
+        '<p><span class="font-medium">Symptoms:</span> ' + (d.symptom_description || 'Not specified') + '</p>' +
+        '<p><span class="font-medium">Status:</span> ' + d.status + '</p>' +
+      '</div>';
 
-    // Reviews
     if (d.reviews && d.reviews.length > 0) {
-      const latest = d.reviews[0];
+      var latest = d.reviews[0];
       document.getElementById('review-id').value = latest.id;
       document.getElementById('review-status').value = latest.review_status;
       document.getElementById('confirmed-condition').value = latest.confirmed_condition || '';
@@ -141,14 +135,14 @@ async function loadDiagnosis() {
       document.getElementById('recommendation').value = latest.recommendation || '';
       document.getElementById('requires-field-visit').checked = latest.requires_field_visit;
 
-      document.getElementById('review-history').innerHTML = d.reviews.map(r => `
-        <div class="border-b border-[#E5E7EB] py-2 text-sm">
-          <p><span class="font-medium">Status:</span> ${r.review_status}</p>
-          ${r.confirmed_condition ? `<p><span class="font-medium">Condition:</span> ${r.confirmed_condition}</p>` : ''}
-          ${r.officer_comment ? `<p class="text-[#4B5563]">${r.officer_comment}</p>` : ''}
-          <p class="text-xs text-[#6B7280]">${new Date(r.created_at).toLocaleString()}</p>
-        </div>
-      `).join('');
+      document.getElementById('review-history').innerHTML = d.reviews.map(function(r) {
+        var html = '<div class="border-b border-[#E5E7EB] py-2 text-sm">' +
+          '<p><span class="font-medium">Status:</span> ' + r.review_status + '</p>';
+        if (r.confirmed_condition) html += '<p><span class="font-medium">Condition:</span> ' + r.confirmed_condition + '</p>';
+        if (r.officer_comment) html += '<p class="text-[#4B5563]">' + r.officer_comment + '</p>';
+        html += '<p class="text-xs text-[#6B7280]">' + new Date(r.created_at).toLocaleString() + '</p></div>';
+        return html;
+      }).join('');
     }
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -159,12 +153,12 @@ async function loadDiagnosis() {
 
 async function submitReview(e) {
   e.preventDefault();
-  const diagID = document.getElementById('diagnosis-id').value;
-  const reviewID = document.getElementById('review-id').value;
-  const errEl = document.getElementById('review-error');
+  var diagID = document.getElementById('diagnosis-id').value;
+  var reviewID = document.getElementById('review-id').value;
+  var errEl = document.getElementById('review-error');
   errEl.classList.add('hidden');
 
-  const body = {
+  var body = {
     review_status: document.getElementById('review-status').value,
     confirmed_condition: document.getElementById('confirmed-condition').value,
     officer_comment: document.getElementById('officer-comment').value,
@@ -173,14 +167,14 @@ async function submitReview(e) {
   };
 
   try {
-    const url = reviewID
+    var url = reviewID
       ? '/api/v1/officer/diagnoses/' + diagID + '/reviews/' + reviewID
       : '/api/v1/officer/diagnoses/' + diagID + '/reviews';
-    const method = reviewID ? 'PUT' : 'POST';
+    var method = reviewID ? 'PUT' : 'POST';
 
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    var res = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!res.ok) {
-      const err = await res.json();
+      var err = await res.json();
       errEl.textContent = err.error || 'Failed to save review';
       errEl.classList.remove('hidden');
       return;
@@ -194,4 +188,9 @@ async function submitReview(e) {
 
 loadDiagnosis();
 </script>
-{{end}}
+      </div>
+    </main>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
+{{template "layout_foot" .}}

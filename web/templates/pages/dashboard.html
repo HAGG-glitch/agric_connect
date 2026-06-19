@@ -1,177 +1,282 @@
 {{template "layout_head" .}}
-<div class="max-w-4xl mx-auto p-4 md:p-8" style="width: 100%;">
-  <div class="flex items-center mb-4">
-    <a href="/assistant" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
-      <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
-    </a>
-  </div>
-
-  <div class="flex items-center justify-between mb-6" style="width: 100%;">
-    <div class="flex items-center gap-3">
-      <div class="w-12 h-12 rounded-xl bg-[#2E7D32] flex items-center justify-center flex-shrink-0">
-        <i data-lucide="sprout" class="w-6 h-6 text-white"></i>
+{{template "app_layout" .}}
+<!-- Hero Section -->
+<div class="dashboard-hero">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div class="flex items-start gap-4">
+      <div class="w-14 h-14 rounded-full bg-[#2E7D32] flex items-center justify-center text-white text-xl font-bold flex-shrink-0 shadow-md">
+        {{slice .UserName 0 1}}
       </div>
       <div>
-        <h1 class="text-2xl font-bold text-[#1F2937]">Welcome, {{.UserName}}</h1>
-        <p class="text-sm text-[#6B7280]">Farmer Dashboard</p>
+        <h1 class="hero-name">Welcome back, {{.UserName}}</h1>
+        <p class="hero-meta">
+          <span class="inline-flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> {{.UserDistrict}}</span>
+          <span class="mx-2">•</span>
+          <span class="inline-flex items-center gap-1 capitalize"><i data-lucide="globe" class="w-3.5 h-3.5"></i> {{.UserLanguage}}</span>
+          <span class="mx-2">•</span>
+          <span class="role-badge-farmer">{{.UserRole}}</span>
+        </p>
       </div>
     </div>
-    <span class="text-xs px-3 py-1.5 rounded-full bg-[#2E7D32]/10 text-[#2E7D32] font-medium capitalize flex-shrink-0">{{.UserRole}}</span>
-  </div>
-
-  <div class="bg-white rounded-xl border border-[#E5E7EB] p-5 mb-6" style="width: 100%;">
-    <div class="flex items-center gap-2 mb-4">
-      <i data-lucide="id-card" class="w-4 h-4 text-[#2E7D32]"></i>
-      <h2 class="font-semibold text-[#1F2937]">My Profile</h2>
-    </div>
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-      <div>
-        <p class="text-[#6B7280] text-xs">Name</p>
-        <p class="font-medium text-[#1F2937]">{{.UserName}}</p>
-      </div>
-      <div>
-        <p class="text-[#6B7280] text-xs">Phone</p>
-        <p class="font-medium text-[#1F2937]" id="phone-display">{{.UserPhone}}</p>
-      </div>
-      <div>
-        <p class="text-[#6B7280] text-xs">District</p>
-        <p class="font-medium text-[#1F2937]">{{.UserDistrict}}</p>
-      </div>
-      <div>
-        <p class="text-[#6B7280] text-xs">Language</p>
-        <p class="font-medium text-[#1F2937] capitalize">{{.UserLanguage}}</p>
-      </div>
-      <div>
-        <p class="text-[#6B7280] text-xs">Role</p>
-        <p class="font-medium text-[#1F2937] capitalize">{{.UserRole}}</p>
-      </div>
-    </div>
-  </div>
-
-  <h2 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-1.5">
-    <i data-lucide="zap" class="w-4 h-4 text-[#2E7D32]"></i> Quick Actions
-  </h2>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" style="width: 100%;">
-    <a href="/assistant" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
-      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
-        <i data-lucide="bot" class="w-5 h-5 text-[#2E7D32]"></i>
-      </div>
-      <p class="text-sm font-medium text-[#1F2937]">Ask AI</p>
-      <p class="text-xs text-[#6B7280]">Get agricultural advice</p>
-    </a>
-    <a href="/diagnose" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
-      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
-        <i data-lucide="scan-line" class="w-5 h-5 text-[#2E7D32]"></i>
-      </div>
-      <p class="text-sm font-medium text-[#1F2937]">Diagnose Crop</p>
-      <p class="text-xs text-[#6B7280]">Identify crop diseases</p>
-    </a>
-    <a href="/diagnoses" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
-      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
-        <i data-lucide="history" class="w-5 h-5 text-[#2E7D32]"></i>
-      </div>
-      <p class="text-sm font-medium text-[#1F2937]">Diagnosis History</p>
-      <p class="text-xs text-[#6B7280]">View past diagnoses</p>
-    </a>
-    <a href="/market-prices" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
-      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
-        <i data-lucide="trending-up" class="w-5 h-5 text-[#2E7D32]"></i>
-      </div>
-      <p class="text-sm font-medium text-[#1F2937]">Market Prices</p>
-      <p class="text-xs text-[#6B7280]">Crop price trends</p>
-    </a>
-    <a href="/resources" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
-      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
-        <i data-lucide="book-open" class="w-5 h-5 text-[#2E7D32]"></i>
-      </div>
-      <p class="text-sm font-medium text-[#1F2937]">Learning Resources</p>
-      <p class="text-xs text-[#6B7280]">Farming guides &amp; tips</p>
-    </a>
-    <a href="/notifications" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all relative" style="width: 100%;">
-      {{if .UnreadCount}}
-      <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">{{.UnreadCount}}</span>
-      {{end}}
-      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
-        <i data-lucide="bell" class="w-5 h-5 text-[#2E7D32]"></i>
-      </div>
-      <p class="text-sm font-medium text-[#1F2937]">Notifications</p>
-      <p class="text-xs text-[#6B7280]">{{if .UnreadCount}}{{.UnreadCount}} unread{{else}}No new alerts{{end}}</p>
-    </a>
-    <a href="/profile" class="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#2E7D32]/40 hover:shadow-sm transition-all" style="width: 100%;">
-      <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-2">
-        <i data-lucide="user" class="w-5 h-5 text-[#2E7D32]"></i>
-      </div>
-      <p class="text-sm font-medium text-[#1F2937]">Profile</p>
-      <p class="text-xs text-[#6B7280]">Manage your account</p>
-    </a>
-  </div>
-
-  <h2 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-1.5">
-    <i data-lucide="activity" class="w-4 h-4 text-[#2E7D32]"></i> Recent Activity
-  </h2>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" style="width: 100%;">
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4" style="width: 100%;">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-medium text-[#1F2937] flex items-center gap-1.5">
-          <i data-lucide="clipboard-list" class="w-4 h-4 text-[#2E7D32]"></i> Recent Diagnoses
-        </h3>
-        <a href="/diagnoses" class="text-xs text-[#2E7D32] hover:underline">View all</a>
-      </div>
-      {{if .RecentDiagnoses}}
-        {{range .RecentDiagnoses}}
-        <a href="/diagnoses/{{.id}}" class="flex items-center justify-between py-2.5 border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] px-2 -mx-2 rounded-lg transition-colors" style="width: 100%;">
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-[#1F2937] capitalize truncate">{{.crop}} &mdash; {{.probable_condition}}</p>
-            <p class="text-xs text-[#6B7280] mt-0.5">{{.created_at}}</p>
-          </div>
-          <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-            <span class="text-xs px-2 py-0.5 rounded-full {{if eq .status "completed"}}bg-green-50 text-green-700{{else if eq .status "processing"}}bg-blue-50 text-blue-700{{else if eq .status "failed"}}bg-red-50 text-red-700{{else}}bg-gray-50 text-gray-700{{end}}">{{.status}}</span>
-            {{if .urgency}}
-            <span class="text-xs px-2 py-0.5 rounded-full {{if eq .urgency "high"}}bg-red-50 text-red-600{{else if eq .urgency "medium"}}bg-amber-50 text-amber-600{{else}}bg-green-50 text-green-600{{end}}">{{.urgency}}</span>
-            {{end}}
-          </div>
-        </a>
-        {{end}}
-      {{else}}
-        <p class="text-sm text-[#6B7280] py-4 text-center">No diagnoses yet</p>
-      {{end}}
-    </div>
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4" style="width: 100%;">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-medium text-[#1F2937] flex items-center gap-1.5">
-          <i data-lucide="message-square" class="w-4 h-4 text-[#2E7D32]"></i> Recent Conversations
-        </h3>
-        <a href="/assistant" class="text-xs text-[#2E7D32] hover:underline">View all</a>
-      </div>
-      {{if .RecentConversations}}
-        {{range .RecentConversations}}
-        <a href="/assistant" class="flex items-center gap-3 py-2.5 border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] px-2 -mx-2 rounded-lg transition-colors" style="width: 100%;">
-          <div class="w-8 h-8 rounded-lg bg-[#F5F7F5] border border-[#E5E7EB] flex items-center justify-center flex-shrink-0">
-            <i data-lucide="message-circle" class="w-4 h-4 text-[#6B7280]"></i>
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-[#1F2937] truncate">{{.title}}</p>
-            <p class="text-xs text-[#6B7280] mt-0.5">{{.created_at}}</p>
-          </div>
-          <i data-lucide="chevron-right" class="w-4 h-4 text-[#6B7280] flex-shrink-0"></i>
-        </a>
-        {{end}}
-      {{else}}
-        <p class="text-sm text-[#6B7280] py-4 text-center">No conversations yet</p>
-      {{end}}
+    <div class="flex items-center gap-2">
+      <a href="/profile" class="btn-secondary text-xs">
+        <i data-lucide="settings" class="w-3.5 h-3.5 inline mr-1"></i>Edit Profile
+      </a>
     </div>
   </div>
 </div>
 
+<!-- Quick Actions -->
+<div class="section-card">
+  <h2 class="section-title"><i data-lucide="zap" class="w-4 h-4 text-[#2E7D32]"></i> Quick Actions</h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <a href="/assistant" class="quick-action-card">
+      <div class="qa-icon"><i data-lucide="bot" class="w-6 h-6 text-[#2E7D32]"></i></div>
+      <p class="qa-title">Ask AI</p>
+      <p class="qa-desc">Get agricultural advice</p>
+    </a>
+    <a href="/diagnose" class="quick-action-card">
+      <div class="qa-icon"><i data-lucide="scan-line" class="w-6 h-6 text-[#2E7D32]"></i></div>
+      <p class="qa-title">Diagnose Crop</p>
+      <p class="qa-desc">Identify crop diseases</p>
+    </a>
+    <a href="/diagnoses" class="quick-action-card">
+      <div class="qa-icon"><i data-lucide="history" class="w-6 h-6 text-[#2E7D32]"></i></div>
+      <p class="qa-title">Diagnosis History</p>
+      <p class="qa-desc">View past diagnoses</p>
+    </a>
+    <a href="/market-prices" class="quick-action-card">
+      <div class="qa-icon"><i data-lucide="trending-up" class="w-6 h-6 text-[#2E7D32]"></i></div>
+      <p class="qa-title">Market Prices</p>
+      <p class="qa-desc">Crop price trends</p>
+    </a>
+    <a href="/resources" class="quick-action-card">
+      <div class="qa-icon"><i data-lucide="book-open" class="w-6 h-6 text-[#2E7D32]"></i></div>
+      <p class="qa-title">Learning Resources</p>
+      <p class="qa-desc">Farming guides &amp; tips</p>
+    </a>
+    <a href="/notifications" class="quick-action-card relative">
+      {{if .UnreadCount}}<span class="notif-badge">{{.UnreadCount}}</span>{{end}}
+      <div class="qa-icon"><i data-lucide="bell" class="w-6 h-6 text-[#2E7D32]"></i></div>
+      <p class="qa-title">Notifications</p>
+      <p class="qa-desc">{{if .UnreadCount}}{{.UnreadCount}} unread{{else}}No new alerts{{end}}</p>
+    </a>
+    <a href="/profile" class="quick-action-card">
+      <div class="qa-icon"><i data-lucide="user" class="w-6 h-6 text-[#2E7D32]"></i></div>
+      <p class="qa-title">Profile</p>
+      <p class="qa-desc">Manage your account</p>
+    </a>
+    <a href="/resources" class="quick-action-card">
+      <div class="qa-icon"><i data-lucide="cloud-sun" class="w-6 h-6 text-[#FFC107]"></i></div>
+      <p class="qa-title">Weather</p>
+      <p class="qa-desc">Check forecasts</p>
+    </a>
+  </div>
+</div>
+
+<!-- Insight Cards -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-icon bg-blue-50"><i data-lucide="thermometer" class="w-5 h-5 text-blue-600"></i></div>
+    <p class="stat-value" id="weather-temp">--</p>
+    <p class="stat-label">Current Temperature</p>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-green-50"><i data-lucide="clipboard-check" class="w-5 h-5 text-green-600"></i></div>
+    <p class="stat-value">{{len .RecentDiagnoses}}</p>
+    <p class="stat-label">Recent Diagnoses</p>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-amber-50"><i data-lucide="clock" class="w-5 h-5 text-amber-600"></i></div>
+    <p class="stat-value" id="pending-review-count">0</p>
+    <p class="stat-label">Pending Review</p>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-purple-50"><i data-lucide="bell" class="w-5 h-5 text-purple-600"></i></div>
+    <p class="stat-value">{{.UnreadCount}}</p>
+    <p class="stat-label">Unread Notifications</p>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+  <div class="chart-container">
+    <h3 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+      <i data-lucide="bar-chart-3" class="w-4 h-4 text-[#2E7D32]"></i> Diagnosis Overview
+    </h3>
+    <canvas id="farmerDiagnosisChart" height="180"></canvas>
+    <p id="farmerDiagnosisEmpty" class="text-sm text-[#6B7280] text-center py-8 hidden">No diagnosis data yet</p>
+  </div>
+  <div class="chart-container">
+    <h3 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+      <i data-lucide="pie-chart" class="w-4 h-4 text-[#2E7D32]"></i> Status Summary
+    </h3>
+    <canvas id="farmerStatusChart" height="180"></canvas>
+    <p id="farmerStatusEmpty" class="text-sm text-[#6B7280] text-center py-8 hidden">No status data yet</p>
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  <div class="section-card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="section-title mb-0"><i data-lucide="clipboard-list" class="w-4 h-4 text-[#2E7D32]"></i> Recent Diagnoses</h3>
+      <a href="/diagnoses" class="text-xs text-[#2E7D32] hover:underline font-medium">View all</a>
+    </div>
+    {{if .RecentDiagnoses}}
+      {{range .RecentDiagnoses}}
+      <a href="/diagnoses/{{index . "id"}}" class="flex items-center justify-between py-2.5 border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] px-2 -mx-2 rounded-lg transition-colors">
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium text-[#1F2937] capitalize truncate">{{index . "crop"}} — {{index . "probable_condition"}}</p>
+          <p class="text-xs text-[#6B7280] mt-0.5">{{index . "created_at"}}</p>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+          <span class="badge-{{if eq (index . "status") "completed"}}green{{else if eq (index . "status") "processing"}}blue{{else if eq (index . "status") "failed"}}red{{else}}gray{{end}}">{{index . "status"}}</span>
+        </div>
+      </a>
+      {{end}}
+    {{else}}
+    <div class="empty-state py-6">
+      <div class="empty-icon w-12 h-12"><i data-lucide="clipboard-list" class="w-5 h-5 text-[#6B7280]"></i></div>
+      <p class="empty-title text-sm">No diagnoses yet</p>
+      <p class="empty-desc text-xs">Upload a crop photo to get your first AI screening.</p>
+      <a href="/diagnose" class="btn-primary text-xs mt-2">Start Diagnosis</a>
+    </div>
+    {{end}}
+  </div>
+  <div class="section-card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="section-title mb-0"><i data-lucide="message-square" class="w-4 h-4 text-[#2E7D32]"></i> Recent Conversations</h3>
+      <a href="/assistant" class="text-xs text-[#2E7D32] hover:underline font-medium">View all</a>
+    </div>
+    {{if .RecentConversations}}
+      {{range .RecentConversations}}
+      <a href="/assistant" class="flex items-center gap-3 py-2.5 border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] px-2 -mx-2 rounded-lg transition-colors">
+        <div class="w-8 h-8 rounded-lg bg-[#F5F7F5] border border-[#E5E7EB] flex items-center justify-center flex-shrink-0">
+          <i data-lucide="message-circle" class="w-4 h-4 text-[#6B7280]"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium text-[#1F2937] truncate">{{index . "title"}}</p>
+          <p class="text-xs text-[#6B7280] mt-0.5">{{index . "created_at"}}</p>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-[#6B7280] flex-shrink-0"></i>
+      </a>
+      {{end}}
+    {{else}}
+    <div class="empty-state py-6">
+      <div class="empty-icon w-12 h-12"><i data-lucide="message-circle" class="w-5 h-5 text-[#6B7280]"></i></div>
+      <p class="empty-title text-sm">No conversations yet</p>
+      <p class="empty-desc text-xs">Start a conversation with the AI assistant.</p>
+      <a href="/assistant" class="btn-primary text-xs mt-2">Ask AI</a>
+    </div>
+    {{end}}
+  </div>
+</div>
+
 <script>
-(function() {
-  var el = document.getElementById('phone-display');
-  if (el) {
-    var phone = el.textContent.trim();
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  // Fetch weather
+  fetch('/api/v1/weather?district={{.UserDistrict}}')
+    .then(r => r.json())
+    .then(data => {
+      if (data.temperature) {
+        document.getElementById('weather-temp').textContent = Math.round(data.temperature) + '°C';
+      }
+    })
+    .catch(() => {});
+
+  // Fetch pending review count
+  fetch('/api/v1/diagnoses')
+    .then(r => r.json())
+    .then(data => {
+      if (data.diagnoses) {
+        var pending = data.diagnoses.filter(function(d) { return d.status === 'awaiting_review' || d.status === 'under_review'; }).length;
+        document.getElementById('pending-review-count').textContent = pending;
+      }
+    })
+    .catch(() => {});
+
+  // Build diagnosis chart data from server-rendered data
+  var diagnoses = {{.RecentDiagnoses}};
+  if (diagnoses && diagnoses.length > 0) {
+    var cropCounts = {};
+    var statusCounts = {};
+    diagnoses.forEach(function(d) {
+      var crop = d.crop || 'unknown';
+      var status = d.status || 'unknown';
+      cropCounts[crop] = (cropCounts[crop] || 0) + 1;
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+
+    if (Object.keys(cropCounts).length > 0 && typeof Chart !== 'undefined') {
+      new Chart(document.getElementById('farmerDiagnosisChart'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(cropCounts),
+          datasets: [{
+            label: 'Diagnoses',
+            data: Object.values(cropCounts),
+            backgroundColor: 'rgba(46, 125, 50, 0.7)',
+            borderColor: '#2E7D32',
+            borderWidth: 1,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+      });
+    } else {
+      document.getElementById('farmerDiagnosisChart').classList.add('hidden');
+      document.getElementById('farmerDiagnosisEmpty').classList.remove('hidden');
+    }
+
+    if (Object.keys(statusCounts).length > 0 && typeof Chart !== 'undefined') {
+      new Chart(document.getElementById('farmerStatusChart'), {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(statusCounts),
+          datasets: [{
+            data: Object.values(statusCounts),
+            backgroundColor: ['rgba(46, 125, 50, 0.8)', 'rgba(251, 191, 36, 0.8)', 'rgba(239, 68, 68, 0.8)', 'rgba(99, 102, 241, 0.8)'],
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
+        }
+      });
+    } else {
+      document.getElementById('farmerStatusChart').classList.add('hidden');
+      document.getElementById('farmerStatusEmpty').classList.remove('hidden');
+    }
+  } else {
+    document.getElementById('farmerDiagnosisChart').classList.add('hidden');
+    document.getElementById('farmerDiagnosisEmpty').classList.remove('hidden');
+    document.getElementById('farmerStatusChart').classList.add('hidden');
+    document.getElementById('farmerStatusEmpty').classList.remove('hidden');
+  }
+
+  // Phone masking
+  var phoneEl = document.querySelector('[data-phone]');
+  if (phoneEl) {
+    var phone = phoneEl.textContent.trim();
     if (phone.length > 4) {
-      el.textContent = '*** *** ' + phone.slice(-4);
+      phoneEl.textContent = '*** *** ' + phone.slice(-4);
     }
   }
-})();
+});
 </script>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
 {{template "layout_foot" .}}

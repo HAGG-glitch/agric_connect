@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/agriconnect-ai/internal/auth"
+	"github.com/agriconnect-ai/internal/middleware"
 	"github.com/agriconnect-ai/internal/config"
 	"github.com/agriconnect-ai/internal/diagnosis"
 	"github.com/agriconnect-ai/internal/services"
@@ -33,7 +34,7 @@ func NewDiagnosisHandler(svc diagnosis.Service, cfg *config.Config, objStore sto
 }
 
 func (h *DiagnosisHandler) DiagnosePage(c *gin.Context) {
-	c.HTML(http.StatusOK, "diagnose.html", gin.H{
+	data := gin.H{
 		"Title":          "AgriConnect AI - Crop Diagnosis",
 		"Districts":      weather.SupportedDistricts,
 		"PlantParts":     diagnosis.ValidPlantParts,
@@ -43,29 +44,51 @@ func (h *DiagnosisHandler) DiagnosePage(c *gin.Context) {
 		"AIAvailable":    h.cfg.AIAvailable(),
 		"Year":           time.Now().Year(),
 		"ContentBlock":   "contentDiagnose",
-	})
+		"ActivePage":     "diagnose",
+	}
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			data["UserName"] = user.FullName
+			data["UserRole"] = user.Role
+			data["UserDistrict"] = user.District
+			data["UserLanguage"] = user.PreferredLanguage
+		}
+	}
+	c.HTML(http.StatusOK, "diagnose.html", data)
 }
 
 func (h *DiagnosisHandler) HistoryPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "diagnosis_history.html", gin.H{
+	data := gin.H{
 		"Title":        "AgriConnect AI - Diagnosis History",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentDiagnosisHistory",
-	})
+		"ActivePage":   "diagnoses",
+	}
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			data["UserName"] = user.FullName
+			data["UserRole"] = user.Role
+			data["UserDistrict"] = user.District
+			data["UserLanguage"] = user.PreferredLanguage
+		}
+	}
+	c.HTML(http.StatusOK, "diagnosis_history.html", data)
 }
 
 func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		c.HTML(http.StatusNotFound, "diagnosis_detail.html", gin.H{"Error": "Invalid diagnosis ID", "ContentBlock": "contentDiagnosisDetail"})
+		c.HTML(http.StatusNotFound, "diagnosis_detail.html", gin.H{"Error": "Invalid diagnosis ID", "ContentBlock": "contentDiagnosisDetail", "ActivePage": "diagnosis-detail"})
 		return
 	}
 
 	userID := getUserID(c)
 	d, err := h.svc.GetDiagnosis(c.Request.Context(), id, userID)
 	if err != nil {
-		c.HTML(http.StatusNotFound, "diagnosis_detail.html", gin.H{"Error": "Diagnosis not found", "ContentBlock": "contentDiagnosisDetail"})
+		c.HTML(http.StatusNotFound, "diagnosis_detail.html", gin.H{"Error": "Diagnosis not found", "ContentBlock": "contentDiagnosisDetail", "ActivePage": "diagnosis-detail"})
 		return
 	}
 
@@ -94,7 +117,7 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 		h.db.Where("diagnosis_id = ?", id).Order("created_at DESC").Find(&reviews)
 	}
 
-	c.HTML(http.StatusOK, "diagnosis_detail.html", gin.H{
+	data := gin.H{
 		"Title":                 "AgriConnect AI - Diagnosis Detail",
 		"Diagnosis":             d,
 		"Reviews":               reviews,
@@ -105,7 +128,33 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 		"ConfidenceBarClass":    confidenceBarClass,
 		"HasConfidence":         hasConfidence,
 		"ConfidenceDisplayText": strconv.Itoa(confidence) + "%",
-	})
+		"ActivePage":            "diagnosis-detail",
+	}
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			data["UserName"] = user.FullName
+			data["UserRole"] = user.Role
+			data["UserDistrict"] = user.District
+			data["UserLanguage"] = user.PreferredLanguage
+		}
+	}
+	if data["UserName"] == nil {
+		data["UserName"] = ""
+	}
+	if data["UserRole"] == nil {
+		data["UserRole"] = ""
+	}
+	if data["UserDistrict"] == nil {
+		data["UserDistrict"] = ""
+	}
+	if data["UserLanguage"] == nil {
+		data["UserLanguage"] = "english"
+	}
+	if data["UnreadCount"] == nil {
+		data["UnreadCount"] = 0
+	}
+	c.HTML(http.StatusOK, "diagnosis_detail.html", data)
 }
 
 func (h *DiagnosisHandler) Create(c *gin.Context) {

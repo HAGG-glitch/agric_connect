@@ -63,24 +63,34 @@ func (h *OfficerHandler) OfficerPage(c *gin.Context) {
 		"PendingCount":  pendingCount,
 		"InReviewCount": inReviewCount,
 		"CompletedCount": completedCount,
-		"OfficerName":   userRecord.FullName,
+		"UserName":      userRecord.FullName,
 		"OfficerDistrict": userRecord.District,
+		"UserRole":      "officer",
+		"ActivePage":    "officer",
 	})
 }
 
 func (h *OfficerHandler) OfficerDiagnosesPage(c *gin.Context) {
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
 	c.HTML(http.StatusOK, "officer_diagnoses.html", gin.H{
 		"Title":        "AgriConnect AI - Diagnosis Queue",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentOfficerDiagnoses",
+		"UserName":     user.FullName,
+		"UserRole":     user.Role,
+		"ActivePage":   "officer-diagnoses",
 	})
 }
 
 func (h *OfficerHandler) OfficerDiagnosisDetailPage(c *gin.Context) {
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
 	c.HTML(http.StatusOK, "officer_diagnosis_detail.html", gin.H{
 		"Title":        "AgriConnect AI - Review Diagnosis",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentOfficerDiagnosisDetail",
+		"UserName":     user.FullName,
+		"UserRole":     user.Role,
+		"ActivePage":   "officer-diagnoses",
 	})
 }
 

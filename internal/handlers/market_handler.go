@@ -39,13 +39,24 @@ func (h *MarketHandler) MarketPricesPage(c *gin.Context) {
 		districts = []string{}
 	}
 
-	c.HTML(http.StatusOK, "market_prices.html", gin.H{
+	data := gin.H{
 		"Title":        "AgriConnect AI - Market Prices",
 		"Year":         time.Now().Year(),
 		"ContentBlock": "contentMarketPrices",
 		"Commodities":  commodities,
 		"Districts":    districts,
-	})
+		"ActivePage":   "market-prices",
+	}
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			data["UserName"] = user.FullName
+			data["UserRole"] = user.Role
+			data["UserDistrict"] = user.District
+			data["UserLanguage"] = user.PreferredLanguage
+		}
+	}
+	c.HTML(http.StatusOK, "market_prices.html", data)
 }
 
 func (h *MarketHandler) ListPrices(c *gin.Context) {

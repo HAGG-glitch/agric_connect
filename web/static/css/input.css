@@ -10,6 +10,9 @@
     height: 100%;
     margin: 0;
   }
+  body {
+    @apply bg-[#F0F2F0] text-[#1F2937] antialiased;
+  }
 }
 
 @layer components {
@@ -43,4 +46,193 @@
   .weather-badge {
     @apply inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full;
   }
+
+  /* Glassmorphism cards */
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/50 shadow-sm rounded-2xl;
+  }
+  .glass-card-solid {
+    @apply bg-white/90 backdrop-blur-sm border border-[#E5E7EB]/60 shadow-sm rounded-2xl;
+  }
+  .glass-panel {
+    @apply bg-white/60 backdrop-blur-lg border border-white/40 shadow-md rounded-2xl;
+  }
+
+  /* Stat cards */
+  .stat-card {
+    @apply glass-card p-5 transition-all duration-200 hover:shadow-md;
+  }
+  .stat-card .stat-icon {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center;
+  }
+  .stat-card .stat-value {
+    @apply text-2xl font-bold text-[#1F2937] mt-2;
+  }
+  .stat-card .stat-label {
+    @apply text-xs text-[#6B7280] mt-0.5;
+  }
+
+  /* Quick action cards */
+  .quick-action-card {
+    @apply glass-card p-5 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-[#2E7D32]/30 hover:-translate-y-0.5;
+  }
+  .quick-action-card .qa-icon {
+    @apply w-12 h-12 rounded-xl bg-[#2E7D32]/10 flex items-center justify-center mb-3;
+  }
+  .quick-action-card .qa-title {
+    @apply text-sm font-semibold text-[#1F2937];
+  }
+  .quick-action-card .qa-desc {
+    @apply text-xs text-[#6B7280] mt-0.5;
+  }
+
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-green { @apply badge bg-green-50 text-green-700; }
+  .badge-red { @apply badge bg-red-50 text-red-700; }
+  .badge-amber { @apply badge bg-amber-50 text-amber-700; }
+  .badge-blue { @apply badge bg-blue-50 text-blue-700; }
+  .badge-gray { @apply badge bg-gray-50 text-gray-600; }
+  .badge-purple { @apply badge bg-purple-50 text-purple-700; }
+
+  /* Role badges */
+  .role-badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize;
+  }
+  .role-badge-admin { @apply role-badge bg-purple-100 text-purple-700; }
+  .role-badge-officer { @apply role-badge bg-blue-100 text-blue-700; }
+  .role-badge-farmer { @apply role-badge bg-green-100 text-green-700; }
+
+  /* Sidebar */
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200;
+  }
+  .sidebar-link-active {
+    @apply sidebar-link bg-[#2E7D32]/10 text-[#2E7D32];
+  }
+  .sidebar-link-inactive {
+    @apply sidebar-link text-[#6B7280] hover:bg-[#F5F7F5] hover:text-[#1F2937];
+  }
+
+  /* Page header */
+  .page-header {
+    @apply flex items-center justify-between mb-6;
+  }
+  .page-header .page-title {
+    @apply text-xl font-bold text-[#1F2937];
+  }
+  .page-header .page-subtitle {
+    @apply text-sm text-[#6B7280];
+  }
+
+  /* Empty states */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 px-4;
+  }
+  .empty-state .empty-icon {
+    @apply w-16 h-16 rounded-2xl bg-[#F5F7F5] border border-[#E5E7EB] flex items-center justify-center mb-4;
+  }
+  .empty-state .empty-title {
+    @apply text-base font-semibold text-[#1F2937] mb-1;
+  }
+  .empty-state .empty-desc {
+    @apply text-sm text-[#6B7280] text-center max-w-sm mb-4;
+  }
+
+  /* Notification badges */
+  .notif-badge {
+    @apply absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center shadow-sm px-1;
+  }
+
+  /* Charts container */
+  .chart-container {
+    @apply glass-card p-5;
+  }
+
+  /* Table wrapper */
+  .table-wrapper {
+    @apply overflow-x-auto rounded-xl;
+  }
+  .table-base {
+    @apply w-full text-sm;
+  }
+  .table-base th {
+    @apply text-left p-3 font-semibold text-[#6B7280] text-xs uppercase tracking-wider bg-[#F9FAFB] border-b border-[#E5E7EB];
+  }
+  .table-base td {
+    @apply p-3 border-b border-[#E5E7EB];
+  }
+  .table-base tr {
+    @apply transition-colors duration-150;
+  }
+  .table-base tbody tr:hover {
+    @apply bg-[#F9FAFB];
+  }
+
+  /* Section card */
+  .section-card {
+    @apply glass-card-solid p-5 mb-6;
+  }
+  .section-card .section-title {
+    @apply font-semibold text-[#1F2937] mb-4 flex items-center gap-2;
+  }
+
+  /* Hero section for dashboards */
+  .dashboard-hero {
+    @apply glass-card p-6 mb-6;
+  }
+  .dashboard-hero .hero-name {
+    @apply text-2xl font-bold text-[#1F2937];
+  }
+  .dashboard-hero .hero-meta {
+    @apply text-sm text-[#6B7280] mt-1;
+  }
+
+  /* Toast */
+  .toast {
+    @apply fixed bottom-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all duration-300;
+  }
+  .toast-success {
+    @apply toast bg-green-600 text-white;
+  }
+  .toast-error {
+    @apply toast bg-red-600 text-white;
+  }
+
+  /* Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #9CA3AF;
+  }
+
+  /* Table search */
+  .search-input {
+    @apply w-full px-3 py-2 border border-[#D1D5DB] rounded-xl text-sm bg-white text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/20 focus:border-[#2E7D32] transition-all;
+  }
+  .filter-select {
+    @apply px-3 py-2 border border-[#D1D5DB] rounded-xl text-sm bg-white text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/20 focus:border-[#2E7D32] transition-all;
+  }
+  .btn-primary {
+    @apply px-4 py-2 bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply px-4 py-2 border border-[#D1D5DB] hover:bg-[#F5F7F5] text-[#1F2937] rounded-xl text-sm font-medium transition-colors;
+  }
+}
+
+/* Chart.js responsive canvas */
+.chart-container canvas {
+  max-width: 100%;
+  height: auto !important;
 }

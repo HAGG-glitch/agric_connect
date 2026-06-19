@@ -1,115 +1,313 @@
 {{template "layout_head" .}}
-<div class="max-w-5xl mx-auto p-4 md:p-8">
-  <h1 class="text-2xl font-bold text-[#1F2937] mb-6">Admin Dashboard</h1>
+{{template "app_layout" .}}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-xl font-bold text-[#1F2937]">Admin Dashboard</h1>
+    <p class="text-sm text-[#6B7280]">System overview and management</p>
+  </div>
+  <span class="role-badge-admin">Admin</span>
+</div>
 
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
-      <p class="text-2xl font-bold text-[#1F2937]">{{.FarmerCount}}</p>
-      <p class="text-xs text-[#6B7280]">Farmers</p>
-    </div>
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
-      <p class="text-2xl font-bold text-[#1F2937]">{{.OfficerCount}}</p>
-      <p class="text-xs text-[#6B7280]">Officers</p>
-    </div>
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
-      <p class="text-2xl font-bold text-[#1F2937]">{{.AdminCount}}</p>
-      <p class="text-xs text-[#6B7280]">Admins</p>
-    </div>
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
-      <p class="text-2xl font-bold text-[#1F2937]">{{.DiagnosisCount}}</p>
-      <p class="text-xs text-[#6B7280]">Diagnoses</p>
-    </div>
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
-      <p class="text-2xl font-bold text-[#1F2937]">{{.PendingReviews}}</p>
-      <p class="text-xs text-[#6B7280]">Pending Reviews</p>
+<!-- KPI Cards -->
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-icon bg-green-50"><i data-lucide="users" class="w-5 h-5 text-green-600"></i></div>
+    <p class="stat-value">{{.FarmerCount}}</p>
+    <p class="stat-label">Farmers</p>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-blue-50"><i data-lucide="badge-check" class="w-5 h-5 text-blue-600"></i></div>
+    <p class="stat-value">{{.OfficerCount}}</p>
+    <p class="stat-label">Officers</p>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-purple-50"><i data-lucide="shield" class="w-5 h-5 text-purple-600"></i></div>
+    <p class="stat-value">{{.AdminCount}}</p>
+    <p class="stat-label">Admins</p>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-amber-50"><i data-lucide="clipboard-list" class="w-5 h-5 text-amber-600"></i></div>
+    <p class="stat-value">{{.DiagnosisCount}}</p>
+    <p class="stat-label">Total Diagnoses</p>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-red-50"><i data-lucide="clock" class="w-5 h-5 text-red-600"></i></div>
+    <p class="stat-value">{{.PendingReviews}}</p>
+    <p class="stat-label">Pending Reviews</p>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+  <div class="chart-container">
+    <h3 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+      <i data-lucide="pie-chart" class="w-4 h-4 text-[#2E7D32]"></i> Users by Role
+    </h3>
+    <canvas id="adminUserChart" height="180"></canvas>
+    <p id="adminUserEmpty" class="text-sm text-[#6B7280] text-center py-8 hidden">No user data</p>
+  </div>
+  <div class="chart-container">
+    <h3 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+      <i data-lucide="bar-chart-3" class="w-4 h-4 text-[#2E7D32]"></i> Diagnosis Status
+    </h3>
+    <canvas id="adminDiagChart" height="180"></canvas>
+    <p id="adminDiagEmpty" class="text-sm text-[#6B7280] text-center py-8 hidden">No diagnosis data</p>
+  </div>
+  <div class="chart-container">
+    <h3 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+      <i data-lucide="activity" class="w-4 h-4 text-[#2E7D32]"></i> Review Activity
+    </h3>
+    <canvas id="adminReviewChart" height="180"></canvas>
+    <p id="adminReviewEmpty" class="text-sm text-[#6B7280] text-center py-8 hidden">No review data</p>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+  <a href="/admin/users" class="quick-action-card !p-4">
+    <div class="qa-icon w-10 h-10 mb-2"><i data-lucide="users" class="w-5 h-5 text-[#2E7D32]"></i></div>
+    <p class="qa-title">Manage Users</p>
+  </a>
+  <a href="/admin/diagnoses" class="quick-action-card !p-4">
+    <div class="qa-icon w-10 h-10 mb-2"><i data-lucide="clipboard-list" class="w-5 h-5 text-[#2E7D32]"></i></div>
+    <p class="qa-title">View Diagnoses</p>
+  </a>
+  <a href="/admin/reviews" class="quick-action-card !p-4">
+    <div class="qa-icon w-10 h-10 mb-2"><i data-lucide="star" class="w-5 h-5 text-[#2E7D32]"></i></div>
+    <p class="qa-title">Review Activity</p>
+  </a>
+  <a href="/admin/audit-logs" class="quick-action-card !p-4">
+    <div class="qa-icon w-10 h-10 mb-2"><i data-lucide="scroll-text" class="w-5 h-5 text-[#2E7D32]"></i></div>
+    <p class="qa-title">Audit Logs</p>
+  </a>
+</div>
+
+<!-- User Management Table -->
+<div class="section-card">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+    <h3 class="section-title mb-0"><i data-lucide="users" class="w-4 h-4 text-[#2E7D32]"></i> User Management</h3>
+    <div class="flex items-center gap-2 flex-wrap">
+      <input type="text" id="user-search" placeholder="Search users..." class="search-input !w-40 !text-xs" oninput="filterUsers()">
+      <select id="role-filter" class="filter-select !text-xs" onchange="filterUsers()">
+        <option value="">All Roles</option>
+        <option value="farmer">Farmer</option>
+        <option value="officer">Officer</option>
+        <option value="admin">Admin</option>
+      </select>
+      <select id="status-filter" class="filter-select !text-xs" onchange="filterUsers()">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
     </div>
   </div>
-
-  <div class="bg-white rounded-xl border border-[#E5E7EB]">
-    <div class="p-4 border-b border-[#E5E7EB]">
-      <h2 class="font-semibold text-[#1F2937]">User Management</h2>
-    </div>
-    <div id="user-list">
-      <p class="text-[#6B7280] text-sm py-8 text-center">Loading...</p>
-    </div>
+  <div class="table-wrapper">
+    <table class="table-base">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>District</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="user-table-body">
+        <tr><td colspan="6" class="text-center text-[#6B7280] py-8">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="user-empty" class="empty-state hidden">
+    <div class="empty-icon"><i data-lucide="users" class="w-6 h-6 text-[#6B7280]"></i></div>
+    <p class="empty-title">No users found</p>
+    <p class="empty-desc">Try adjusting your search or filters.</p>
   </div>
 </div>
 
 <script>
+var allUsers = [];
+
 async function loadUsers() {
   try {
     const res = await fetch('/api/v1/admin/users');
     if (!res.ok) throw new Error('Failed');
     const data = await res.json();
-    const container = document.getElementById('user-list');
-
-    if (!data.users || data.users.length === 0) {
-      container.innerHTML = '<p class="text-[#6B7280] text-sm py-8 text-center">No users found</p>';
-      return;
-    }
-
-    container.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-[#E5E7EB] bg-[#F9FAFB]"><th class="text-left p-3 font-medium">Name</th><th class="text-left p-3 font-medium">Phone</th><th class="text-left p-3 font-medium">District</th><th class="text-left p-3 font-medium">Role</th><th class="text-left p-3 font-medium">Status</th><th class="text-left p-3 font-medium">Actions</th></tr></thead><tbody>' +
-      data.users.map(u => `
-        <tr class="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]" data-user-id="${u.id}">
-          <td class="p-3">${u.full_name}</td>
-          <td class="p-3 text-[#6B7280]">${u.phone_number}</td>
-          <td class="p-3 text-[#6B7280]">${u.district || '-'}</td>
-          <td class="p-3">
-            <select class="text-xs border border-[#D1D5DB] rounded px-2 py-1" onchange="updateRole('${u.id}', this.value)">
-              <option value="farmer" ${u.role === 'farmer' ? 'selected' : ''}>Farmer</option>
-              <option value="officer" ${u.role === 'officer' ? 'selected' : ''}>Officer</option>
-              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
-            </select>
-          </td>
-          <td class="p-3">
-            <span class="text-xs px-2 py-1 rounded-full ${u.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}">${u.is_active ? 'Active' : 'Inactive'}</span>
-          </td>
-          <td class="p-3">
-            <button onclick="toggleStatus('${u.id}', ${!u.is_active})" class="text-xs px-2 py-1 border rounded hover:bg-[#F5F7F5]">
-              ${u.is_active ? 'Deactivate' : 'Activate'}
-            </button>
-          </td>
-        </tr>
-      `).join('') + '</tbody></table></div>';
+    allUsers = data.users || [];
+    renderUsers(allUsers);
+    initCharts();
   } catch (e) {
-    document.getElementById('user-list').innerHTML = '<p class="text-red-600 text-sm py-8 text-center">Failed to load users</p>';
+    document.getElementById('user-table-body').innerHTML = '<tr><td colspan="6" class="text-center text-red-600 py-8">Failed to load users</td></tr>';
   }
 }
 
+function renderUsers(users) {
+  var tbody = document.getElementById('user-table-body');
+  var empty = document.getElementById('user-empty');
+  if (users.length === 0) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbody.innerHTML = users.map(function(u) {
+    return '<tr class="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]" data-user-id="' + u.id + '">' +
+      '<td class="p-3 font-medium">' + escapeHTML(u.full_name) + '</td>' +
+      '<td class="p-3 text-[#6B7280] text-xs">' + escapeHTML(u.phone_number) + '</td>' +
+      '<td class="p-3 text-[#6B7280] text-xs">' + escapeHTML(u.district || '-') + '</td>' +
+      '<td class="p-3"><span class="role-badge-' + u.role + '">' + u.role + '</span></td>' +
+      '<td class="p-3"><span class="badge-' + (u.is_active ? 'green' : 'red') + '">' + (u.is_active ? 'Active' : 'Inactive') + '</span></td>' +
+      '<td class="p-3"><div class="flex items-center gap-2">' +
+        '<select class="filter-select !text-[10px] !py-1" onchange="updateRole(\'' + u.id + '\', this.value)">' +
+          '<option value="farmer"' + (u.role === 'farmer' ? ' selected' : '') + '>Farmer</option>' +
+          '<option value="officer"' + (u.role === 'officer' ? ' selected' : '') + '>Officer</option>' +
+          '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Admin</option>' +
+        '</select>' +
+        '<button onclick="toggleStatus(\'' + u.id + '\', ' + (!u.is_active).toString() + ')" class="text-xs px-2 py-1 border border-[#D1D5DB] rounded-lg hover:bg-[#F5F7F5] transition-colors">' +
+          (u.is_active ? 'Deactivate' : 'Activate') +
+        '</button>' +
+      '</div></td></tr>';
+  }).join('');
+}
+
+function filterUsers() {
+  var search = document.getElementById('user-search').value.toLowerCase();
+  var role = document.getElementById('role-filter').value;
+  var status = document.getElementById('status-filter').value;
+  var filtered = allUsers.filter(function(u) {
+    if (search && !u.full_name.toLowerCase().includes(search) && !u.phone_number.includes(search)) return false;
+    if (role && u.role !== role) return false;
+    if (status === 'active' && !u.is_active) return false;
+    if (status === 'inactive' && u.is_active) return false;
+    return true;
+  });
+  renderUsers(filtered);
+}
+
 async function updateRole(userId, role) {
+  if (role === 'admin') {
+    var msg = 'Are you sure you want to promote this user to Admin?';
+    if (!confirm(msg)) { loadUsers(); return; }
+  }
   try {
     const res = await fetch('/api/v1/admin/users/' + userId + '/role', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role })
+      body: JSON.stringify({ role: role })
     });
-    if (!res.ok) {
-      const err = await res.json();
-      alert(err.error || 'Failed to update role');
-    }
-  } catch (e) {
-    alert('Failed to update role');
-  }
+    if (!res.ok) { var err = await res.json(); alert(err.error || 'Failed'); }
+    loadUsers();
+  } catch (e) { alert('Failed'); loadUsers(); }
 }
 
 async function toggleStatus(userId, isActive) {
+  if (isActive) {
+    if (!confirm('Activate this user?')) return;
+  } else {
+    if (!confirm('Deactivate this user? They will not be able to log in.')) return;
+  }
   try {
     const res = await fetch('/api/v1/admin/users/' + userId + '/status', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_active: isActive })
     });
-    if (!res.ok) {
-      const err = await res.json();
-      alert(err.error || 'Failed to update status');
-      return;
-    }
+    if (!res.ok) { var err = await res.json(); alert(err.error || 'Failed'); return; }
     loadUsers();
-  } catch (e) {
-    alert('Failed to update status');
+  } catch (e) { alert('Failed'); }
+}
+
+function initCharts() {
+  if (typeof Chart === 'undefined') return;
+
+  // Users by role
+  var farmerCount = {{.FarmerCount}};
+  var officerCount = {{.OfficerCount}};
+  var adminCount = {{.AdminCount}};
+  if (farmerCount > 0 || officerCount > 0 || adminCount > 0) {
+    new Chart(document.getElementById('adminUserChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Farmers', 'Officers', 'Admins'],
+        datasets: [{
+          data: [farmerCount, officerCount, adminCount],
+          backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(168, 85, 247, 0.8)'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
+      }
+    });
+  } else {
+    document.getElementById('adminUserChart').classList.add('hidden');
+    document.getElementById('adminUserEmpty').classList.remove('hidden');
   }
+
+  // Diagnosis status
+  var diagCount = {{.DiagnosisCount}};
+  var pendingCount = {{.PendingReviews}};
+  var completedCount = diagCount - pendingCount;
+  if (completedCount < 0) completedCount = 0;
+  if (diagCount > 0) {
+    new Chart(document.getElementById('adminDiagChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Total', 'Pending Review', 'Completed'],
+        datasets: [{
+          label: 'Diagnoses',
+          data: [diagCount, pendingCount, completedCount],
+          backgroundColor: ['rgba(46, 125, 50, 0.7)', 'rgba(251, 191, 36, 0.7)', 'rgba(34, 197, 94, 0.7)'],
+          borderColor: ['#2E7D32', '#F59E0B', '#22C55E'],
+          borderWidth: 1, borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+  } else {
+    document.getElementById('adminDiagChart').classList.add('hidden');
+    document.getElementById('adminDiagEmpty').classList.remove('hidden');
+  }
+
+  // Reviews
+  if (pendingCount > 0 || completedCount > 0) {
+    new Chart(document.getElementById('adminReviewChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Pending', 'Completed'],
+        datasets: [{
+          data: [pendingCount, completedCount],
+          backgroundColor: ['rgba(251, 191, 36, 0.8)', 'rgba(34, 197, 94, 0.8)'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
+      }
+    });
+  } else {
+    document.getElementById('adminReviewChart').classList.add('hidden');
+    document.getElementById('adminReviewEmpty').classList.remove('hidden');
+  }
+}
+
+function escapeHTML(str) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
 }
 
 loadUsers();
 </script>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
 {{template "layout_foot" .}}

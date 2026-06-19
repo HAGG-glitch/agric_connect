@@ -1,61 +1,148 @@
 {{template "layout_head" .}}
-<div class="max-w-5xl mx-auto p-4 md:p-8">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-2xl font-bold text-[#1F2937]">Extension Officer Dashboard</h1>
-      <p class="text-[#6B7280] text-sm">Manage and review crop diagnosis cases</p>
-    </div>
-    <a href="/logout" class="text-sm text-[#6B7280] hover:text-red-600">Logout</a>
+{{template "app_layout" .}}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-xl font-bold text-[#1F2937]">Extension Officer Dashboard</h1>
+    <p class="text-sm text-[#6B7280]">District: {{.OfficerDistrict}}</p>
   </div>
+  <span class="role-badge-officer">Officer</span>
+</div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4">
-      <p class="text-sm text-[#6B7280]">Pending Reviews</p>
-      <p class="text-2xl font-bold text-[#1F2937]" id="pending-count">-</p>
-    </div>
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4">
-      <p class="text-sm text-[#6B7280]">In Review</p>
-      <p class="text-2xl font-bold text-[#1F2937]" id="in-review-count">-</p>
-    </div>
-    <div class="bg-white rounded-xl border border-[#E5E7EB] p-4">
-      <p class="text-sm text-[#6B7280]">Completed</p>
-      <p class="text-2xl font-bold text-[#1F2937]" id="completed-count">-</p>
-    </div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-icon bg-amber-50"><i data-lucide="clock" class="w-5 h-5 text-amber-600"></i></div>
+    <p class="stat-value">{{.PendingCount}}</p>
+    <p class="stat-label">Pending Reviews</p>
   </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-blue-50"><i data-lucide="eye" class="w-5 h-5 text-blue-600"></i></div>
+    <p class="stat-value">{{.InReviewCount}}</p>
+    <p class="stat-label">In Review</p>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-green-50"><i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i></div>
+    <p class="stat-value">{{.CompletedCount}}</p>
+    <p class="stat-label">Completed</p>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-purple-50"><i data-lucide="briefcase" class="w-5 h-5 text-purple-600"></i></div>
+    <p class="stat-value">{{.PendingCount}}</p>
+    <p class="stat-label">My Queue</p>
+  </div>
+</div>
 
-  <div class="bg-white rounded-xl border border-[#E5E7EB] p-4">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="font-semibold text-[#1F2937]">Diagnosis Queue</h2>
-      <a href="/officer/diagnoses" class="text-sm text-[#2E7D32] hover:underline">View All</a>
-    </div>
-    <div id="queue-list">
-      <p class="text-[#6B7280] text-sm py-4 text-center">Loading...</p>
-    </div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+  <div class="chart-container">
+    <h3 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+      <i data-lucide="bar-chart-3" class="w-4 h-4 text-[#2E7D32]"></i> Review Status
+    </h3>
+    <canvas id="officerStatusChart" height="180"></canvas>
+    <p id="officerStatusEmpty" class="text-sm text-[#6B7280] text-center py-8 hidden">No review data</p>
+  </div>
+  <div class="chart-container">
+    <h3 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+      <i data-lucide="pie-chart" class="w-4 h-4 text-[#2E7D32]"></i> Case Distribution
+    </h3>
+    <canvas id="officerDistChart" height="180"></canvas>
+    <p id="officerDistEmpty" class="text-sm text-[#6B7280] text-center py-8 hidden">No case data</p>
+  </div>
+</div>
+
+<div class="section-card">
+  <h3 class="section-title"><i data-lucide="zap" class="w-4 h-4 text-[#2E7D32]"></i> Quick Actions</h3>
+  <div class="flex flex-wrap gap-3">
+    <a href="/officer/diagnoses" class="btn-primary">View Diagnosis Queue</a>
+    <a href="/market-prices" class="btn-secondary">Market Prices</a>
+    <a href="/resources" class="btn-secondary">Learning Resources</a>
+  </div>
+</div>
+
+<div class="section-card mt-4">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-semibold text-[#1F2937] flex items-center gap-2">
+      <i data-lucide="clipboard-list" class="w-4 h-4 text-[#2E7D32]"></i> Diagnosis Queue
+    </h3>
+    <a href="/officer/diagnoses" class="text-sm text-[#2E7D32] hover:underline">View All</a>
+  </div>
+  <div id="queue-list">
+    <p class="text-[#6B7280] text-sm py-4 text-center">Loading...</p>
   </div>
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  if (typeof Chart !== 'undefined') {
+    var p = {{.PendingCount}}, i = {{.InReviewCount}}, c = {{.CompletedCount}};
+    if (p + i + c > 0) {
+      new Chart(document.getElementById('officerStatusChart'), {
+        type: 'bar',
+        data: {
+          labels: ['Pending', 'In Review', 'Completed'],
+          datasets: [{
+            label: 'Cases',
+            data: [p, i, c],
+            backgroundColor: ['rgba(251, 191, 36, 0.7)', 'rgba(59, 130, 246, 0.7)', 'rgba(34, 197, 94, 0.7)'],
+            borderWidth: 1, borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+      });
+    } else {
+      document.getElementById('officerStatusChart').classList.add('hidden');
+      document.getElementById('officerStatusEmpty').classList.remove('hidden');
+    }
+    if (p > 0 || i > 0 || c > 0) {
+      new Chart(document.getElementById('officerDistChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Pending', 'In Review', 'Completed'],
+          datasets: [{
+            data: [p, i, c],
+            backgroundColor: ['rgba(251, 191, 36, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(34, 197, 94, 0.8)'],
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
+        }
+      });
+    } else {
+      document.getElementById('officerDistChart').classList.add('hidden');
+      document.getElementById('officerDistEmpty').classList.remove('hidden');
+    }
+  } else {
+    document.getElementById('officerStatusChart').classList.add('hidden');
+    document.getElementById('officerStatusEmpty').classList.remove('hidden');
+    document.getElementById('officerDistChart').classList.add('hidden');
+    document.getElementById('officerDistEmpty').classList.remove('hidden');
+  }
+});
+
 async function loadDashboard() {
   try {
     const res = await fetch('/api/v1/officer/diagnoses?page_size=5');
     if (!res.ok) throw new Error('Failed');
     const data = await res.json();
     const list = document.getElementById('queue-list');
-
     if (!data.diagnoses || data.diagnoses.length === 0) {
       list.innerHTML = '<p class="text-[#6B7280] text-sm py-4 text-center">No diagnoses awaiting review</p>';
       return;
     }
-
-    list.innerHTML = data.diagnoses.map(d => `
-      <a href="/officer/diagnoses/${d.id}" class="flex items-center justify-between py-3 border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] px-2 rounded-lg">
-        <div>
-          <p class="text-sm font-medium text-[#1F2937]">${d.crop} - ${d.probable_condition || 'Pending'}</p>
-          <p class="text-xs text-[#6B7280]">${d.district || 'No district'} &middot; ${new Date(d.created_at).toLocaleDateString()}</p>
-        </div>
-        <span class="text-xs px-2 py-1 rounded-full ${d.status === 'awaiting_review' ? 'bg-yellow-50 text-yellow-700' : d.status === 'under_review' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}">${d.status}</span>
-      </a>
-    `).join('');
+    list.innerHTML = data.diagnoses.map(function(d) {
+      return '<a href="/officer/diagnoses/' + d.id + '" class="flex items-center justify-between py-3 border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] px-2 rounded-lg">' +
+        '<div>' +
+          '<p class="text-sm font-medium text-[#1F2937]">' + (d.crop || '') + ' - ' + (d.probable_condition || 'Pending') + '</p>' +
+          '<p class="text-xs text-[#6B7280]">' + (d.district || 'No district') + ' &middot; ' + new Date(d.created_at).toLocaleDateString() + '</p>' +
+        '</div>' +
+        '<span class="text-xs px-2 py-1 rounded-full ' + (d.status === 'awaiting_review' ? 'bg-yellow-50 text-yellow-700' : d.status === 'under_review' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700') + '">' + d.status + '</span>' +
+      '</a>';
+    }).join('');
   } catch (e) {
     document.getElementById('queue-list').innerHTML = '<p class="text-red-600 text-sm py-4 text-center">Failed to load</p>';
   }
@@ -63,4 +150,9 @@ async function loadDashboard() {
 
 loadDashboard();
 </script>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
 {{template "layout_foot" .}}
