@@ -2,20 +2,20 @@
 -- Password for all demo users: demo123
 
 INSERT INTO users (id, full_name, phone_number, district, preferred_language, role, password_hash, is_active, created_at, updated_at)
-SELECT gen_random_uuid(), 'Admin User', '23276100001', 'Western Area Urban', 'english', 'admin', '$2a$10$syvtYjgisY5ioxy3v9UHLOoddeID9Ok0RMU23tpwY7oZIGQUsFCt.', true, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = '23276100001' AND role = 'admin');
+SELECT gen_random_uuid(), 'Admin User', '+23276100001', 'Western Area Urban', 'english', 'admin', '$2a$10$syvtYjgisY5ioxy3v9UHLOoddeID9Ok0RMU23tpwY7oZIGQUsFCt.', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = '+23276100001' AND role = 'admin');
 
 INSERT INTO users (id, full_name, phone_number, district, preferred_language, role, password_hash, is_active, created_at, updated_at)
-SELECT gen_random_uuid(), 'Fatmata Kamara', '23276100002', 'Bombali', 'english', 'officer', '$2a$10$syvtYjgisY5ioxy3v9UHLOoddeID9Ok0RMU23tpwY7oZIGQUsFCt.', true, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = '23276100002');
+SELECT gen_random_uuid(), 'Fatmata Kamara', '+23276100002', 'Bombali', 'english', 'officer', '$2a$10$syvtYjgisY5ioxy3v9UHLOoddeID9Ok0RMU23tpwY7oZIGQUsFCt.', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = '+23276100002');
 
 INSERT INTO users (id, full_name, phone_number, district, preferred_language, role, password_hash, is_active, created_at, updated_at)
-SELECT gen_random_uuid(), 'Amadu Sesay', '23276100003', 'Kenema', 'krio', 'officer', '$2a$10$syvtYjgisY5ioxy3v9UHLOoddeID9Ok0RMU23tpwY7oZIGQUsFCt.', true, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = '23276100003');
+SELECT gen_random_uuid(), 'Amadu Sesay', '+23276100003', 'Kenema', 'krio', 'officer', '$2a$10$syvtYjgisY5ioxy3v9UHLOoddeID9Ok0RMU23tpwY7oZIGQUsFCt.', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = '+23276100003');
 
 INSERT INTO users (id, full_name, phone_number, district, preferred_language, role, password_hash, is_active, created_at, updated_at)
-SELECT gen_random_uuid(), 'Demo Farmer', '23276100004', 'Port Loko', 'english', 'farmer', '$2a$10$syvtYjgisY5ioxy3v9UHLOoddeID9Ok0RMU23tpwY7oZIGQUsFCt.', true, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = '23276100004');
+SELECT gen_random_uuid(), 'Demo Farmer', '+23276100004', 'Port Loko', 'english', 'farmer', '$2a$10$syvtYjgisY5ioxy3v9UHLOoddeID9Ok0RMU23tpwY7oZIGQUsFCt.', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = '+23276100004');
 
 -- Seed market prices (sample data for MVP)
 INSERT INTO market_prices (id, commodity, market_name, district, price, currency, unit, source, is_verified, created_at, updated_at)
