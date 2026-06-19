@@ -102,7 +102,19 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	h.setCookies(c, tokens)
 	h.tryTransfer(c, anonymousID, tokens.User.ID)
 
-	c.JSON(http.StatusCreated, tokens)
+	redirectTo := "/dashboard"
+	switch tokens.User.Role {
+	case "admin":
+		redirectTo = "/admin"
+	case "officer":
+		redirectTo = "/officer"
+	}
+	c.JSON(http.StatusCreated, gin.H{
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
+		"user":          tokens.User,
+		"redirect_to":   redirectTo,
+	})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -128,7 +140,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	h.setCookies(c, tokens)
 	h.tryTransfer(c, anonymousID, tokens.User.ID)
 
-	c.JSON(http.StatusOK, tokens)
+	redirectTo := "/dashboard"
+	switch tokens.User.Role {
+	case "admin":
+		redirectTo = "/admin"
+	case "officer":
+		redirectTo = "/officer"
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
+		"user":          tokens.User,
+		"redirect_to":   redirectTo,
+	})
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {

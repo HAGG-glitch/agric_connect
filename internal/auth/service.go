@@ -98,6 +98,9 @@ func (s *service) NormalizePhone(phone string) string {
 	if strings.HasPrefix(phone, "0") && !strings.HasPrefix(phone, "+") {
 		phone = "+232" + phone[1:]
 	}
+	if strings.HasPrefix(phone, "232") && !strings.HasPrefix(phone, "+") {
+		phone = "+" + phone
+	}
 	if !strings.HasPrefix(phone, "+") {
 		phone = "+232" + phone
 	}

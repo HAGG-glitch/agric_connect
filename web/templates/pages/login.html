@@ -76,7 +76,8 @@ async function handleLogin(e) {
       spinner.classList.add('hidden');
       return;
     }
-    window.location.assign('/assistant');
+    const data2 = await res.json();
+    window.location.assign(data2.redirect_to || '/assistant');
   } catch (e) {
     errEl.textContent = 'Network error. Please check your connection and try again.';
     errEl.classList.remove('hidden');
