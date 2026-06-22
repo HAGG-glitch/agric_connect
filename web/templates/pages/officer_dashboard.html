@@ -130,6 +130,10 @@ document.addEventListener('DOMContentLoaded', function () {
 async function loadDashboard() {
   try {
     const res = await fetch('/api/v1/officer/diagnoses?page_size=5');
+    if (res.status === 429) {
+      document.getElementById('queue-list').innerHTML = '<p class="text-amber-600 text-sm py-4 text-center">Too many requests. Please wait a moment.</p>';
+      return;
+    }
     if (!res.ok) throw new Error('Failed');
     const data = await res.json();
     const list = document.getElementById('queue-list');

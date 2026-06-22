@@ -67,6 +67,14 @@ async function handleLogin(e) {
         password: data.get('password')
       })
     });
+    if (res.status === 429) {
+      errEl.textContent = 'Too many requests. Please wait a moment and try again.';
+      errEl.classList.remove('hidden');
+      submitBtn.disabled = false;
+      submitText.classList.remove('hidden');
+      spinner.classList.add('hidden');
+      return;
+    }
     if (!res.ok) {
       const err = await res.json();
       errEl.textContent = err.error || 'Login failed';

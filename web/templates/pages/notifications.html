@@ -41,6 +41,10 @@
 
     try {
       const res = await fetch('/api/v1/notifications');
+      if (res.status === 429) {
+        container.innerHTML = '<p class="text-amber-600 text-sm py-4 text-center">Too many requests. Please wait a moment and try again.</p>';
+        return;
+      }
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
 
@@ -129,7 +133,8 @@
 
   async function handleNotificationClick(id, path) {
     try {
-      await fetch('/api/v1/notifications/' + encodeURIComponent(id) + '/read', { method: 'PATCH' });
+      const res = await fetch('/api/v1/notifications/' + encodeURIComponent(id) + '/read', { method: 'PATCH' });
+      if (res.status === 429) return;
     } catch (e) {
       // Silently fail — navigation still happens
     }
@@ -144,6 +149,7 @@
     btn.textContent = 'Marking...';
     try {
       var res = await fetch('/api/v1/notifications/read-all', { method: 'PATCH' });
+      if (res.status === 429) { alert('Too many requests. Please wait a moment and try again.'); btn.disabled = false; btn.textContent = 'Mark All Read'; return; }
       if (!res.ok) throw new Error('Failed');
       loadNotifications();
     } catch (e) {

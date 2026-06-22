@@ -116,6 +116,7 @@
   async function checkUserRole() {
     try {
       const res = await fetch('/api/v1/auth/me');
+      if (res.status === 429) return;
       if (!res.ok) return;
       const user = await res.json();
       if (user.role === 'officer' || user.role === 'admin') {
@@ -147,6 +148,10 @@
       if (filters.district) params.set('district', filters.district);
 
       const res = await fetch('/api/v1/market-prices?' + params.toString());
+      if (res.status === 429) {
+        container.innerHTML = '<p class="text-amber-600 text-sm py-4 text-center">Too many requests. Please wait a moment and try again.</p>';
+        return;
+      }
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
 
@@ -238,6 +243,12 @@
           source: document.getElementById('price-source').value.trim(),
         }),
       });
+      if (res.status === 429) {
+        errEl.textContent = 'Too many requests. Please wait a moment and try again.';
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        return;
+      }
       if (!res.ok) {
         var err = await res.json();
         errEl.textContent = err.error || 'Failed to submit price';

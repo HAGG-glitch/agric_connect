@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -169,10 +170,21 @@ func RateLimit(cfg RateLimitConfig) gin.HandlerFunc {
 		allowed, retryAfter := tracker.Allow(key)
 		if !allowed {
 			c.Header("Retry-After", strconv.Itoa(retryAfter))
-			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"error":              "Too many requests. Please wait a moment.",
-				"retry_after_seconds": retryAfter,
-			})
+			accept := c.GetHeader("Accept")
+			if strings.Contains(accept, "text/html") {
+				c.HTML(http.StatusTooManyRequests, "error.html", gin.H{
+					"Title":              "Too Many Requests",
+					"Year":               time.Now().Year(),
+					"ErrorMessage":       fmt.Sprintf("Too many requests. Please wait %d seconds and try again.", retryAfter),
+					"ErrorCode":          http.StatusTooManyRequests,
+				})
+				c.Abort()
+			} else {
+				c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+					"error":              "Too many requests. Please wait a moment.",
+					"retry_after_seconds": retryAfter,
+				})
+			}
 			return
 		}
 

@@ -167,6 +167,7 @@
   async function continueInChat(id) {
     try {
       const res = await fetch('/api/v1/diagnoses/' + id + '/continue-in-chat', { method: 'POST' });
+      if (res.status === 429) { alert('Too many requests. Please wait a moment and try again.'); return; }
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       window.location.href = '/assistant?conv=' + data.conversation_id;
@@ -179,6 +180,7 @@
     if (!confirm('Delete this diagnosis?')) return;
     try {
       const res = await fetch('/api/v1/diagnoses/' + id, { method: 'DELETE' });
+      if (res.status === 429) { alert('Too many requests. Please wait a moment and try again.'); return; }
       if (!res.ok) throw new Error('Failed');
       window.location.href = '/diagnoses';
     } catch (e) {

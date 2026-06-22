@@ -54,6 +54,10 @@ async function loadList() {
 
   try {
     const res = await fetch('/api/v1/admin/reviews?' + params);
+    if (res.status === 429) {
+      container.innerHTML = '<p class="text-amber-600 text-sm py-4 text-center">Too many requests. Please wait a moment and try again.</p>';
+      return;
+    }
     if (!res.ok) throw new Error('Failed');
     const data = await res.json();
     const container = document.getElementById('review-list');

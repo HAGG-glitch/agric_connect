@@ -60,9 +60,13 @@ async function loadList() {
 
   try {
     const res = await fetch('/api/v1/officer/diagnoses?' + params);
+    const container = document.getElementById('diagnosis-list');
+    if (res.status === 429) {
+      container.innerHTML = '<p class="text-amber-600 text-sm py-4 text-center">Too many requests. Please wait a moment and try again.</p>';
+      return;
+    }
     if (!res.ok) throw new Error('Failed');
     const data = await res.json();
-    const container = document.getElementById('diagnosis-list');
 
     if (!data.diagnoses || data.diagnoses.length === 0) {
       document.getElementById('queue-empty').classList.remove('hidden');

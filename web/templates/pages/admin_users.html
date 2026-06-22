@@ -131,6 +131,10 @@ var allUsers = [];
 async function loadUsers() {
   try {
     const res = await fetch('/api/v1/admin/users');
+    if (res.status === 429) {
+      document.getElementById('user-table-body').innerHTML = '<tr><td colspan="6" class="text-center text-amber-600 py-8">Too many requests. Please wait a moment.</td></tr>';
+      return;
+    }
     if (!res.ok) throw new Error('Failed');
     const data = await res.json();
     allUsers = data.users || [];

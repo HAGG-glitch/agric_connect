@@ -102,6 +102,10 @@ async function loadDiagnosis() {
 
   try {
     const res = await fetch('/api/v1/officer/diagnoses/' + id);
+    if (res.status === 429) {
+      document.getElementById('loading').innerHTML = '<p class="text-amber-600 text-sm py-4 text-center">Too many requests. Please wait a moment and try again.</p>';
+      return;
+    }
     if (!res.ok) throw new Error('Failed');
     const d = await res.json();
 
@@ -173,6 +177,11 @@ async function submitReview(e) {
     var method = reviewID ? 'PUT' : 'POST';
 
     var res = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (res.status === 429) {
+      errEl.textContent = 'Too many requests. Please wait a moment and try again.';
+      errEl.classList.remove('hidden');
+      return;
+    }
     if (!res.ok) {
       var err = await res.json();
       errEl.textContent = err.error || 'Failed to save review';

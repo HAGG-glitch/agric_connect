@@ -69,6 +69,10 @@
 
     try {
       const res = await fetch('/api/v1/diagnoses?page=' + page + '&page_size=20');
+      if (res.status === 429) {
+        container.innerHTML = '<p class="text-amber-600 text-sm py-4 text-center">Too many requests. Please wait a moment and try again.</p>';
+        return;
+      }
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
 
@@ -159,6 +163,7 @@
     if (!confirm('Delete this diagnosis?')) return;
     try {
       const res = await fetch('/api/v1/diagnoses/' + id, { method: 'DELETE' });
+      if (res.status === 429) { alert('Too many requests. Please wait a moment and try again.'); return; }
       if (!res.ok) throw new Error('Delete failed');
       loadDiagnoses(currentPage);
     } catch (e) {
