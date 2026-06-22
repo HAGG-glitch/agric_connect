@@ -246,6 +246,27 @@ func (h *AdminHandler) UpdateStatus(c *gin.Context) {
 		if err := h.db.Create(logEntry).Error; err != nil {
 		log.Printf("failed to write audit log: %v", err)
 	}
+
+	// Notify the affected user
+	notifTitle := "Account Activated"
+	notifMsg := "Your AgriConnect account has been activated. You can now log in and access the platform."
+	if !*req.IsActive {
+		notifTitle = "Account Deactivated"
+		notifMsg = "Your AgriConnect account has been deactivated. Please contact an administrator for more information."
+	}
+	notif := &auth.Notification{
+		ID:               uuid.New(),
+		UserID:           targetUser.ID,
+		Title:            notifTitle,
+		Message:          notifMsg,
+		NotificationType: "account_status",
+		EntityType:       "user",
+		EntityID:         &targetUser.ID,
+		CreatedAt:        time.Now().UTC(),
+	}
+	if err := h.db.Create(notif).Error; err != nil {
+		log.Printf("failed to create notification: %v", err)
+	}
 }
 
 func (h *AdminHandler) ListDiagnoses(c *gin.Context) {
