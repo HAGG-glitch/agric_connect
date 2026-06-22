@@ -1,6 +1,6 @@
 {{template "layout_head" .}}
 {{template "app_layout" .}}
-<div class="max-w-3xl mx-auto p-4 md:p-8">
+<div class="max-w-6xl mx-auto">
   {{if .Error}}
   <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
     <i data-lucide="alert-circle" class="w-8 h-8 text-red-500 mx-auto mb-3"></i>
@@ -9,36 +9,85 @@
   </div>
   {{else}}
   {{$r := .Resource}}
-  <div class="flex items-center gap-3 mb-6">
-    <a href="/resources" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
-      <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
-    </a>
-    <div class="w-10 h-10 rounded-xl bg-[#2E7D32] flex items-center justify-center">
-      <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+
+  <!-- Sticky header -->
+  <div class="sticky top-0 z-10 bg-[#F0F2F0]/95 backdrop-blur-md border-b border-[#E5E7EB] -mx-4 md:-mx-8 px-4 md:px-8 py-3 mb-6">
+    <div class="max-w-5xl mx-auto flex items-center gap-3">
+      <a href="/resources" class="p-2 hover:bg-white rounded-lg transition-colors flex-shrink-0">
+        <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
+      </a>
+      <div class="min-w-0 flex-1">
+        <h1 class="text-base font-bold text-[#1F2937] truncate">{{$r.Title}}</h1>
+        <div class="flex items-center gap-2 text-xs text-[#6B7280] mt-0.5">
+          <span class="hidden sm:inline">Learning Resource</span>
+          {{if $r.Crop}}<span class="hidden sm:inline">&middot;</span><span class="bg-[#2E7D32]/10 text-[#2E7D32] px-1.5 py-0.5 rounded font-medium">{{$r.Crop}}</span>{{end}}
+          {{if $r.Category}}<span class="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{{$r.Category}}</span>{{end}}
+          {{if $r.Source}}<span class="hidden md:inline text-[10px] text-gray-400 truncate max-w-[200px]">{{$r.Source}}</span>{{end}}
+        </div>
+      </div>
+      <button onclick="window.print()" class="p-2 hover:bg-white rounded-lg transition-colors flex-shrink-0 hidden sm:block" title="Print">
+        <i data-lucide="printer" class="w-4 h-4 text-[#6B7280]"></i>
+      </button>
     </div>
-    <div>
-      <h1 class="text-xl font-bold text-[#1F2937]">{{$r.Title}}</h1>
-      <p class="text-sm text-[#6B7280]">Learning Resource</p>
-    </div>
   </div>
 
-  <div class="flex flex-wrap items-center gap-2 mb-6">
-    {{if $r.Crop}}<span class="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-2 py-1 rounded-full font-medium">{{$r.Crop}}</span>{{end}}
-    {{if $r.Category}}<span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">{{$r.Category}}</span>{{end}}
-    <span class="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-full capitalize">{{$r.Language}}</span>
-    {{if $r.Reviewed}}<span class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i>Reviewed</span>{{end}}
-    {{if $r.Source}}<span class="text-xs text-[#6B7280]">{{$r.Source}}</span>{{end}}
-  </div>
+  <div class="flex gap-8">
+    <!-- Table of Contents sidebar -->
+    <aside id="toc-sidebar" class="hidden xl:block w-64 flex-shrink-0">
+      <div class="sticky top-24">
+        <div class="bg-white border border-[#E5E7EB] rounded-xl p-4">
+          <h3 class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-3 flex items-center gap-2">
+            <i data-lucide="list" class="w-3.5 h-3.5"></i>
+            Contents
+          </h3>
+          <nav id="toc-nav" class="space-y-1">
+            <div class="text-xs text-[#6B7280] italic">Loading...</div>
+          </nav>
+        </div>
+      </div>
+    </aside>
 
-  <div class="bg-white border border-[#E5E7EB] rounded-xl p-6">
-    <div class="prose prose-sm max-w-none text-[#4B5563] whitespace-pre-wrap">{{$r.Content}}</div>
-  </div>
+    <!-- Document content -->
+    <article class="flex-1 min-w-0">
+      <!-- Metadata card -->
+      <div class="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          {{if $r.Crop}}<span class="bg-[#2E7D32]/10 text-[#2E7D32] px-2.5 py-1 rounded-full text-xs font-medium">{{$r.Crop}}</span>{{end}}
+          {{if $r.Category}}<span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full text-xs">{{$r.Category}}</span>{{end}}
+          <span class="bg-gray-50 text-gray-600 px-2.5 py-1 rounded-full text-xs capitalize">{{$r.Language}}</span>
+          {{if $r.Reviewed}}<span class="bg-green-50 text-green-600 px-2.5 py-1 rounded-full text-xs flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i>Reviewed</span>{{end}}
+        </div>
+        {{if $r.Source}}
+        <div class="mt-3 pt-3 border-t border-[#E5E7EB]">
+          <p class="text-xs text-[#6B7280]">
+            <span class="font-medium text-[#4B5563]">Source:</span> {{$r.Source}}
+          </p>
+        </div>
+        {{end}}
+      </div>
 
-  <div class="mt-6 text-center">
-    <a href="/resources" class="inline-flex items-center gap-1 text-sm text-[#2E7D32] hover:underline">
-      <i data-lucide="arrow-left" class="w-4 h-4"></i>
-      Back to all resources
-    </a>
+      <!-- Reading progress -->
+      <div id="reading-progress" class="reading-progress" style="width:0%"></div>
+
+      <!-- Reading content -->
+      <div class="bg-white border border-[#E5E7EB] rounded-xl shadow-sm">
+        <div id="document-content" class="reading-content p-6 md:p-8 lg:p-10 whitespace-pre-wrap">
+          {{$r.Content}}
+        </div>
+      </div>
+
+      <!-- Footer nav -->
+      <div class="mt-8 flex items-center justify-between py-4 border-t border-[#E5E7EB]">
+        <a href="/resources" class="inline-flex items-center gap-1.5 text-sm text-[#2E7D32] hover:underline font-medium">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          Back to all resources
+        </a>
+        <button onclick="window.scrollTo({top:0,behavior:'smooth'})" class="text-sm text-[#6B7280] hover:text-[#1F2937] transition-colors inline-flex items-center gap-1">
+          <i data-lucide="chevron-up" class="w-4 h-4"></i>
+          Back to top
+        </button>
+      </div>
+    </article>
   </div>
   {{end}}
 </div>
@@ -46,6 +95,97 @@
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
+    buildTOC();
+  });
+
+  function buildTOC() {
+    var content = document.getElementById('document-content');
+    if (!content) return;
+    var text = content.textContent || '';
+    var lines = text.split('\n');
+    var tocNav = document.getElementById('toc-nav');
+    if (!tocNav) return;
+
+    var headings = [];
+    var lastHeading = null;
+
+    lines.forEach(function(line, i) {
+      var trimmed = line.trim();
+      if (!trimmed) return;
+
+      var colonIdx = trimmed.indexOf(':');
+      if (colonIdx > 0 && colonIdx < 60) {
+        var potential = trimmed.substring(0, colonIdx).trim();
+        if (potential.length >= 3 && potential.length <= 80 && /^[A-Za-z]/.test(potential)) {
+          headings.push({ text: potential, index: i });
+        }
+      } else if (trimmed.length < 80 && trimmed === trimmed.toUpperCase() && trimmed.length > 5 && /[A-Z]{3,}/.test(trimmed)) {
+        headings.push({ text: trimmed.charAt(0) + trimmed.slice(1).toLowerCase(), index: i });
+      }
+    });
+
+    if (headings.length === 0) {
+      tocNav.innerHTML = '<div class="text-xs text-[#6B7280]">No sections</div>';
+      return;
+    }
+
+    var html = headings.map(function(h, idx) {
+      var id = 'section-' + idx;
+      return '<a href="#' + id + '" class="block text-xs text-[#6B7280] hover:text-[#2E7D32] py-1 px-2 -mx-2 rounded hover:bg-[#F5F7F5] transition-colors truncate">' + escapeHTML(h.text) + '</a>';
+    }).join('');
+
+    tocNav.innerHTML = html;
+
+    // Add section anchors to content
+    var contentLines = content.innerHTML.split('\n');
+    var headingIdx = 0;
+    var outLines = [];
+    contentLines.forEach(function(htmlLine, i) {
+      var plainLine = htmlLine.replace(/<[^>]+>/g, '').trim();
+      if (headingIdx < headings.length) {
+        var h = headings[headingIdx];
+        if (plainLine === h.text + ':' || plainLine.indexOf(h.text) === 0) {
+          outLines.push('<div id="section-' + headingIdx + '" class="scroll-mt-24"></div>');
+          headingIdx++;
+        }
+      }
+      outLines.push(htmlLine);
+    });
+    content.innerHTML = outLines.join('\n');
+  }
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Reading progress
+  window.addEventListener('scroll', function() {
+    var scrollTop = window.scrollY;
+    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    if (docHeight > 0) {
+      var progress = Math.min(scrollTop / docHeight * 100, 100);
+      var bar = document.getElementById('reading-progress');
+      if (bar) bar.style.width = progress + '%';
+    }
+  });
+
+  // Highlight current TOC section
+  window.addEventListener('scroll', function() {
+    var links = document.querySelectorAll('#toc-nav a');
+    if (!links.length) return;
+    var scrollPos = window.scrollY + 120;
+    var current = -1;
+    links.forEach(function(link, idx) {
+      var target = document.getElementById(link.getAttribute('href').substring(1));
+      if (target && target.offsetTop <= scrollPos) current = idx;
+    });
+    links.forEach(function(link, idx) {
+      link.classList.toggle('text-[#2E7D32]', idx === current);
+      link.classList.toggle('font-medium', idx === current);
+      link.classList.toggle('text-[#6B7280]', idx !== current);
+      link.classList.toggle('font-normal', idx !== current);
+    });
   });
 </script>
       </div>

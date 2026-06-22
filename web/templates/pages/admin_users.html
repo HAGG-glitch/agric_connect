@@ -125,6 +125,36 @@
   </div>
 </div>
 
+<!-- Confirmation Modal -->
+<div id="confirm-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+  <div class="fixed inset-0 bg-black/40 backdrop-blur-sm" onclick="closeModal()"></div>
+  <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-modal-in">
+    <div class="flex items-center gap-4 mb-4">
+      <div id="confirm-icon" class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+        <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600"></i>
+      </div>
+      <div>
+        <h3 id="confirm-title" class="text-lg font-bold text-[#1F2937]">Deactivate User Account</h3>
+        <p class="text-sm text-[#6B7280]">User account action</p>
+      </div>
+    </div>
+    <p id="confirm-desc" class="text-sm text-[#4B5563] mb-3">Are you sure you want to deactivate this user account?</p>
+    <p id="confirm-note" class="text-xs text-[#6B7280] bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">The user will no longer be able to log in or access the platform until their account is reactivated.</p>
+    <div class="flex items-center justify-end gap-3">
+      <button onclick="closeModal()" class="px-5 py-2.5 border border-[#D1D5DB] hover:bg-[#F5F7F5] text-[#1F2937] rounded-xl text-sm font-medium transition-colors">Cancel</button>
+      <button id="confirm-action" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors">Deactivate Account</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes modal-in {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .animate-modal-in { animation: modal-in 0.2s ease-out; }
+</style>
+
 <script>
 var allUsers = [];
 
@@ -188,10 +218,47 @@ function filterUsers() {
   renderUsers(filtered);
 }
 
+function showRoleConfirmModal(userId, role) {
+  var modal = document.getElementById('confirm-modal');
+  var title = document.getElementById('confirm-title');
+  var desc = document.getElementById('confirm-desc');
+  var note = document.getElementById('confirm-note');
+  var confirmBtn = document.getElementById('confirm-action');
+  var icon = document.getElementById('confirm-icon');
+
+  title.textContent = 'Promote to Admin';
+  desc.textContent = 'Are you sure you want to promote this user to Admin?';
+  note.textContent = 'Admins have full access to all system settings, user management, and sensitive data. This action should only be performed for trusted users.';
+  icon.className = 'w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0';
+  icon.innerHTML = '<i data-lucide="shield" class="w-6 h-6 text-purple-600"></i>';
+  confirmBtn.className = 'px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium transition-colors';
+  confirmBtn.textContent = 'Promote to Admin';
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  document.body.style.overflow = 'hidden';
+
+  confirmBtn.onclick = async function() {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Promoting...';
+    try {
+      const res = await fetch('/api/v1/admin/users/' + userId + '/role', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: role })
+      });
+      if (!res.ok) { var err = await res.json(); alert(err.error || 'Failed'); confirmBtn.disabled = false; confirmBtn.textContent = 'Promote to Admin'; return; }
+      closeModal();
+      loadUsers();
+    } catch (e) { alert('Failed'); closeModal(); }
+  };
+}
+
 async function updateRole(userId, role) {
   if (role === 'admin') {
-    var msg = 'Are you sure you want to promote this user to Admin?';
-    if (!confirm(msg)) { loadUsers(); return; }
+    showRoleConfirmModal(userId, role);
+    return;
   }
   try {
     const res = await fetch('/api/v1/admin/users/' + userId + '/role', {
@@ -204,21 +271,62 @@ async function updateRole(userId, role) {
   } catch (e) { alert('Failed'); loadUsers(); }
 }
 
-async function toggleStatus(userId, isActive) {
+function showConfirmModal(userId, isActive) {
+  var modal = document.getElementById('confirm-modal');
+  var title = document.getElementById('confirm-title');
+  var desc = document.getElementById('confirm-desc');
+  var note = document.getElementById('confirm-note');
+  var confirmBtn = document.getElementById('confirm-action');
+
+  var icon = document.getElementById('confirm-icon');
   if (isActive) {
-    if (!confirm('Activate this user?')) return;
+    title.textContent = 'Activate User Account';
+    desc.textContent = 'Are you sure you want to activate this user account?';
+    note.textContent = 'The user will regain access to the platform and be able to log in normally.';
+    icon.className = 'w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0';
+    icon.innerHTML = '<i data-lucide="check-circle" class="w-6 h-6 text-green-600"></i>';
+    confirmBtn.className = 'px-5 py-2.5 bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl text-sm font-medium transition-colors';
+    confirmBtn.textContent = 'Activate Account';
   } else {
-    if (!confirm('Deactivate this user? They will not be able to log in.')) return;
+    title.textContent = 'Deactivate User Account';
+    desc.textContent = 'Are you sure you want to deactivate this user account?';
+    note.textContent = 'The user will no longer be able to log in or access the platform until their account is reactivated. This action can be reversed by an administrator at any time.';
+    icon.className = 'w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0';
+    icon.innerHTML = '<i data-lucide="alert-triangle" class="w-6 h-6 text-red-600"></i>';
+    confirmBtn.className = 'px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors';
+    confirmBtn.textContent = 'Deactivate Account';
   }
-  try {
-    const res = await fetch('/api/v1/admin/users/' + userId + '/status', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_active: isActive })
-    });
-    if (!res.ok) { var err = await res.json(); alert(err.error || 'Failed'); return; }
-    loadUsers();
-  } catch (e) { alert('Failed'); }
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  document.body.style.overflow = 'hidden';
+
+  confirmBtn.onclick = async function() {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = isActive ? 'Activating...' : 'Deactivating...';
+    try {
+      const res = await fetch('/api/v1/admin/users/' + userId + '/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: isActive })
+      });
+      if (!res.ok) { var err = await res.json(); alert(err.error || 'Failed'); confirmBtn.disabled = false; confirmBtn.textContent = isActive ? 'Activate Account' : 'Deactivate Account'; return; }
+      closeModal();
+      loadUsers();
+    } catch (e) { alert('Failed'); closeModal(); }
+  };
+}
+
+function closeModal() {
+  var modal = document.getElementById('confirm-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+  document.body.style.overflow = '';
+}
+
+async function toggleStatus(userId, isActive) {
+  showConfirmModal(userId, isActive);
 }
 
 function initCharts() {

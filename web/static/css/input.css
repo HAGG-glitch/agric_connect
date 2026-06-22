@@ -241,3 +241,50 @@
   max-height: 350px;
   min-height: 0;
 }
+
+/* Reading content typography */
+.reading-content {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  color: #374151;
+}
+.reading-content p {
+  margin-bottom: 1.25rem;
+}
+.reading-content p:last-child {
+  margin-bottom: 0;
+}
+.reading-content strong {
+  color: #1F2937;
+  font-weight: 600;
+}
+
+/* Reading progress bar */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #2E7D32, #4CAF50);
+  z-index: 100;
+  transition: width 100ms ease-out;
+}
+
+/* Resource listing cards */
+.resource-card {
+  transition: all 0.2s ease;
+}
+
+/* Modal */
+.modal-overlay {
+  animation: fadeIn 0.15s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

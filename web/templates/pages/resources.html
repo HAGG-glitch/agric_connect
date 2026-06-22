@@ -1,16 +1,16 @@
 {{template "layout_head" .}}
 {{template "app_layout" .}}
 <div class="max-w-5xl mx-auto p-4 md:p-8">
-  <div class="flex items-center gap-3 mb-6">
-    <a href="/assistant" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors">
+  <div class="flex items-center gap-4 mb-8">
+    <a href="/assistant" class="p-2 hover:bg-white rounded-lg transition-colors">
       <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
     </a>
-    <div class="w-10 h-10 rounded-xl bg-[#2E7D32] flex items-center justify-center">
-      <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2E7D32] to-[#1B5E20] flex items-center justify-center shadow-sm">
+      <i data-lucide="library" class="w-6 h-6 text-white"></i>
     </div>
     <div>
-      <h1 class="text-xl font-bold text-[#1F2937]">Learning Resources</h1>
-      <p class="text-sm text-[#6B7280]">Agricultural guides and best practices</p>
+      <h1 class="text-xl font-bold text-[#1F2937]">Resource Library</h1>
+      <p class="text-sm text-[#6B7280]">Agricultural knowledge base &mdash; guides, best practices, and reference materials</p>
     </div>
   </div>
 
@@ -88,17 +88,19 @@
       }
 
       container.innerHTML = data.resources.map(function(r) {
-        return '<a href="/resources/' + r.id + '" class="bg-white border border-[#E5E7EB] rounded-xl p-4 hover:border-[#2E7D32]/30 hover:shadow-sm transition-all block">' +
-          '<div class="flex items-start justify-between gap-3 mb-2">' +
-          '<h3 class="font-semibold text-[#1F2937] text-sm leading-snug">' + escapeHTML(r.title) + '</h3>' +
+        return '<a href="/resources/' + r.id + '" class="group bg-white border border-[#E5E7EB] rounded-xl overflow-hidden hover:shadow-md hover:border-[#2E7D32]/30 hover:-translate-y-0.5 transition-all duration-200 block">' +
+          '<div class="p-5">' +
+          '<div class="flex items-start justify-between gap-3 mb-3">' +
+          '<h3 class="font-semibold text-[#1F2937] text-sm leading-snug group-hover:text-[#2E7D32] transition-colors">' + escapeHTML(r.title) + '</h3>' +
           (r.reviewed ? '<i data-lucide="check-circle" class="w-4 h-4 text-[#2E7D32] flex-shrink-0 mt-0.5"></i>' : '') +
           '</div>' +
-          '<p class="text-sm text-[#6B7280] mb-3 line-clamp-2">' + escapeHTML(r.summary) + '</p>' +
-          '<div class="flex flex-wrap items-center gap-1.5">' +
+          '<p class="text-sm text-[#6B7280] mb-4 leading-relaxed line-clamp-3">' + escapeHTML(r.summary) + '</p>' +
+          '<div class="flex flex-wrap items-center gap-1.5 pt-3 border-t border-[#E5E7EB]">' +
           (r.crop ? '<span class="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-2 py-0.5 rounded-full font-medium">' + escapeHTML(r.crop) + '</span>' : '') +
           (r.category ? '<span class="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">' + escapeHTML(r.category) + '</span>' : '') +
           '<span class="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded-full">' + escapeHTML(r.language) + '</span>' +
-          (r.source ? '<span class="text-xs text-[#6B7280] ml-auto">' + escapeHTML(r.source) + '</span>' : '') +
+          (r.source ? '<span class="text-[10px] text-[#9CA3AF] ml-auto truncate max-w-[120px]" title="' + escapeHTML(r.source) + '">' + escapeHTML(r.source) + '</span>' : '') +
+          '</div>' +
           '</div>' +
           '</a>';
       }).join('');
