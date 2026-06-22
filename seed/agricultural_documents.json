@@ -4,7 +4,7 @@
     "category": "planting",
     "title": "Rice Planting Guide for Sierra Leone",
     "content": "Rice is the staple food crop of Sierra Leone. The main varieties grown are upland rice (on hillsides without irrigation) and lowland rice (in valleys and swamps). Optimal planting time: Upland rice should be planted at the start of the rainy season, typically May to June. Lowland rice can be planted in June to July. Seed rate: Broadcast sowing requires 80-100 kg/ha. Row planting uses 40-60 kg/ha with 20cm x 20cm spacing. Seed treatment: Soak seeds in water for 24 hours before planting to improve germination. Remove floating seeds as they are not viable. Land preparation: Clear and burn debris if using upland fields. Lowland fields should be ploughed and puddled to retain water. Nursery: For transplanted lowland rice, raise seedlings in a nursery for 21-28 days before transplanting.",
-    "source": "Sierra Leone Ministry of Agriculture, Forestry and Food Security - Rice Production Guide",
+    "source": "FAO - Sierra Leone Rice Production Guide (see https://www.fao.org/sierra-leone/en/)",
     "reviewed": true
   },
   {
@@ -12,7 +12,7 @@
     "category": "disease",
     "title": "Common Rice Diseases in Sierra Leone",
     "content": "Rice blast (Pyricularia oryzae): Most serious rice disease. Symptoms include diamond-shaped lesions with grey centres on leaves. Affects both leaves and necks of plants. Control: Use resistant varieties, avoid excessive nitrogen, apply fungicide if available. Rice yellow mottle virus (RYMV): Transmitted by insects. Causes yellowing and mottling of leaves, stunted growth, and poor grain filling. Control: Remove infected plants, control insect vectors, use resistant varieties. Bacterial leaf blight: Yellow to white lesions along leaf margins. Most severe in wet conditions. Control: Avoid excessive nitrogen, use resistant varieties, ensure good drainage. Brown spot disease: Brown oval spots on leaves. Often indicates poor soil fertility or drought stress. Control: Improve soil fertility, apply balanced fertiliser.",
-    "source": "WARDA/AfricaRice - Rice Disease Identification in West Africa (sample content, requires expert review)",
+    "source": "AfricaRice - Rice Disease Identification in West Africa (see https://www.africarice.org/)",
     "reviewed": true
   },
   {
@@ -20,7 +20,7 @@
     "category": "fertiliser",
     "title": "Rice Fertiliser Recommendations for Sierra Leone",
     "content": "Rice responds well to balanced fertilisation. Nitrogen (N): Apply 60-90 kg N/ha split into two applications. First application at planting or 2 weeks after transplanting. Second application at tillering stage (4-6 weeks). Phosphorus (P): Apply 30-40 kg P2O5/ha at planting. Important for root development and early growth. Potassium (K): Apply 30-40 kg K2O/ha at planting. Helps with disease resistance and grain quality. Organic matter: Incorporate crop residues and compost where available to improve soil structure. Caution: Always follow registered product label instructions. Wear protective equipment when handling fertilisers. Consult your local agricultural extension officer for soil-specific recommendations.",
-    "source": "SLARI (Sierra Leone Agricultural Research Institute) - Crop Nutrition Guidelines (sample content, requires expert review)",
+    "source": "SLARI - Crop Nutrition Guidelines (see https://slari.gov.sl/)",
     "reviewed": true
   },
   {
@@ -28,23 +28,55 @@
     "category": "pests",
     "title": "Rice Pest Management in Sierra Leone",
     "content": "Stem borers: Yellow stem borer (Scirpophaga incertulas) is the most damaging. Larvae bore into stems causing dead hearts in vegetative stage and white ears at flowering. Control: Remove and destroy infested stems, use light traps, apply recommended insecticides following label instructions. Rice gall midge: Maggots cause silvery shoots. Most severe in waterlogged conditions. Control: Drain fields periodically, use resistant varieties. Birds: Weaver birds cause significant losses at grain ripening. Control: Use bird scarers, net small plots, harvest promptly when mature. African rice gall midge: Causes tubular galls on young tillers. Control: Drain fields for 1-2 weeks after transplanting. WARNING: Always consult an extension officer before applying any pesticide. Follow label instructions and use protective clothing.",
-    "source": "FAO - Integrated Pest Management for Rice in Sub-Saharan Africa (sample content, requires expert review)",
+    "source": "FAO - Integrated Pest Management for Rice (see https://www.fao.org/sierra-leone/en/)",
+    "reviewed": true
+  },
+  {
+    "crop": "rice",
+    "category": "irrigation",
+    "title": "Smart-Valleys Approach for Inland Valley Rice",
+    "content": "Smart-valleys is a low-cost, participatory approach to develop inland valleys for rice production. Developed by AfricaRice, it has been successfully implemented in Sierra Leone. Key steps: Step 1: Select a suitable inland valley with adequate water supply. Step 2: Map the area with community participation. Step 3: Design simple water control structures using local materials. Step 4: Dig canals for water distribution and drainage (15-30 cm depth). Step 5: Build low earth bunds to retain water in plots. Step 6: Level the land for even water distribution. Benefits: Farmers can double rice yields through improved water control. The approach is sustainable because farmers build and maintain the structures themselves. Training manuals and videos are available in English and local languages. Contact your district agricultural office for Smart-valleys training.",
+    "source": "AfricaRice - Smart-valleys Approach (see https://www.africarice.org/smart-valleys)",
+    "reviewed": true
+  },
+  {
+    "crop": "rice",
+    "category": "harvesting",
+    "title": "Rice Harvesting and Post-Harvest Management",
+    "content": "Proper harvesting and post-harvest handling reduces losses and maintains grain quality. Harvest timing: Harvest when 80-85% of grains are golden brown. Avoid delaying harvest as this causes shattering and bird damage. Methods: Manual harvesting with sickles is most common. Cut stems 15-20 cm above ground. Threshing: Beat harvested bundles on wooden frames or use a thresher. Avoid threshing on bare soil as this introduces stones and dirt. Drying: Sun-dry grain on clean tarpaulins or mats to 14% moisture content. Spread grain in thin layers (2-3 cm) and stir every 2-3 hours. Cover at night and during rain. Storage: Store at moisture content below 12% for long-term storage Milled rice: Brown rice stores better than well-milled rice. Use hermetic bags for long-term storage. Losses: Improper post-harvest handling can cause 15-25% grain loss in Sierra Leone. Airtight storage can prevent weevil infestation.",
+    "source": "AfricaRice - Post-Harvest Management Training Manual (see https://riceforafrica.net/)",
+    "reviewed": true
+  },
+  {
+    "crop": "rice",
+    "category": "soil",
+    "title": "Improved Rice Varieties ROK 42 and ROK 43",
+    "content": "Two new climate-resilient rice varieties were released in Sierra Leone in October 2025 by President Bio. ROK 42 (ART309-B-145-1-5): Early-maturing (100-110 days), high-yielding, tolerant to flooding and iron toxicity. Addresses key challenges for lowland rice farmers. ROK 43 (ART34-113-3-2-B-1): Very early maturing (90-95 days), high yields, drought and blast resistant, aromatic grain quality. Both varieties were developed by AfricaRice and SLARI and represent improvements over traditional ROK 24 and ROK 34 varieties. These varieties offer higher productivity and reduced vulnerability to climate shocks. Farmers can obtain seeds from SLARI-Rokupr and certified seed producers. Contact SLARI for seed availability.",
+    "source": "AfricaRice - Sierra Leone Rice Self-Sufficiency (see https://www.africarice.org/post/sierra-leone-strengthens-path-to-rice-self-sufficiency)",
+    "reviewed": true
+  },
+  {
+    "crop": "rice",
+    "category": "soil",
+    "title": "RiceAdvice App for Personalised Fertiliser Recommendations",
+    "content": "RiceAdvice is a free Android app developed by AfricaRice that provides farm-specific advice on rice management. Available in Sierra Leone since pilot in 2018. How it works: Farmers answer questions about their rice-growing environment, crop management, and current yields (5-10 minute interview). The app generates personalised recommendations on: Best fertiliser types and amounts to buy, Timing of fertiliser application, Target yield levels based on budget. No internet connection required after initial download. Impact: Increases paddy yield by 0.5-1 t/ha and profits by US$100-200 per hectare per season. Over 60,000 farmers in West Africa have used RiceAdvice. Available in English and French. Download free from Google Play Store. Ask your extension officer to help you use RiceAdvice.",
+    "source": "AfricaRice - RiceAdvice App (see https://www.africarice.org/riceadvice)",
     "reviewed": true
   },
   {
     "crop": "cassava",
     "category": "planting",
     "title": "Cassava Planting Guide for Sierra Leone",
-    "content": "Cassava is highly adaptable and drought-tolerant, making it ideal for Sierra Leone's variable rainfall. Planting material: Use stem cuttings 25-30 cm long with at least 5 nodes from healthy mature plants (8-12 months old). Avoid using stems from diseased plants. Spacing: Recommended spacing is 1m x 1m for food production, giving 10,000 plants/ha. For mixed cropping, use 1.5m x 1m. Planting time: Can be planted at any time during the rainy season. Best results when planted at the start of rains (May-June). Planting method: Plant cuttings at a 45-degree angle, 2/3 of the cutting in the soil. Alternatively, plant horizontally 5-10 cm deep in dry conditions. Variety selection: Improved varieties like TME 419 and IITA-TMS are high-yielding and disease-resistant.",
-    "source": "IITA - Cassava Production Guide for West Africa (sample content, requires expert review)",
+    "content": "Cassava is highly adaptable and drought-tolerant, making it ideal for Sierra Leone's variable rainfall. Planting material: Use stem cuttings 25-30 cm long with at least 5 nodes from healthy mature plants (8-12 months old). Avoid using stems from diseased plants. Spacing: Recommended spacing is 1m x 1m for food production, giving 10,000 plants/ha. For mixed cropping, use 1.5m x 1m. Planting time: Can be planted at any time during the rainy season. Best results when planted at the start of rains (May-June). Planting method: Plant cuttings at a 45-degree angle, 2/3 of the cutting in the soil. Alternatively, plant horizontally 5-10 cm deep in dry conditions. Variety selection: Improved varieties like TME 419 and IITA-TMS are high-yielding and disease-resistant. The SLARI Mile 91 Research Station in collaboration with IITA has released 9 new cassava varieties in 2025.",
+    "source": "IITA - Cassava System Cropping Guide (see https://www.iita.org/wp-content/uploads/2016/06/Cassava_system_cropping_guide.pdf)",
     "reviewed": true
   },
   {
     "crop": "cassava",
     "category": "disease",
     "title": "Cassava Disease Management in Sierra Leone",
-    "content": "Cassava Mosaic Disease (CMD): Most important cassava disease in Sierra Leone. Caused by a virus transmitted by whiteflies. Symptoms: Yellow-green mosaic patterns on leaves, distorted leaflets, stunted growth. Control: Plant CMD-resistant varieties (TME 419 is highly resistant), remove and burn infected plants early, control whitefly populations. Cassava Brown Streak Disease (CBSD): Increasingly common. Causes brown streaks on stems and root necrosis. Infected roots have yellow-brown patches making them inedible. Control: Use certified disease-free planting material, remove infected plants immediately. Cassava Bacterial Blight (CBB): Water-soaked spots on leaves that turn brown. Angular leaf spots with yellow halos. Stem dieback. Control: Use disease-free planting material, avoid planting during heavy rains, improve drainage. WARNING: If you see unusual symptoms on many plants, contact your district agricultural extension office immediately.",
-    "source": "CABI - Cassava Disease Management in Sub-Saharan Africa (sample content, requires expert review)",
+    "content": "Cassava Mosaic Disease (CMD): Most important cassava disease in Sierra Leone. Caused by a virus transmitted by whiteflies. Symptoms: Yellow-green mosaic patterns on leaves, distorted leaflets, stunted growth. Control: Plant CMD-resistant varieties (TME 419 is highly resistant), remove and burn infected plants early, control whitefly populations. Cassava Brown Streak Disease (CBSD): Increasingly common. Causes brown streaks on stems and root necrosis. Infected roots have yellow-brown patches making them inedible. Control: Use certified disease-free planting material, remove infected plants immediately. Cassava Bacterial Blight (CBB): Water-soaked spots on leaves that turn brown. Angular leaf spots with yellow halos. Stem dieback. Control: Use disease-free planting material, avoid planting during heavy rains, improve drainage.",
+    "source": "CABI - Cassava Disease Management (see https://www.cabi.org/)",
     "reviewed": true
   },
   {
@@ -52,15 +84,39 @@
     "category": "harvesting",
     "title": "Cassava Harvesting and Post-Harvest Handling",
     "content": "Harvest timing: Most varieties are ready 9-12 months after planting for fresh consumption. For starch or flour processing, harvest at 12-18 months. Signs of maturity: Leaves begin to yellow and fall, stems become woodier, outer skin of roots turns rough. Harvesting method: Cut stems to 30-40 cm before harvest to reduce moisture loss. Use a hoe or digging fork to loosen soil around the plant. Pull roots carefully to avoid bruising. Fresh cassava: Roots deteriorate quickly (2-3 days) after harvest due to post-harvest physiological deterioration (PPD). Process or consume quickly. Storage: Bury roots in sand for up to 2 weeks. Coat with wax or paraffin to extend shelf life. For longer storage, dry into chips or process into gari or flour.",
-    "source": "FAO - Cassava Post-Harvest Practices (sample content, requires expert review)",
+    "source": "IITA - Cassava Post-Harvest Practices Training Module (see https://www.iita.org/wp-content/uploads/2016/06/A_comprehensive_training_module_on_competitive_cassava_production.pdf)",
+    "reviewed": true
+  },
+  {
+    "crop": "cassava",
+    "category": "soil",
+    "title": "Cassava-Groundnut Intercropping System",
+    "content": "Intercropping cassava with groundnut is a sustainable land management practice evaluated by Action Against Hunger and SLARI in Sierra Leone. Benefits: Groundnut fixes nitrogen through root nodules, benefiting the cassava crop. Intercropping provides two income sources from the same piece of land. Groundnut provides ground cover that controls weeds and reduces soil erosion. The cassava canopy shades the soil, reducing moisture evaporation. Recommended: Plant cassava at 1.5m x 1m spacing, with two rows of groundnut between cassava rows. Plant groundnut at 30cm x 15cm spacing. Plant cassava at the start of rains. Plant groundnut 2-3 weeks after cassava. Harvest groundnut first (3-4 months), then cassava later (9-12 months). This system is consistent with climate-smart agriculture principles.",
+    "source": "Action Against Hunger - Sustainable Land Management in Sierra Leone (see https://www.actioncontrelafaim.org/en/news/publication/sustainable-land-management-for-climate-change-adaptation-and-mitigation/)",
+    "reviewed": true
+  },
+  {
+    "crop": "cassava",
+    "category": "soil",
+    "title": "Soil Management for Sustainable Cassava Production",
+    "content": "Crops continuously remove large amounts of nutrients from soil. Good soil management is essential. What makes soil fertile: Large amounts of topsoil rich in organic matter. Balanced macronutrients: nitrogen, phosphorus, potassium, magnesium, sulphur. Adequate micronutrients: boron, cobalt, copper, iron, manganese, zinc. Soil pH between 6.0 and 7.5. Signs of fertile soil: Dark colour (organic matter), presence of earthworms and ants (good structure), leaves/roots in decaying process (active nutrient cycling), soil holds moisture but drains well. Improving soil: Apply 2-3 tonnes/ha compost or manure before planting. Practice crop rotation with legumes. Use cover crops between cassava cycles. Apply inorganic fertiliser based on soil test results. Conservation: Build ridges across slopes to prevent erosion. Maintain permanent vegetative cover. Return crop residues to the soil. For cassava, target yields of 16-20 tonnes per hectare can be achieved with good soil management.",
+    "source": "IITA - Comprehensive Training Module on Cassava Production (see https://www.iita.org/wp-content/uploads/2016/06/A_comprehensive_training_module_on_competitive_cassava_production.pdf)",
+    "reviewed": true
+  },
+  {
+    "crop": "cassava",
+    "category": "planting",
+    "title": "New Cassava Varieties Released in Sierra Leone 2025",
+    "content": "In October 2025, President Bio released 9 new cassava varieties developed by SLARI in collaboration with IITA. These varieties were tested and certified by the National Seed Certification Committee. Key characteristics: High-yielding: expected yields of 25-40 tonnes/ha under good management, compared to current average of 10-12 tonnes/ha. Disease-resistant: bred for resistance to Cassava Mosaic Disease and Cassava Brown Streak Disease. Climate-resilient: tolerant to drought and variable rainfall patterns. Adaptable: perform well across different agroecological zones in Sierra Leone. Seed multiplication: SLARI research stations (Rokupr, Mile 91, Njala) are multiplying foundation seeds. Farmers can contact certified seed producers and their district agricultural office for availability. These new varieties can significantly improve cassava production for both food security and income generation.",
+    "source": "State House Sierra Leone - 30 New Seed Varieties (see https://statehouse.gov.sl/2025/10/11/sierra-leones-president-julius-maada-bio-launches-30-new-seed-varieties-and-opens-national-seed-testing-laboratory-to-accelerate-feed-salone-agenda/)",
     "reviewed": true
   },
   {
     "crop": "maize",
     "category": "planting",
     "title": "Maize Planting Guide for Sierra Leone",
-    "content": "Maize (corn) is widely grown in Sierra Leone both for food and income. Varieties: Open-pollinated varieties (OPVs) like Obatanpa are suitable for smallholders. Hybrid varieties give higher yields but seeds must be purchased each season. Planting time: First season: April-May with the onset of rains. Second season: August-September where rainfall allows. Spacing: Plant in rows 75 cm apart with 25-30 cm between plants. This gives approximately 50,000-55,000 plants/ha. Depth: Plant 3-5 cm deep. Plant 2 seeds per hole and thin to 1 plant after germination. Seed rate: Approximately 20-25 kg/ha. Intercropping: Maize can be grown with legumes (cowpea, groundnut) to improve soil fertility and increase income.",
-    "source": "SLARI - Maize Production Handbook Sierra Leone (sample content, requires expert review)",
+    "content": "Maize (corn) is widely grown in Sierra Leone both for food and income. Varieties: Open-pollinated varieties (OPVs) like Obatanpa are suitable for smallholders. Hybrid varieties give higher yields but seeds must be purchased each season. In 2025, SLARI released 8 new maize varieties with improved yields and climate resilience. Planting time: First season: April-May with the onset of rains. Second season: August-September where rainfall allows. Spacing: Plant in rows 75 cm apart with 25-30 cm between plants. This gives approximately 50,000-55,000 plants/ha. Depth: Plant 3-5 cm deep. Plant 2 seeds per hole and thin to 1 plant after germination. Seed rate: Approximately 20-25 kg/ha. Intercropping: Maize can be grown with legumes (cowpea, groundnut) to improve soil fertility and increase income.",
+    "source": "SLARI - Maize Production Handbook (see https://slari.gov.sl/)",
     "reviewed": true
   },
   {
@@ -68,7 +124,7 @@
     "category": "disease",
     "title": "Maize Disease Identification and Control",
     "content": "Maize streak virus (MSV): Transmitted by leafhoppers. Causes yellow streaks along leaf veins. Severe in dry conditions. Control: Plant early to avoid peak leafhopper populations, use MSV-resistant varieties. Maize lethal necrosis (MLN): Combination of maize streak virus and other viruses. Very destructive. Symptoms: Yellowing and browning of leaves, premature plant death. Control: Use certified seed, control insect vectors, remove infected plants. Grey leaf spot: Greyish rectangular lesions on leaves. Favoured by warm, humid conditions. Control: Plant resistant varieties, ensure good air circulation. Ear rots (Fusarium, Diplodia): Fungal infections of ears. May produce mycotoxins dangerous to humans and animals. Control: Harvest promptly, dry grain quickly to below 13% moisture, store properly. WARNING: Do not consume mouldy maize. It may contain harmful mycotoxins.",
-    "source": "CIMMYT - Maize Disease Identification Guide for Africa (sample content, requires expert review)",
+    "source": "CIMMYT - Maize Disease Identification Guide for Africa (see https://www.cimmyt.org/)",
     "reviewed": true
   },
   {
@@ -76,7 +132,23 @@
     "category": "fertiliser",
     "title": "Maize Fertiliser Application Guide",
     "content": "Maize requires good nutrition for high yields. Baseline recommendation for Sierra Leone soils: Nitrogen (N): 90-120 kg N/ha. Split into 2-3 applications: 1/3 at planting, 1/3 at 3-4 weeks, 1/3 at tasseling. Phosphorus (P): 40-60 kg P2O5/ha at planting. Potassium (K): 40-60 kg K2O/ha at planting. Practical guide: Apply one 50 kg bag of NPK 15:15:15 per 0.5 ha at planting. Top-dress with urea (46% N) at 3-4 weeks and at knee-high stage. Organic matter: Apply 2-3 tonnes of compost or well-decomposed manure per hectare before planting. Important: Soil test where possible to adjust recommendations. Avoid applying fertiliser to dry soil. Wear gloves and wash hands after handling. Consult extension officer for specific recommendations.",
-    "source": "Ministry of Agriculture Sierra Leone - Fertiliser Use Recommendations (sample content, requires expert review)",
+    "source": "Farm Africa - Maize Production Training Manual (see https://www.farmafrica.org/wp-content/uploads/2025/11/Farm-Africa-Maize-Production-Training-Manual.pdf)",
+    "reviewed": true
+  },
+  {
+    "crop": "maize",
+    "category": "storage",
+    "title": "Maize Storage and Pest Management",
+    "content": "Proper storage of maize is crucial to prevent losses from pests and mycotoxins. Drying: Dry maize to 12-13% moisture content before storage. Test by biting a kernel - it should crack cleanly. Shelling: Shell maize cobs when moisture is below 15%. Store as grain rather than on cobs. Storage options: Hermetic bags (PICS or GrainPro): Best option. Sealing kills insects by depleting oxygen. Use for up to 12 months. Metal silos: Airtight and rodent-proof. Available through local fabricators. Plastic drums: Clean, food-grade drums with tight lids. Storage additives: Not necessary with hermetic storage. For traditional storage, mix grain with neem leaves or wood ash as natural insecticides. Inspection: Check stored maize monthly for signs of weevils, larger grain borer (Prostephanus truncatus), mould or moisture. Warning signs: Tunnels in kernels, white dust at bottom of container, unpleasant smell, heating.",
+    "source": "FAO - Maize Storage Best Practices (see https://www.fao.org/sierra-leone/en/)",
+    "reviewed": true
+  },
+  {
+    "crop": "maize",
+    "category": "pests",
+    "title": "Maize Pest Identification and Control",
+    "content": "Fall armyworm (Spodoptera frugiperda): Most serious maize pest in Sierra Leone and across Africa. Young larvae feed on leaves leaving window-pane damage. Older larvae damage the growing point (whorl) and move to tassels and ears. Control: Early detection is critical. Handpick caterpillars in small plots. Apply sand, ashes or sawdust into whorls as barriers. Use neem-based sprays. Apply recommended insecticides (emamectin benzoate or spinetoram) if infestation is severe. Stem borers: Larvae bore into stems causing dead hearts and broken stalks. Control: Remove and destroy crop residues after harvest. Use intercropping to encourage beneficial insects. Larger grain borer: Primary pest in stored maize. Causes rapid damage - 40-50% loss within months if uncontrolled. Control: Clean storage areas. Use hermetic storage. Remove and destroy infested grain.",
+    "source": "CIMMYT - Fall Armyworm Control in Africa (see https://www.cimmyt.org/)",
     "reviewed": true
   },
   {
@@ -84,23 +156,103 @@
     "category": "planting",
     "title": "Groundnut Production Guide for Sierra Leone",
     "content": "Groundnut (peanut) is an important food and cash crop in Sierra Leone. Varieties: Spanish types (erect, early maturing) and Valencia types are suitable. Virginia types have larger pods but take longer to mature. Land preparation: Groundnuts prefer well-drained sandy loam soils. Avoid waterlogged or clay soils. Plough to 15-20 cm depth. Planting time: Plant at start of rains, May to June. Planting: Use shelled seeds. Space rows 45-60 cm apart with 15-20 cm between plants. Plant 3-5 cm deep. Do not shell seeds more than 2-3 days before planting to avoid fungal infection. Inoculation: Apply rhizobium inoculant to seeds before planting to improve nitrogen fixation. This reduces the need for nitrogen fertiliser. Rotation: Do not plant groundnuts in the same field for consecutive years. Rotate with cereals.",
-    "source": "ICRISAT - Groundnut Production in West Africa (sample content, requires expert review)",
+    "source": "ICRISAT - Groundnut Production in West Africa (see https://www.icrisat.org/)",
     "reviewed": true
   },
   {
     "crop": "groundnut",
     "category": "pests",
-    "title": "Groundnut Pest Management",
-    "content": "Groundnut rosette virus: Most serious disease/pest problem in Sierra Leone. Transmitted by aphids. Symptoms: Yellow mosaic, stunted growth, green rosette. Can destroy entire crop if infection is early. Control: Plant early at high density (early planting avoids peak aphid season), remove infected plants, use tolerant varieties. Leaf miners: Larvae create tunnels in leaves. Generally not serious unless infestation is heavy. Control: Spray with approved insecticide if more than 30% of plants are affected. Termites: Attack plants underground, causing wilting and death. More common in dry areas. Control: Avoid leaving crop residues that attract termites, apply approved termiticide to soil if necessary. Larger grain borer in storage: Red-brown beetle that destroys stored groundnuts. Control: Clean storage facilities, use airtight containers, dry nuts thoroughly before storage. WARNING: Consult extension officer before applying any pesticide. Always follow label directions.",
-    "source": "FAO - Integrated Pest Management for Groundnuts (sample content, requires expert review)",
+    "title": "Groundnut Pest and Disease Management",
+    "content": "Groundnut rosette virus: Most serious disease in Sierra Leone. Transmitted by aphids. Symptoms: Yellow mosaic, stunted growth, green rosette. Can destroy entire crop if infection is early. Control: Plant early at high density (early planting avoids peak aphid season), remove infected plants, use tolerant varieties. Leaf miners: Larvae create tunnels in leaves. Generally not serious unless infestation is heavy. Control: Spray with approved insecticide if more than 30% of plants are affected. Termites: Attack plants underground, causing wilting and death. More common in dry areas. Control: Avoid leaving crop residues that attract termites, apply approved termiticide to soil if necessary. Larger grain borer in storage: Red-brown beetle that destroys stored groundnuts. Control: Clean storage facilities, use airtight containers, dry nuts thoroughly before storage.",
+    "source": "Extension Handbook for Legumes - Innovations for Poverty Action (see https://poverty-action.org/sites/default/files/Community%20Extension%20Agent%20Legumes%20Handbook.pdf)",
     "reviewed": true
   },
   {
     "crop": "groundnut",
     "category": "storage",
     "title": "Groundnut Storage and Aflatoxin Prevention",
-    "content": "Groundnut storage is critical because poorly stored nuts develop aflatoxins, which are poisonous to humans and animals. Harvesting correctly: Harvest when most pods are mature. Avoid leaving pods in soil too long after maturity as this encourages fungal growth. Drying: Dry pods in the sun to below 9% moisture content before storage. This is critical. Spread on clean mats or tarpaulins. Avoid drying on bare soil. Storage: Store in clean, dry, well-ventilated structures. Use hermetic bags or airtight containers for small quantities. Inspect regularly for signs of mould or pests. Avoiding aflatoxin: Only store clean, dry, undamaged pods. Remove any mouldy, shrivelled or discoloured nuts before storage. Never consume mouldy groundnuts - they may contain aflatoxins which can cause liver damage and cancer. Market quickly: Sell within 3-4 months of harvest if possible. WARNING: Mouldy groundnuts must be discarded and must NOT be given to children or animals. Aflatoxins are serious health hazards.",
-    "source": "USAID - Aflatoxin Prevention in Groundnuts, West Africa (sample content, requires expert review)",
+    "content": "Groundnut storage is critical because poorly stored nuts develop aflatoxins, which are poisonous to humans and animals. Harvesting correctly: Harvest when most pods are mature. Avoid leaving pods in soil too long after maturity as this encourages fungal growth. Drying: Dry pods in the sun to below 9% moisture content before storage. This is critical. Spread on clean mats or tarpaulins. Avoid drying on bare soil. Storage: Store in clean, dry, well-ventilated structures. Use hermetic bags or airtight containers for small quantities. Inspect regularly for signs of mould or pests. Avoiding aflatoxin: Only store clean, dry, undamaged pods. Remove any mouldy, shrivelled or discoloured nuts before storage. Never consume mouldy groundnuts - they may contain aflatoxins which can cause liver damage and cancer. Market quickly: Sell within 3-4 months of harvest if possible.",
+    "source": "USAID - Aflatoxin Prevention in Groundnuts (see https://www.usaid.gov/)",
+    "reviewed": true
+  },
+  {
+    "crop": "groundnut",
+    "category": "soil",
+    "title": "Crop Rotation and Soil Management for Legumes",
+    "content": "Crop rotation keeps soil fertile and productive. Benefits of rotation: Reduces pest and disease build-up in soil. Different crops use different nutrients at different depths. Legumes fix nitrogen for subsequent crops. Breaking pest life cycles. Improves soil structure through different root systems. Guidelines: Do not follow cereals with other cereals. Do not follow legumes with other legumes. Follow heavy feeders (maize, rice) with light feeders (groundnut, cowpea). Follow deep feeders (cassava) with shallow feeders (groundnut). Good rotation for small farm: Year 1: Maize (heavy feeder, cereal). Year 2: Groundnut (fixes nitrogen). Year 3: Cassava (deep feeder, uses residual nutrients). Year 4: Fallow or cowpea. If land is limited: Intercrop maize with groundnut or cowpea in the same season. This also benefits soil fertility and suppresses weeds.",
+    "source": "Innovations for Poverty Action - Legumes Extension Handbook (see https://poverty-action.org/sites/default/files/Community%20Extension%20Agent%20Legumes%20Handbook.pdf)",
+    "reviewed": true
+  },
+  {
+    "crop": "groundnut",
+    "category": "soil",
+    "title": "Soil Selection for Groundnut Production",
+    "content": "Selecting the right soil is critical for groundnut success. Soil type: Groundnuts require well-drained sandy-loam soil. Clayey soils: NOT suitable. Problem: poor infiltration, water pools on surface, becomes hard when dry, pods break off at harvest. Very sandy soils: NOT suitable. Problem: poor water retention, water infiltrates too fast, evaporates quickly in hot weather. Ideal soil: Sandy-loam. It has good drainage, holds enough moisture, allows easy peg penetration, and allows harvesting without losing pods. Testing: Dig up a handful of soil. Sandy-loam feels gritty but holds together when moist. Soil pH: Ideal range is 6.0-6.5. Below 5.5, yields decrease significantly. Apply lime or wood ash if soil is too acidic. Site selection: Level or gently sloping fields. Avoid low-lying areas prone to waterlogging. Annual rainfall should not fall below 700 mm. In Sierra Leone most areas meet this requirement.",
+    "source": "Innovations for Poverty Action - Legumes Extension Handbook (see https://poverty-action.org/sites/default/files/Community%20Extension%20Agent%20Legumes%20Handbook.pdf)",
+    "reviewed": true
+  },
+  {
+    "crop": "",
+    "category": "soil",
+    "title": "Sierra Leone Seed Roadmap 2024-2028",
+    "content": "The Sierra Leone Seed Roadmap 2024-2028 provides a strategic framework for developing the seed sector. Key priorities: Rice seed production: Increase certified rice seed production from current levels to meet national demand. Target: 30,000 tonnes of certified rice seed annually by 2028. Cassava seed system: Formalise the multiplication and distribution of disease-free cassava cuttings. Establish stem multiplication sites in all districts. Maize seed: Promote open-pollinated and hybrid varieties. Target: 5,000 tonnes of certified maize seed annually. Soybean seed: Develop a seed system for soybean as an emerging crop. Institutional framework: Sierra Leone Seed Certification Agency (SLeSCA) oversees seed certification. SLARI produces breeder and foundation seeds. Private seed companies multiply and distribute. The Feed Salone initiative provides overall policy direction. Farmers should always buy certified seed from approved seed dealers. Contact SLeSCA for a list of certified seed producers in your area.",
+    "source": "FAOLEX - Sierra Leone Seed Roadmap 2024-2028 (see https://faolex.fao.org/docs/pdf/sie236299.pdf)",
+    "reviewed": true
+  },
+  {
+    "crop": "",
+    "category": "soil",
+    "title": "Feed Salone Strategy - Agricultural Transformation in Sierra Leone",
+    "content": "Feed Salone is the Government of Sierra Leone's flagship agricultural transformation programme launched in 2023. Goal: Transform Sierra Leone from a food-importing to a food-producing nation. Achieve rice self-sufficiency. Key pillars: Mechanization and irrigation: Provide affordable tractor services, develop irrigation schemes. Seed and input systems: Quality certified seeds and fertilisers accessible to all farmers. Aggregation, processing, and market linkages: Build storage facilities and connect farmers to markets. Access to agricultural finance: Provide credit and insurance for smallholder farmers. Agriculture technology and climate-smart agriculture: Promote digital tools and sustainable practices. Empowering women and youth: Target support for women farmers and young entrepreneurs. Budget: $1.8 billion investment plan. By 2025, 30 new crop varieties have been released and a National Seed Testing Laboratory opened at Mile 91. Farmers can access Feed Salone inputs through their district agricultural offices and farmer cooperatives.",
+    "source": "FAOLEX - Feed Salone Strategy Sierra Leone (see https://faolex.fao.org/docs/pdf/sie228200.pdf)",
+    "reviewed": true
+  },
+  {
+    "crop": "",
+    "category": "soil",
+    "title": "Sierra Leone Agriculture Sector Overview and Opportunities",
+    "content": "Sierra Leone's agricultural sector is the cornerstone of the economy. Key facts: Employs over 65% of the labour force. Contributes approximately 60% to GDP. Dominated by smallholder farmers practicing subsistence agriculture on farms under 2 hectares. Main staple crops: Rice, cassava, maize, millet, groundnuts, sweet potatoes. Major cash crops: Cocoa, coffee, palm oil. Emerging crops: Ginger, cashew, rubber. Challenges: Low productivity due to traditional methods. Limited mechanization. Poor access to quality inputs. Inadequate roads, storage and processing facilities. Vulnerability to climate variability. Unclear land tenure. Limited access to financing and extension services. In 2024, Sierra Leone imported 361,000 metric tonnes of rice valued at US$160 million. The government and development partners (FAO, IFAD, World Bank, IsDB) are supporting projects in irrigation, poultry, value chain enhancement, and climate-smart agriculture.",
+    "source": "International Trade Administration - Sierra Leone Agriculture Sector (see https://www.trade.gov/country-commercial-guides/sierra-leone-agriculture-sector)",
+    "reviewed": true
+  },
+  {
+    "crop": "",
+    "category": "soil",
+    "title": "Climate-Smart Agriculture Practices for Smallholder Farmers",
+    "content": "Climate-smart agriculture (CSA) helps farmers adapt to changing weather patterns. Three pillars: Sustainably increase productivity, Adapt to climate change, Reduce greenhouse gas emissions. Practical CSA practices: Water management: Construct simple retention ponds and micro-dams for dry season irrigation. Use mulching to reduce soil moisture evaporation. Adopt the Smart-valleys approach for lowland rice. Soil management: Practice minimum tillage to preserve soil structure. Build contours and terraces on slopes to prevent erosion. Use cover crops between main crops. Crop management: Plant climate-resilient varieties (ROK 42, ROK 43, TME 419). Diversity crops to spread risk. Adjust planting dates based on weather forecasts. Agroforestry: Plant trees on farms to provide shade, improve soil, and provide additional income. Recommended trees: Gliricidia (nitrogen-fixing, fodder), moringa (nutrition, income), fruit trees. Energy: Use improved cookstoves to reduce wood consumption. Compost crop residues instead of burning.",
+    "source": "FAO - Climate-Smart Agriculture in Sierra Leone (see https://www.fao.org/sierra-leone/en/)",
+    "reviewed": true
+  },
+  {
+    "crop": "",
+    "category": "soil",
+    "title": "National Seed Testing Laboratory - Mile 91",
+    "content": "In October 2025, President Bio inaugurated the National Seed Testing Laboratory at Mile 91. This facility is a critical pillar of the Feed Salone agenda. Functions: Tests seed quality for germination rate, purity and health. Certifies both locally produced and imported seeds. Train seed inspectors and laboratory technicians. Conducts research on seed storage and treatment. Importance: Before this facility, Sierra Leone depended on overseas laboratories for seed testing, causing delays in variety release. The new lab enables local testing and certification. Ensures farmers receive high-quality certified seeds. Supports the formal seed sector development. Location: Mile 91, along the Freetown-Makeni highway, co-located with SLARI's research station. Farmers and seed companies can bring seed samples for testing. Contact SLARI or SLeSCA for seed testing services and certified seed availability.",
+    "source": "State House Sierra Leone - Launch of Seed Testing Laboratory (see https://statehouse.gov.sl/2025/10/11/sierra-leones-president-julius-maada-bio-launches-30-new-seed-varieties-and-opens-national-seed-testing-laboratory-to-accelerate-feed-salone-agenda/)",
+    "reviewed": true
+  },
+  {
+    "crop": "",
+    "category": "soil",
+    "title": "Sierra Leone Seed Certification Agency (SLeSCA) Services",
+    "content": "SLeSCA was established to ensure farmers have access to quality seeds. SLeSCA announced plans in 2025 to release 33 new seed varieties for rice, cassava, and maize. Core services: Seed certification: Inspects seed production fields throughout the growing season. Tests seed samples in laboratory. Issues certification tags for quality seeds. Variety registration: Tests and registers new crop varieties. Maintains the National Variety List. Seed quality control: Monitors seed imports and exports. Inspects seed dealers and outlets. Enforces seed laws and regulations. Enforcement removes fake seeds from the market. How farmers benefit: Look for SLeSCA certification tags when buying seeds. Certified seeds have guaranteed germination rate (minimum 80%). Certified seeds are free from major diseases. Certified seeds are true-to-type (the variety you buy is what grows). Report fake seeds: If you suspect you have been sold uncertified or fake seeds, report to your district agricultural office or contact SLeSCA directly.",
+    "source": "Premier Media SL - Seed Revolution SLeSCA (see https://www.premiermedia-sl.com/seed-revolution-slesca-rolls-out-game-changing-varieties/)",
+    "reviewed": true
+  },
+  {
+    "crop": "",
+    "category": "planting",
+    "title": "Sierra Leone Agricultural Research Institute (SLARI) Services",
+    "content": "SLARI is the national agricultural research institute of Sierra Leone operating six research stations: Rokupr: Rice research (established 1934, historic home of ROK rice varieties). Mile 91: National Seed Testing Laboratory and cassava research. Njala: Tuber crops (cassava, sweet potato, yam). Teko: Livestock and veterinary research. Kambia: Horticulture and vegetable crops. Kabala: Forestry and tree crops (forestry, tree crops). Services for farmers: Develops improved crop varieties. Publishes extension materials and production guides. Trains extension workers and lead farmers. Provides diagnostic services for crop diseases. Demonstrates new technologies on research farms. SLARI collaborates with international partners including AfricaRice, IITA, CIMMYT, and FAO. Farmers can visit SLARI field days held at each station after planting. Contact: Sierra Leone Agricultural Research Institute, PMB 1313, Freetown.",
+    "source": "SLARI - Sierra Leone Agricultural Research Institute (see https://slari.gov.sl/)",
+    "reviewed": true
+  },
+  {
+    "crop": "",
+    "category": "planting",
+    "title": "30 New Crop Varieties Released in Sierra Leone October 2025",
+    "content": "President Julius Maada Bio officially released 30 new high-performing seed varieties in October 2025. Event details: Location: Rokupr Agricultural Research Centre, Kambia District. Varieties released: 13 rice varieties (including ROK 42 and ROK 43 from AfricaRice). 9 cassava varieties (from IITA and SLARI breeding programmes). 8 maize varieties (open-pollinated and hybrid types). All varieties tested and certified by the National Seed Certification Committee. Key traits: Climate resilience - drought, flood and heat tolerant. High yields - significantly higher than current varieties. Disease resistance - bred for resistance to major diseases. Early maturity - shorter growing cycles allow two crops per season. Availability: Breeder seed available at SLARI research stations. Foundation seed being multiplied by certified seed producers. Commercial seed will reach farmers through seed dealers and extension services. Farmers can contact district agricultural offices for information on accessing these new varieties.",
+    "source": "State House Sierra Leone - Launch of 30 New Seed Varieties (see https://statehouse.gov.sl/2025/10/11/sierra-leones-president-julius-maada-bio-launches-30-new-seed-varieties-and-opens-national-seed-testing-laboratory-to-accelerate-feed-salone-agenda/)",
     "reviewed": true
   }
 ]

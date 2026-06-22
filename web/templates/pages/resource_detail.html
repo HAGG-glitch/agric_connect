@@ -62,6 +62,10 @@
           <p class="text-xs text-[#6B7280]">
             <span class="font-medium text-[#4B5563]">Source:</span> {{$r.Source}}
           </p>
+          <a id="source-link" href="#" target="_blank" rel="noopener noreferrer" class="hidden mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-[#2E7D32] hover:text-[#1B5E20] bg-[#2E7D32]/5 hover:bg-[#2E7D32]/10 px-3 py-1.5 rounded-lg transition-colors">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            View Original Source
+          </a>
         </div>
         {{end}}
       </div>
@@ -97,6 +101,16 @@
     if (typeof lucide !== 'undefined') lucide.createIcons();
     buildTOC();
   });
+
+  // Extract source URL from source text and make it clickable
+  var sourceText = document.querySelector('#source-link')?.previousElementSibling?.textContent || '';
+  var urlMatch = sourceText.match(/https?:\/\/[^\s)]+/);
+  if (urlMatch) {
+    var link = document.getElementById('source-link');
+    link.href = urlMatch[0];
+    link.classList.remove('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
 
   function buildTOC() {
     var content = document.getElementById('document-content');

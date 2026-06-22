@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -11,6 +12,16 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+var sourceURLRegex = regexp.MustCompile(`https?://[^\s)]+`)
+
+func extractSourceURL(source string) string {
+	if source == "" {
+		return ""
+	}
+	match := sourceURLRegex.FindString(source)
+	return match
+}
 
 type ResourceHandler struct {
 	db *gorm.DB
@@ -157,6 +168,7 @@ func (h *ResourceHandler) ListResources(c *gin.Context) {
 			"language":   doc.Language,
 			"summary":    summary,
 			"source":     doc.Source,
+			"source_url": extractSourceURL(doc.Source),
 			"reviewed":   doc.Reviewed,
 			"created_at": doc.CreatedAt,
 		})
@@ -192,6 +204,7 @@ func (h *ResourceHandler) GetResource(c *gin.Context) {
 		"language":   doc.Language,
 		"content":    doc.Content,
 		"source":     doc.Source,
+		"source_url": extractSourceURL(doc.Source),
 		"reviewed":   doc.Reviewed,
 		"created_at": doc.CreatedAt,
 	})
