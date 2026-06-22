@@ -232,7 +232,12 @@
 }
 
 /* Chart.js responsive canvas */
+.chart-container {
+  overflow: hidden;
+  position: relative;
+}
 .chart-container canvas {
   max-width: 100%;
-  height: auto !important;
+  max-height: 350px;
+  min-height: 0;
 }

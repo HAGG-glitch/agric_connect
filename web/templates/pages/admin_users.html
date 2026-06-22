@@ -219,13 +219,14 @@ async function toggleStatus(userId, isActive) {
 
 function initCharts() {
   if (typeof Chart === 'undefined') return;
+  window.chartInstances = [];
 
   // Users by role
   var farmerCount = {{.FarmerCount}};
   var officerCount = {{.OfficerCount}};
   var adminCount = {{.AdminCount}};
   if (farmerCount > 0 || officerCount > 0 || adminCount > 0) {
-    new Chart(document.getElementById('adminUserChart'), {
+    var c1 = new Chart(document.getElementById('adminUserChart'), {
       type: 'doughnut',
       data: {
         labels: ['Farmers', 'Officers', 'Admins'],
@@ -239,19 +240,20 @@ function initCharts() {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
       }
-    });
-  } else {
-    document.getElementById('adminUserChart').classList.add('hidden');
-    document.getElementById('adminUserEmpty').classList.remove('hidden');
-  }
+      });
+      window.chartInstances.push(c1);
+    } else {
+      document.getElementById('adminUserChart').classList.add('hidden');
+      document.getElementById('adminUserEmpty').classList.remove('hidden');
+    }
 
-  // Diagnosis status
-  var diagCount = {{.DiagnosisCount}};
-  var pendingCount = {{.PendingReviews}};
-  var completedCount = diagCount - pendingCount;
-  if (completedCount < 0) completedCount = 0;
-  if (diagCount > 0) {
-    new Chart(document.getElementById('adminDiagChart'), {
+    // Diagnosis status
+    var diagCount = {{.DiagnosisCount}};
+    var pendingCount = {{.PendingReviews}};
+    var completedCount = diagCount - pendingCount;
+    if (completedCount < 0) completedCount = 0;
+    if (diagCount > 0) {
+      var c2 = new Chart(document.getElementById('adminDiagChart'), {
       type: 'bar',
       data: {
         labels: ['Total', 'Pending Review', 'Completed'],
@@ -268,15 +270,16 @@ function initCharts() {
         plugins: { legend: { display: false } },
         scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
       }
-    });
-  } else {
-    document.getElementById('adminDiagChart').classList.add('hidden');
-    document.getElementById('adminDiagEmpty').classList.remove('hidden');
-  }
+      });
+      window.chartInstances.push(c2);
+    } else {
+      document.getElementById('adminDiagChart').classList.add('hidden');
+      document.getElementById('adminDiagEmpty').classList.remove('hidden');
+    }
 
-  // Reviews
-  if (pendingCount > 0 || completedCount > 0) {
-    new Chart(document.getElementById('adminReviewChart'), {
+    // Reviews
+    if (pendingCount > 0 || completedCount > 0) {
+      var c3 = new Chart(document.getElementById('adminReviewChart'), {
       type: 'doughnut',
       data: {
         labels: ['Pending', 'Completed'],
@@ -291,11 +294,19 @@ function initCharts() {
         plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
       }
     });
+    window.chartInstances.push(c3);
   } else {
     document.getElementById('adminReviewChart').classList.add('hidden');
     document.getElementById('adminReviewEmpty').classList.remove('hidden');
   }
 }
+
+window.addEventListener('pagehide', function() {
+  if (window.chartInstances) {
+    window.chartInstances.forEach(function(c) { c.destroy(); });
+    window.chartInstances = [];
+  }
+});
 
 function escapeHTML(str) {
   var div = document.createElement('div');

@@ -41,7 +41,7 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+    <nav class="flex-1 overflow-y-auto min-h-0 p-3 space-y-1 custom-scrollbar">
       {{if eq .UserRole "farmer"}}
         <a href="/dashboard" class="{{if eq .ActivePage "dashboard"}}sidebar-link-active{{else}}sidebar-link-inactive{{end}}">
           <i data-lucide="layout-dashboard" class="w-4 h-4 flex-shrink-0"></i> Dashboard
@@ -129,7 +129,7 @@
   </aside>
 
   <!-- Main content -->
-  <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
     <!-- Top bar (mobile) -->
     <header class="lg:hidden bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 py-3 flex items-center justify-between flex-shrink-0">
       <button @click="sidebarOpen = !sidebarOpen" class="p-2 hover:bg-[#F5F7F5] rounded-lg transition-colors" aria-label="Toggle menu">

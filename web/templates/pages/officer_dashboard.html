@@ -72,10 +72,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof lucide !== 'undefined') lucide.createIcons();
+  window.chartInstances = [];
   if (typeof Chart !== 'undefined') {
     var p = {{.PendingCount}}, i = {{.InReviewCount}}, c = {{.CompletedCount}};
     if (p + i + c > 0) {
-      new Chart(document.getElementById('officerStatusChart'), {
+      var c1 = new Chart(document.getElementById('officerStatusChart'), {
         type: 'bar',
         data: {
           labels: ['Pending', 'In Review', 'Completed'],
@@ -92,12 +93,13 @@ document.addEventListener('DOMContentLoaded', function () {
           scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       });
+      window.chartInstances.push(c1);
     } else {
       document.getElementById('officerStatusChart').classList.add('hidden');
       document.getElementById('officerStatusEmpty').classList.remove('hidden');
     }
     if (p > 0 || i > 0 || c > 0) {
-      new Chart(document.getElementById('officerDistChart'), {
+      var c2 = new Chart(document.getElementById('officerDistChart'), {
         type: 'doughnut',
         data: {
           labels: ['Pending', 'In Review', 'Completed'],
@@ -112,6 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
           plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
         }
       });
+      window.chartInstances.push(c2);
     } else {
       document.getElementById('officerDistChart').classList.add('hidden');
       document.getElementById('officerDistEmpty').classList.remove('hidden');
@@ -149,6 +152,13 @@ async function loadDashboard() {
 }
 
 loadDashboard();
+
+window.addEventListener('pagehide', function() {
+  if (window.chartInstances) {
+    window.chartInstances.forEach(function(c) { c.destroy(); });
+    window.chartInstances = [];
+  }
+});
 </script>
       </div>
     </main>

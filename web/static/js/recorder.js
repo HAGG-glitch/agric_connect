@@ -104,6 +104,21 @@
     RecorderUI.transcribeBtn.addEventListener('click', () => transcribeAudio(config));
     RecorderUI.retryBtn.addEventListener('click', resetRecorder);
     RecorderUI.useBtn.addEventListener('click', () => useTranscript(config));
+
+    // Cleanup on page navigation
+    window.addEventListener('pagehide', function() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      if (stream) {
+        stream.getTracks().forEach(function(t) { t.stop(); });
+        stream = null;
+      }
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    });
   }
 
   async function startRecording() {

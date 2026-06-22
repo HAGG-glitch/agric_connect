@@ -210,8 +210,9 @@ document.addEventListener('DOMContentLoaded', function() {
       statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
 
+    window.chartInstances = [];
     if (Object.keys(cropCounts).length > 0 && typeof Chart !== 'undefined') {
-      new Chart(document.getElementById('farmerDiagnosisChart'), {
+      var c1 = new Chart(document.getElementById('farmerDiagnosisChart'), {
         type: 'bar',
         data: {
           labels: Object.keys(cropCounts),
@@ -231,13 +232,14 @@ document.addEventListener('DOMContentLoaded', function() {
           scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       });
+      window.chartInstances.push(c1);
     } else {
       document.getElementById('farmerDiagnosisChart').classList.add('hidden');
       document.getElementById('farmerDiagnosisEmpty').classList.remove('hidden');
     }
 
     if (Object.keys(statusCounts).length > 0 && typeof Chart !== 'undefined') {
-      new Chart(document.getElementById('farmerStatusChart'), {
+      var c2 = new Chart(document.getElementById('farmerStatusChart'), {
         type: 'doughnut',
         data: {
           labels: Object.keys(statusCounts),
@@ -253,6 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
           plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } } }
         }
       });
+      window.chartInstances.push(c2);
     } else {
       document.getElementById('farmerStatusChart').classList.add('hidden');
       document.getElementById('farmerStatusEmpty').classList.remove('hidden');
@@ -263,6 +266,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('farmerStatusChart').classList.add('hidden');
     document.getElementById('farmerStatusEmpty').classList.remove('hidden');
   }
+
+  // Chart cleanup on page unload
+  window.addEventListener('pagehide', function() {
+    if (window.chartInstances) {
+      window.chartInstances.forEach(function(c) { c.destroy(); });
+      window.chartInstances = [];
+    }
+  });
 
   // Phone masking
   var phoneEl = document.querySelector('[data-phone]');
