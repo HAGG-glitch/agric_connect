@@ -169,7 +169,6 @@ async function loadUsers() {
     const data = await res.json();
     allUsers = data.users || [];
     renderUsers(allUsers);
-    initCharts();
   } catch (e) {
     document.getElementById('user-table-body').innerHTML = '<tr><td colspan="6" class="text-center text-red-600 py-8">Failed to load users</td></tr>';
   }
@@ -331,6 +330,9 @@ async function toggleStatus(userId, isActive) {
 
 function initCharts() {
   if (typeof Chart === 'undefined') return;
+  if (window.chartInstances) {
+    window.chartInstances.forEach(function(c) { c.destroy(); });
+  }
   window.chartInstances = [];
 
   // Users by role
@@ -427,6 +429,7 @@ function escapeHTML(str) {
 }
 
 loadUsers();
+initCharts();
 </script>
       </div>
     </main>
