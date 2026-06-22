@@ -2,7 +2,7 @@
 {{template "app_layout" .}}
 <div class="max-w-5xl mx-auto p-4 md:p-8">
   <div class="flex items-center gap-4 mb-8">
-    <a href="/assistant" class="p-2 hover:bg-white rounded-lg transition-colors">
+    <a href="{{if eq .UserRole "admin"}}/admin{{else if eq .UserRole "officer"}}/officer{{else}}/dashboard{{end}}" class="p-2 hover:bg-white rounded-lg transition-colors">
       <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
     </a>
     <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2E7D32] to-[#1B5E20] flex items-center justify-center shadow-sm">
