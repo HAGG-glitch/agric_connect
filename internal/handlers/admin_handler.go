@@ -285,7 +285,7 @@ func (h *AdminHandler) ListDiagnoses(c *gin.Context) {
 	}
 	var results []adminDiagView
 	offset := (page - 1) * pageSize
-	if err := query.Select("id::text, crop, COALESCE(probable_condition,'') as probable_condition, status, COALESCE(urgency,'') as urgency, COALESCE(district,'') as district, user_id::text, COALESCE(image_url,'') as image_url, created_at").
+	if err := query.Select("id::text, crop, COALESCE(probable_condition,'') as probable_condition, status, COALESCE(urgency,'') as urgency, COALESCE(district,'') as district, user_id::text, COALESCE(image_storage_path,'') as image_url, created_at").
 		Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&results).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load diagnoses"})
 		return
