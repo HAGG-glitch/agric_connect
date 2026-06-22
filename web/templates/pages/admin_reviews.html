@@ -17,7 +17,7 @@
         <option value="">All Status</option>
         <option value="pending">Pending</option>
         <option value="confirmed">Confirmed</option>
-        <option value="rejected">Rejected</option>
+        <option value="closed">Closed</option>
       </select>
       <button onclick="loadList()" class="bg-[#2E7D32] text-white px-4 py-1.5 rounded-lg text-sm">Filter</button>
     </div>
@@ -52,6 +52,7 @@ async function loadList() {
   const params = new URLSearchParams({ page: currentPage, page_size: '20' });
   if (status) params.set('status', status);
 
+  const container = document.getElementById('review-list');
   try {
     const res = await fetch('/api/v1/admin/reviews?' + params);
     if (res.status === 429) {
@@ -60,7 +61,6 @@ async function loadList() {
     }
     if (!res.ok) throw new Error('Failed');
     const data = await res.json();
-    const container = document.getElementById('review-list');
 
     if (!data.reviews || data.reviews.length === 0) {
       container.innerHTML = '<p class="text-[#6B7280] text-sm py-8 text-center">No reviews found</p>';
@@ -73,7 +73,7 @@ async function loadList() {
         <tr class="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
           <td class="p-3 text-[#1F2937] capitalize">${escapeHTML(r.crop_name || '-')}</td>
           <td class="p-3 text-[#1F2937]">${escapeHTML(r.officer_name || '-')}</td>
-          <td class="p-3"><span class="text-xs px-2 py-1 rounded-full ${r.review_status === 'confirmed' ? 'bg-green-50 text-green-700' : r.review_status === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}">${r.review_status || 'pending'}</span></td>
+          <td class="p-3"><span class="text-xs px-2 py-1 rounded-full ${r.review_status === 'confirmed' ? 'bg-green-50 text-green-700' : r.review_status === 'closed' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}">${r.review_status || 'pending'}</span></td>
           <td class="p-3 text-[#6B7280]">${escapeHTML(r.confirmed_condition || r.condition || '-')}</td>
           <td class="p-3 text-[#6B7280] text-xs">${r.created_at ? new Date(r.created_at).toLocaleDateString() : '-'}</td>
         </tr>
