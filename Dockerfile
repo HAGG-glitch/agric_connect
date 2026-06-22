@@ -14,12 +14,14 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o /app/server ./cmd/server
+RUN CGO_ENABLED=0 go build -o /app/seed-db ./scripts/seed.go
 
 FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /app/server .
+COPY --from=builder /app/seed-db .
 COPY --from=builder /build/web ./web
 COPY --from=builder /build/internal/ai/prompts ./internal/ai/prompts
 COPY --from=builder /build/migrations ./migrations
@@ -28,4 +30,4 @@ COPY --from=builder /build/seed ./seed
 RUN mkdir -p /app/data/uploads && chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8080
-CMD ["./server"]
+CMD ["sh", "-c", "./seed-db 2>&1 && exec ./server"]

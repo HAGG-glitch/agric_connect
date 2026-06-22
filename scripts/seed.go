@@ -63,6 +63,7 @@ func findSeedFile() string {
 	dir := filepath.Dir(filename)
 	candidates := []string{
 		filepath.Join(dir, "../seed/agricultural_documents.json"),
+		"/app/seed/agricultural_documents.json",
 		"seed/agricultural_documents.json",
 	}
 	for _, c := range candidates {
@@ -80,11 +81,14 @@ func findMigrationsDir() string {
 	dir := filepath.Dir(filename)
 	candidates := []string{
 		filepath.Join(dir, "../migrations"),
+		"/app/migrations",
 		"migrations",
 	}
 	for _, c := range candidates {
 		if p, err := filepath.Abs(c); err == nil {
-			return p
+			if _, err := os.Stat(p); err == nil {
+				return p
+			}
 		}
 	}
 	return "migrations"
