@@ -33,7 +33,7 @@ func (h *OfficerHandler) OfficerPage(c *gin.Context) {
 
 	h.db.Model(&diagnosis.CropDiagnosis{}).
 		Where("status IN ? AND (district = ? OR ? OR ?)",
-			[]string{"ai_completed", "awaiting_review"},
+			[]string{"completed", "awaiting_review"},
 			user.District, user.District == "", user.Role == "admin").
 		Count(&pendingCount)
 
@@ -111,7 +111,7 @@ func (h *OfficerHandler) ListDiagnoses(c *gin.Context) {
 	}
 
 	query := h.db.Model(&diagnosis.CropDiagnosis{}).
-		Where("status IN ?", []string{"ai_completed", "awaiting_review", "under_review", "reviewed"})
+		Where("status IN ?", []string{"completed", "awaiting_review", "under_review", "reviewed"})
 
 	if user.Role != "admin" {
 		if user.District == "" {

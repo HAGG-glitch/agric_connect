@@ -29,7 +29,7 @@ func (h *AdminHandler) AdminPage(c *gin.Context) {
 	h.db.Model(&auth.User{}).Where("role = ?", "officer").Count(&officerCount)
 	h.db.Model(&auth.User{}).Where("role = ?", "admin").Count(&adminCount)
 	h.db.Model(&diagnosisModel{}).Count(&diagCount)
-	h.db.Model(&diagnosisModel{}).Where("status IN ?", []string{"ai_completed", "awaiting_review", "under_review"}).Count(&pendingReviewCount)
+	h.db.Model(&diagnosisModel{}).Where("status IN ?", []string{"completed", "awaiting_review", "under_review"}).Count(&pendingReviewCount)
 
 	data := gin.H{
 		"Title":          "AgriConnect AI - Admin",
