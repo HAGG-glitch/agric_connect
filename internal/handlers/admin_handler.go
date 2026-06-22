@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -184,6 +185,22 @@ func (h *AdminHandler) UpdateRole(c *gin.Context) {
 	}
 	if err := h.db.Create(logEntry).Error; err != nil {
 		log.Printf("failed to write audit log: %v", err)
+	}
+
+	notifTitle := "Account Role Changed"
+	notifMsg := fmt.Sprintf("Your AgriConnect account role has been updated from %s to %s.", oldRole, req.Role)
+	notif := &auth.Notification{
+		ID:               uuid.New(),
+		UserID:           targetUser.ID,
+		Title:            notifTitle,
+		Message:          notifMsg,
+		NotificationType: "account_role",
+		EntityType:       "user",
+		EntityID:         &targetUser.ID,
+		CreatedAt:        time.Now().UTC(),
+	}
+	if err := h.db.Create(notif).Error; err != nil {
+		log.Printf("failed to create notification: %v", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Role updated"})
