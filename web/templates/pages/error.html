@@ -1,0 +1,15 @@
+{{template "layout_head" .}}
+<div class="min-h-screen flex items-center justify-center p-6">
+  <div class="text-center max-w-md">
+    <div class="w-20 h-20 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-5">
+      <i data-lucide="alert-triangle" class="w-10 h-10 text-amber-600"></i>
+    </div>
+    <h1 class="text-2xl font-bold text-[#1F2937] mb-2">{{.ErrorCode}} - Too Many Requests</h1>
+    <p class="text-[#6B7280] mb-6">{{.ErrorMessage}}</p>
+    <a href="javascript:history.back()" class="btn-secondary">Go Back</a>
+    <a href="/" class="btn-primary ml-2">Home</a>
+  </div>
+</div>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>if (typeof lucide !== 'undefined') lucide.createIcons();</script>
+{{template "layout_foot" .}}
