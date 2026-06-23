@@ -252,8 +252,14 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 		return
 	}
 
-	// Don't lock diagnosis to a single review anymore — just set to under_review
-	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", "under_review")
+	// Set diagnosis status based on review status
+	newDiagStatus := "under_review"
+	if reviewStatus == "confirmed" || reviewStatus == "closed" {
+		newDiagStatus = "reviewed"
+	} else if reviewStatus == "needs_more_information" {
+		newDiagStatus = "awaiting_review"
+	}
+	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
 
 	// Create notification for farmer
 	if reviewStatus == "confirmed" || reviewStatus == "closed" {
