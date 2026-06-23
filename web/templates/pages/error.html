@@ -27,10 +27,22 @@
     <h1 class="text-5xl font-bold text-[#1F2937] mb-2 tracking-tight">{{.ErrorCode}}</h1>
     <div class="h-1 w-16 bg-[#2E7D32] rounded-full mx-auto mb-4"></div>
     <p class="text-lg text-[#6B7280] mb-2">{{.ErrorMessage}}</p>
-    <p class="text-sm text-[#9CA3AF] mb-8">
+    <p class="text-sm text-[#9CA3AF] mb-2">
       <span class="text-[#2E7D32] font-medium">$</span> access denied
       <span class="cursor-blink text-[#2E7D32]">▌</span>
     </p>
+    {{if .RetryAfter}}
+    <div id="retry-countdown" class="mb-6">
+      <div class="flex items-center justify-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-[#2E7D32] animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+        <span class="text-2xl font-bold text-[#2E7D32] tabular-nums" id="countdown-seconds">{{.RetryAfter}}</span>
+        <span class="text-sm text-[#6B7280]">seconds</span>
+      </div>
+      <div class="w-48 h-2 bg-[#E5E7EB] rounded-full mx-auto overflow-hidden">
+        <div id="countdown-bar" class="h-full bg-[#2E7D32] rounded-full transition-all duration-1000 ease-linear" style="width: 100%"></div>
+      </div>
+    </div>
+    {{end}}
 
     <div class="flex flex-wrap items-center justify-center gap-3">
       <a href="/login" class="inline-flex items-center gap-2 px-6 py-3 bg-[#2E7D32] text-white rounded-xl text-sm font-semibold hover:bg-[#245F27] transition-colors shadow-sm shadow-[#2E7D32]/20">
@@ -49,5 +61,28 @@
   </div>
 </div>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script>if (typeof lucide !== 'undefined') lucide.createIcons();</script>
+<script>
+if (typeof lucide !== 'undefined') lucide.createIcons();
+
+{{if .RetryAfter}}
+(function() {
+  var seconds = {{.RetryAfter}};
+  var total = seconds;
+  var el = document.getElementById('countdown-seconds');
+  var bar = document.getElementById('countdown-bar');
+  if (!el) return;
+
+  var interval = setInterval(function() {
+    seconds--;
+    if (seconds <= 0) {
+      clearInterval(interval);
+      history.back();
+      return;
+    }
+    el.textContent = seconds;
+    if (bar) bar.style.width = (seconds / total * 100) + '%';
+  }, 1000);
+})();
+{{end}}
+</script>
 {{template "layout_foot" .}}

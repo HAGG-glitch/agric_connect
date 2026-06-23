@@ -177,6 +177,7 @@ func RateLimit(cfg RateLimitConfig) gin.HandlerFunc {
 					"Year":               time.Now().Year(),
 					"ErrorMessage":       fmt.Sprintf("Too many requests. Please wait %d seconds and try again.", retryAfter),
 					"ErrorCode":          http.StatusTooManyRequests,
+					"RetryAfter":         retryAfter,
 				})
 				c.Abort()
 			} else {
