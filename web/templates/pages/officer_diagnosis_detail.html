@@ -363,18 +363,20 @@ function renderRequestSection(d, myReview) {
       '</div>';
   } else if (myReview.request_status === 'approved') {
     // Approved — show the form so officer can update their review
-    var badgeClass = myReview.review_status === 'confirmed' ? 'bg-green-100 text-green-700' :
+    var badgeClass = myReview.is_accepted ? 'bg-green-100 text-green-700' :
+                     myReview.review_status === 'confirmed' ? 'bg-green-100 text-green-700' :
                      myReview.review_status === 'closed' ? 'bg-gray-100 text-gray-700' :
                      myReview.review_status === 'field_visit_required' ? 'bg-amber-100 text-amber-700' :
                      myReview.review_status === 'needs_more_information' ? 'bg-blue-100 text-blue-700' :
                      'bg-blue-100 text-blue-700';
+    var badgeLabel = myReview.is_accepted ? 'Completed' : myReview.review_status;
     container.innerHTML =
       '<div class="mb-3">' +
         '<div class="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg mb-4">' +
           '<i data-lucide="check-circle" class="w-5 h-5 text-green-600 flex-shrink-0"></i>' +
           '<div>' +
             '<p class="text-sm font-medium text-[#1F2937]">Your Request was Approved</p>' +
-            '<p class="text-xs text-[#6B7280]">Status: <span class="px-2 py-0.5 rounded-full font-medium text-xs ' + badgeClass + '">' + myReview.review_status + '</span></p>' +
+            '<p class="text-xs text-[#6B7280]">Status: <span class="px-2 py-0.5 rounded-full font-medium text-xs ' + badgeClass + '">' + badgeLabel + '</span></p>' +
             (myReview.review_status === 'field_visit_required' && myReview.site_visit_date
               ? '<p class="text-xs text-[#2E7D32] mt-1"><i data-lucide="calendar" class="w-3 h-3 inline"></i> Visit scheduled: ' + formatShortDate(myReview.site_visit_date) + '</p>'
               : '') +
@@ -439,7 +441,7 @@ function renderReviewHistory(d) {
         '<div class="flex items-center gap-2">' +
           (r.is_accepted ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full"><i data-lucide="check" class="w-3 h-3 inline"></i> Accepted</span>' : '') +
           (r.request_status === 'pending' ? '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Pending Approval</span>' : '') +
-          '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + (r.review_status === 'confirmed' ? 'bg-green-100 text-green-700' : r.review_status === 'in_review' ? 'bg-blue-100 text-blue-700' : r.review_status === 'closed' ? 'bg-gray-100 text-gray-700' : r.review_status === 'field_visit_required' ? 'bg-amber-100 text-amber-700' : 'bg-amber-100 text-amber-700') + '">' + (r.review_status || 'pending') + '</span>' +
+          '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + (r.is_accepted || r.review_status === 'confirmed' ? 'bg-green-100 text-green-700' : r.review_status === 'in_review' ? 'bg-blue-100 text-blue-700' : r.review_status === 'closed' ? 'bg-gray-100 text-gray-700' : r.review_status === 'field_visit_required' ? 'bg-amber-100 text-amber-700' : 'bg-amber-100 text-amber-700') + '">' + (r.is_accepted ? 'Completed' : (r.review_status || 'pending')) + '</span>' +
         '</div>' +
       '</div>' +
       (r.confirmed_condition ? '<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Condition:</span> ' + r.confirmed_condition + '</p>' : '') +

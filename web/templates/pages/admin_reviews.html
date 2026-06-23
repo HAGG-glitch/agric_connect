@@ -73,7 +73,7 @@ async function loadList() {
         <tr class="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
           <td class="p-3 text-[#1F2937] capitalize">${escapeHTML(r.crop_name || '-')}</td>
           <td class="p-3 text-[#1F2937]">${escapeHTML(r.officer_name || '-')}</td>
-          <td class="p-3"><span class="text-xs px-2 py-1 rounded-full ${r.review_status === 'confirmed' ? 'bg-green-50 text-green-700' : r.review_status === 'closed' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}">${r.review_status || 'pending'}</span></td>
+          <td class="p-3"><span class="text-xs px-2 py-1 rounded-full ${r.is_accepted ? 'bg-green-50 text-green-700' : r.review_status === 'confirmed' ? 'bg-green-50 text-green-700' : r.review_status === 'closed' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}">${r.is_accepted ? 'Completed' : (r.review_status || 'pending')}</span></td>
           <td class="p-3 text-[#6B7280]">${escapeHTML(r.confirmed_condition || r.condition || '-')}</td>
           <td class="p-3 text-[#6B7280] text-xs">${r.created_at ? new Date(r.created_at).toLocaleDateString() : '-'}</td>
         </tr>
