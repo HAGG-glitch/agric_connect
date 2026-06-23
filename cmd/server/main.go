@@ -188,6 +188,7 @@ func main() {
 		publicPages.GET("/resources/:id", resourceHandler.ResourceDetailPage)
 		publicPages.GET("/notifications", notifHandler.NotificationsPage)
 		publicPages.GET("/profile", pageHandler.ProfilePage)
+		publicPages.GET("/error", pageHandler.ErrorPage)
 	}
 
 	// Auth pages (with optional auth to redirect already-logged-in users)

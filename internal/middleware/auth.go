@@ -23,11 +23,21 @@ type AuthUser struct {
 	IsActive          bool
 }
 
+func wantsHTML(c *gin.Context) bool {
+	accept := c.GetHeader("Accept")
+	return strings.Contains(accept, "text/html")
+}
+
 func AuthRequired(accessSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, err := extractUser(c, accessSecret)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			if wantsHTML(c) {
+				c.Redirect(http.StatusSeeOther, "/login")
+			} else {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			}
+			c.Abort()
 			return
 		}
 		c.Set(ContextKeyUser, user)
@@ -53,12 +63,22 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRaw, exists := c.Get(ContextKeyUser)
 		if !exists {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			if wantsHTML(c) {
+				c.Redirect(http.StatusSeeOther, "/login")
+			} else {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			}
+			c.Abort()
 			return
 		}
 		user, ok := userRaw.(*AuthUser)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			if wantsHTML(c) {
+				c.Redirect(http.StatusSeeOther, "/login")
+			} else {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			}
+			c.Abort()
 			return
 		}
 
@@ -69,7 +89,15 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 			}
 		}
 
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		if wantsHTML(c) {
+			c.HTML(http.StatusForbidden, "error.html", gin.H{
+				"ErrorCode":    403,
+				"ErrorMessage": "Insufficient permissions. You don't have access to this page.",
+			})
+		} else {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		}
+		c.Abort()
 	}
 }
 

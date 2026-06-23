@@ -1,13 +1,51 @@
 {{template "layout_head" .}}
-<div class="min-h-screen flex items-center justify-center p-6">
-  <div class="text-center max-w-md">
-    <div class="w-20 h-20 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-5">
-      <i data-lucide="alert-triangle" class="w-10 h-10 text-amber-600"></i>
+<style>
+  @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+  .cursor-blink { animation: blink 1s step-end infinite; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .float-icon { animation: float 3s ease-in-out infinite; }
+  .ascii-art { font-family: 'Courier New', Courier, monospace; line-height: 1.15; font-size: 9px; color: #2E7D32; }
+  @media (min-width: 640px) { .ascii-art { font-size: 11px; } }
+</style>
+<div class="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-6">
+  <div class="text-center max-w-lg">
+    <!-- ASCII art tree (GitHub-style terminal illustration) -->
+    <pre class="ascii-art select-none mb-4 leading-tight">
+         {{.ErrorCode}}
+     ／￣￣￣＼
+    /  🚫 ヽ
+   |   ___  |
+    ＼＿/￣＼
+      ＼   ／
+       |  |
+       |  |
+      ╱  ╲
+    ╱      ╲
+  ╱__________╲
+    </pre>
+
+    <h1 class="text-5xl font-bold text-[#1F2937] mb-2 tracking-tight">{{.ErrorCode}}</h1>
+    <div class="h-1 w-16 bg-[#2E7D32] rounded-full mx-auto mb-4"></div>
+    <p class="text-lg text-[#6B7280] mb-2">{{.ErrorMessage}}</p>
+    <p class="text-sm text-[#9CA3AF] mb-8">
+      <span class="text-[#2E7D32] font-medium">$</span> access denied
+      <span class="cursor-blink text-[#2E7D32]">▌</span>
+    </p>
+
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <a href="/login" class="inline-flex items-center gap-2 px-6 py-3 bg-[#2E7D32] text-white rounded-xl text-sm font-semibold hover:bg-[#245F27] transition-colors shadow-sm shadow-[#2E7D32]/20">
+        <i data-lucide="log-in" class="w-4 h-4"></i>
+        Sign In
+      </a>
+      <a href="/" class="inline-flex items-center gap-2 px-6 py-3 border border-[#D1D5DB] text-[#1F2937] rounded-xl text-sm font-semibold hover:bg-[#F5F7F5] transition-colors">
+        <i data-lucide="home" class="w-4 h-4"></i>
+        Go Home
+      </a>
+      <button onclick="history.back()" class="inline-flex items-center gap-2 px-6 py-3 text-[#6B7280] rounded-xl text-sm font-medium hover:text-[#1F2937] hover:bg-[#F5F7F5] transition-colors">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        Go Back
+      </button>
     </div>
-    <h1 class="text-2xl font-bold text-[#1F2937] mb-2">{{.ErrorCode}} - Too Many Requests</h1>
-    <p class="text-[#6B7280] mb-6">{{.ErrorMessage}}</p>
-    <a href="javascript:history.back()" class="btn-secondary">Go Back</a>
-    <a href="/" class="btn-primary ml-2">Home</a>
   </div>
 </div>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>

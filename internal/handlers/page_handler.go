@@ -91,6 +91,22 @@ func (h *PageHandler) AssistantPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "assistant.html", data)
 }
 
+func (h *PageHandler) ErrorPage(c *gin.Context) {
+	codeStr := c.DefaultQuery("code", "403")
+	errMsg := c.DefaultQuery("message", "You don't have access to this page.")
+	statusMap := map[string]int{"400": 400, "401": 401, "403": 403, "404": 404, "429": 429, "500": 500}
+	status := statusMap[codeStr]
+	if status == 0 {
+		status = http.StatusForbidden
+	}
+	c.HTML(status, "error.html", gin.H{
+		"ErrorCode":    codeStr,
+		"ErrorMessage": errMsg,
+		"Title":        "AgriConnect - " + codeStr,
+		"Year":         time.Now().Year(),
+	})
+}
+
 func (h *PageHandler) ProfilePage(c *gin.Context) {
 	authUser, exists := c.Get(middleware.ContextKeyUser)
 	if !exists || authUser == nil {
