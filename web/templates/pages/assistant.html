@@ -10,6 +10,9 @@
     <!-- Logo -->
     <div class="p-5 border-b border-[#E5E7EB]">
       <div class="flex items-center gap-3">
+        <a href="{{if eq .UserRole "admin"}}/admin{{else if eq .UserRole "officer"}}/officer{{else}}/dashboard{{end}}" class="p-1.5 rounded-lg hover:bg-[#F5F7F5] transition-colors flex-shrink-0">
+          <i data-lucide="arrow-left" class="w-4 h-4 text-[#6B7280]"></i>
+        </a>
         <div class="w-9 h-9 rounded-xl bg-[#2E7D32] flex items-center justify-center flex-shrink-0">
           <i data-lucide="sprout" class="w-5 h-5 text-white"></i>
         </div>
@@ -114,6 +117,9 @@
       <button onclick="openSidebar()" class="p-2 rounded-lg hover:bg-[#F5F7F5] transition-colors">
         <i data-lucide="menu" class="w-5 h-5 text-[#6B7280]"></i>
       </button>
+      <a href="{{if eq .UserRole "admin"}}/admin{{else if eq .UserRole "officer"}}/officer{{else}}/dashboard{{end}}" class="p-2 rounded-lg hover:bg-[#F5F7F5] transition-colors">
+        <i data-lucide="arrow-left" class="w-5 h-5 text-[#6B7280]"></i>
+      </a>
       <div class="flex items-center gap-2">
         <div class="w-7 h-7 rounded-lg bg-[#2E7D32] flex items-center justify-center">
           <i data-lucide="sprout" class="w-4 h-4 text-white"></i>

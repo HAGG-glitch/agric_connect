@@ -51,7 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Reload last conversation if present
   const lastConv = sessionStorage.getItem('agri_conv');
   if (lastConv) {
-    loadConversation(lastConv);
+    loadConversation(lastConv).catch(function() {
+      sessionStorage.removeItem('agri_conv');
+    });
   }
 
   // Auto-weather on page load (once)
