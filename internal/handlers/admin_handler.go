@@ -436,4 +436,21 @@ func (h *AdminHandler) ListAuditLogs(c *gin.Context) {
 	})
 }
 
+func (h *AdminHandler) HideReview(c *gin.Context) {
+	reviewIDStr := c.Param("reviewId")
+	reviewID, err := uuid.Parse(reviewIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid review ID"})
+		return
+	}
+
+	result := h.db.Model(&auth.DiagnosisReview{}).Where("id = ?", reviewID).Update("is_hidden", true)
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Review not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Review hidden"})
+}
+
 

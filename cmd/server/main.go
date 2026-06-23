@@ -257,6 +257,8 @@ func main() {
 		v1User.DELETE("/diagnoses/:id", diagnosisHandler.Delete)
 		v1User.GET("/diagnoses/:id/image", diagnosisHandler.ServeImage)
 		v1User.POST("/diagnoses/:id/continue-in-chat", diagnosisHandler.ContinueInChat)
+		v1User.POST("/diagnoses/:id/reviews/:reviewId/accept", diagnosisHandler.AcceptReview)
+		v1User.POST("/diagnoses/:id/reviews/:reviewId/reject", diagnosisHandler.RejectReview)
 
 		// Transcription
 		v1User.POST("/ai/transcribe", transcriptionHandler.Transcribe)
@@ -310,6 +312,7 @@ func main() {
 		adminAPI.GET("/diagnoses", adminHandler.ListDiagnoses)
 		adminAPI.GET("/reviews", adminHandler.ListReviews)
 		adminAPI.GET("/audit-logs", adminHandler.ListAuditLogs)
+		adminAPI.DELETE("/reviews/:reviewId", adminHandler.HideReview)
 	}
 
 	// API v1 — notifications (auth, any role)

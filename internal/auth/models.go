@@ -58,6 +58,8 @@ type DiagnosisReview struct {
 	Recommendation     string     `gorm:"type:text"`
 	Urgency            string     `gorm:"size:20"`
 	RequiresFieldVisit bool       `gorm:"not null;default:false"`
+	IsAccepted         bool       `gorm:"not null;default:false"`
+	IsHidden           bool       `gorm:"not null;default:false"`
 	CreatedAt          time.Time  `gorm:"not null;default:now()"`
 	UpdatedAt          time.Time  `gorm:"not null;default:now()"`
 }

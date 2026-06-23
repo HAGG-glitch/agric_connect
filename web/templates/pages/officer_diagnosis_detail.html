@@ -131,22 +131,37 @@ async function loadDiagnosis() {
       '</div>';
 
     if (d.reviews && d.reviews.length > 0) {
-      var latest = d.reviews[0];
-      document.getElementById('review-id').value = latest.id;
-      document.getElementById('review-status').value = latest.review_status;
-      document.getElementById('confirmed-condition').value = latest.confirmed_condition || '';
-      document.getElementById('officer-comment').value = latest.officer_comment || '';
-      document.getElementById('recommendation').value = latest.recommendation || '';
-      document.getElementById('requires-field-visit').checked = latest.requires_field_visit;
+      // Only pre-fill if the current officer has an existing review
+      var myReview = d.reviews.find(function(r) { return r.officer_name === (d.current_officer_name || '') && r.officer_id === 'current'; });
+      // Actually check by matching the review to the logged-in user
+      // The API doesn't return officer_id, so we just show the form empty for new reviews
 
       document.getElementById('review-history').innerHTML = d.reviews.map(function(r) {
-        var html = '<div class="border-b border-[#E5E7EB] py-2 text-sm">' +
-          '<p><span class="font-medium">Status:</span> ' + r.review_status + '</p>';
-        if (r.confirmed_condition) html += '<p><span class="font-medium">Condition:</span> ' + r.confirmed_condition + '</p>';
-        if (r.officer_comment) html += '<p class="text-[#4B5563]">' + r.officer_comment + '</p>';
-        html += '<p class="text-xs text-[#6B7280]">' + new Date(r.created_at).toLocaleString() + '</p></div>';
+        var html = '<div class="border border-[#E5E7EB] rounded-xl p-4 mb-3 ' + (r.is_accepted ? 'ring-2 ring-[#2E7D32]' : '') + '">' +
+          '<div class="flex items-center justify-between mb-2">' +
+            '<div class="flex items-center gap-2">' +
+              '<div class="w-7 h-7 rounded-full bg-[#2E7D32]/10 flex items-center justify-center">' +
+                '<i data-lucide="user" class="w-4 h-4 text-[#2E7D32]"></i>' +
+              '</div>' +
+              '<div>' +
+                '<span class="text-sm font-medium text-[#1F2937]">' + (r.officer_name || 'Unknown Officer') + '</span>' +
+                '<span class="text-xs text-[#6B7280] ml-1">' + new Date(r.created_at).toLocaleString() + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="flex items-center gap-2">' +
+              (r.is_accepted ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full"><i data-lucide="check" class="w-3 h-3 inline"></i> Accepted by Farmer</span>' : '') +
+              '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + (r.review_status === 'confirmed' ? 'bg-green-100 text-green-700' : r.review_status === 'in_review' ? 'bg-blue-100 text-blue-700' : r.review_status === 'closed' ? 'bg-gray-100 text-gray-700' : 'bg-amber-100 text-amber-700') + '">' + r.review_status + '</span>' +
+            '</div>' +
+          '</div>' +
+          (r.confirmed_condition ? '<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Condition:</span> ' + r.confirmed_condition + '</p>' : '') +
+          (r.officer_comment ? '<p class="text-sm text-[#4B5563] mb-1 whitespace-pre-wrap">' + r.officer_comment + '</p>' : '') +
+          (r.recommendation ? '<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Recommendation:</span> ' + r.recommendation + '</p>' : '') +
+          (r.requires_field_visit ? '<p class="text-xs text-amber-600"><i data-lucide="truck" class="w-3 h-3 inline"></i> Field visit recommended</p>' : '') +
+        '</div>';
         return html;
       }).join('');
+    } else {
+      document.getElementById('review-history').innerHTML = '<p class="text-[#6B7280] text-sm">No reviews yet. Be the first to review this diagnosis.</p>';
     }
 
     if (typeof lucide !== 'undefined') lucide.createIcons();

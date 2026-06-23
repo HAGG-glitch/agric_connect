@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -112,9 +113,18 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 		confidenceBarClass = "bg-red-500"
 	}
 
-	var reviews []auth.DiagnosisReview
+	type reviewWithOfficer struct {
+		auth.DiagnosisReview
+		OfficerName string `json:"officer_name"`
+	}
+	var reviews []reviewWithOfficer
 	if h.db != nil {
-		h.db.Where("diagnosis_id = ?", id).Order("created_at DESC").Find(&reviews)
+		h.db.Table("diagnosis_reviews").
+			Select("diagnosis_reviews.*, COALESCE(users.full_name, 'Unknown') as officer_name").
+			Joins("LEFT JOIN users ON users.id = diagnosis_reviews.officer_id").
+			Where("diagnosis_reviews.diagnosis_id = ? AND diagnosis_reviews.is_hidden = false", id).
+			Order("diagnosis_reviews.created_at DESC").
+			Find(&reviews)
 	}
 
 	data := gin.H{
@@ -343,6 +353,81 @@ func (h *DiagnosisHandler) ContinueInChat(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"conversation_id": convID.String()})
+}
+
+func (h *DiagnosisHandler) AcceptReview(c *gin.Context) {
+	userID := getUserID(c)
+	idStr := c.Param("id")
+	reviewIDStr := c.Param("reviewId")
+
+	diagID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid diagnosis ID"})
+		return
+	}
+	reviewID, err := uuid.Parse(reviewIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid review ID"})
+		return
+	}
+
+	// Verify diagnosis belongs to this user
+	d, err := h.svc.GetDiagnosis(c.Request.Context(), diagID, userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
+		return
+	}
+
+	var review auth.DiagnosisReview
+	if err := h.db.First(&review, "id = ? AND diagnosis_id = ?", reviewID, diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Review not found"})
+		return
+	}
+
+	// Un-accept all other reviews for this diagnosis, then accept this one
+	h.db.Model(&auth.DiagnosisReview{}).Where("diagnosis_id = ?", diagID).Update("is_accepted", false)
+	h.db.Model(&auth.DiagnosisReview{}).Where("id = ?", reviewID).Update("is_accepted", true)
+
+	// Notify the officer
+	h.db.Exec(`INSERT INTO notifications (id, user_id, title, message, notification_type, entity_type, entity_id, created_at)
+		SELECT gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW()`,
+		review.OfficerID, "Farmer Accepted Your Review",
+		fmt.Sprintf("The farmer accepted your review on their %s diagnosis.", d.Crop),
+		"review_accepted", "crop_diagnosis", diagID)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Review accepted"})
+}
+
+func (h *DiagnosisHandler) RejectReview(c *gin.Context) {
+	userID := getUserID(c)
+	idStr := c.Param("id")
+	reviewIDStr := c.Param("reviewId")
+
+	diagID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid diagnosis ID"})
+		return
+	}
+	reviewID, err := uuid.Parse(reviewIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid review ID"})
+		return
+	}
+
+	// Verify diagnosis belongs to this user
+	if _, err := h.svc.GetDiagnosis(c.Request.Context(), diagID, userID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
+		return
+	}
+
+	var review auth.DiagnosisReview
+	if err := h.db.First(&review, "id = ? AND diagnosis_id = ? AND is_accepted = true", reviewID, diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No accepted review to reject"})
+		return
+	}
+
+	h.db.Model(&auth.DiagnosisReview{}).Where("id = ?", reviewID).Update("is_accepted", false)
+	c.JSON(http.StatusOK, gin.H{"message": "Review rejected"})
 }
 
 func diagnosisToView(d *diagnosis.CropDiagnosis) gin.H {

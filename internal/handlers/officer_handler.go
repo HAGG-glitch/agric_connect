@@ -174,8 +174,17 @@ func (h *OfficerHandler) GetDiagnosis(c *gin.Context) {
 		return
 	}
 
-	var reviews []auth.DiagnosisReview
-	h.db.Where("diagnosis_id = ?", diagID).Order("created_at DESC").Find(&reviews)
+	type reviewWithOfficer struct {
+		auth.DiagnosisReview
+		OfficerName string `json:"officer_name"`
+	}
+	var reviews []reviewWithOfficer
+	h.db.Table("diagnosis_reviews").
+		Select("diagnosis_reviews.*, COALESCE(users.full_name, 'Unknown') as officer_name").
+		Joins("LEFT JOIN users ON users.id = diagnosis_reviews.officer_id").
+		Where("diagnosis_reviews.diagnosis_id = ? AND diagnosis_reviews.is_hidden = false", diagID).
+		Order("diagnosis_reviews.created_at DESC").
+		Find(&reviews)
 
 	view := diagnosisToView(&d)
 	view["reviews"] = reviews
@@ -200,12 +209,6 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 
 	if user.Role != "admin" && user.District != "" && d.District != user.District {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: not your district"})
-		return
-	}
-
-	var existing auth.DiagnosisReview
-	if err := h.db.Where("diagnosis_id = ? AND review_status NOT IN ('closed')", diagID).First(&existing).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "An active review already exists for this diagnosis"})
 		return
 	}
 
@@ -251,16 +254,13 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 		return
 	}
 
-	newDiagStatus := "under_review"
-	if reviewStatus == "confirmed" || reviewStatus == "closed" {
-		newDiagStatus = "reviewed"
-	}
-	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
+	// Don't lock diagnosis to a single review anymore — just set to under_review
+	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", "under_review")
 
 	// Create notification for farmer
-	h.createNotification(d.UserID, "Diagnosis Review Started",
-		fmt.Sprintf("An extension officer is reviewing your %s diagnosis.", d.Crop),
-		"review_started", "crop_diagnosis", diagID)
+	h.createNotification(d.UserID, "New Diagnosis Review",
+		fmt.Sprintf("An extension officer has shared their opinion on your %s diagnosis.", d.Crop),
+		"review_created", "crop_diagnosis", diagID)
 
 	// Audit log
 	h.writeAuditLog(&user.ID, "review_created", "diagnosis_review", &review.ID, "diagnosis_id", diagID.String())
