@@ -2736,7 +2736,7 @@ func TestConfidenceDetail_DoesNotPanicOnTypeMismatch(t *testing.T) {
 	}
 }
 
-func TestConfidenceDetail_SixtyPercentShowsWidth60(t *testing.T) {
+func TestConfidenceDetail_SixtyPercentShowsGauge(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	d := &diagnosis.CropDiagnosis{
 		ID:         uuid.New(),
@@ -2770,12 +2770,15 @@ func TestConfidenceDetail_SixtyPercentShowsWidth60(t *testing.T) {
 	}
 
 	body := w.Body.String()
-	if !strings.Contains(body, `width: 60%`) {
-		t.Errorf("expected width: 60%% in template, got: %s", body[:800])
+	if !strings.Contains(body, "60%") {
+		t.Errorf("expected 60%% in template, got: %s", body[:800])
+	}
+	if !strings.Contains(body, "confidenceGauge") {
+		t.Error("expected confidence gauge canvas in template")
 	}
 }
 
-func TestConfidenceDetail_HighConfidenceGetsGreenClass(t *testing.T) {
+func TestConfidenceDetail_HighConfidenceShowsGauge(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	d := &diagnosis.CropDiagnosis{
 		ID:         uuid.New(),
@@ -2809,12 +2812,15 @@ func TestConfidenceDetail_HighConfidenceGetsGreenClass(t *testing.T) {
 	}
 
 	body := w.Body.String()
-	if !strings.Contains(body, "bg-green-600") {
-		t.Errorf("expected green bar class for high confidence, got: %s", body[:800])
+	if !strings.Contains(body, "85%") {
+		t.Errorf("expected 85%% in template, got: %s", body[:800])
+	}
+	if !strings.Contains(body, "confidenceGauge") {
+		t.Error("expected confidence gauge canvas in template")
 	}
 }
 
-func TestConfidenceDetail_MediumConfidenceGetsAmberClass(t *testing.T) {
+func TestConfidenceDetail_MediumConfidenceShowsGauge(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	d := &diagnosis.CropDiagnosis{
 		ID:         uuid.New(),
@@ -2848,12 +2854,15 @@ func TestConfidenceDetail_MediumConfidenceGetsAmberClass(t *testing.T) {
 	}
 
 	body := w.Body.String()
-	if !strings.Contains(body, "bg-amber-500") {
-		t.Errorf("expected amber bar class for medium confidence, got: %s", body[:800])
+	if !strings.Contains(body, "55%") {
+		t.Errorf("expected 55%% in template, got: %s", body[:800])
+	}
+	if !strings.Contains(body, "confidenceGauge") {
+		t.Error("expected confidence gauge canvas in template")
 	}
 }
 
-func TestConfidenceDetail_LowConfidenceGetsRedClass(t *testing.T) {
+func TestConfidenceDetail_LowConfidenceShowsGauge(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	d := &diagnosis.CropDiagnosis{
 		ID:         uuid.New(),
@@ -2887,8 +2896,11 @@ func TestConfidenceDetail_LowConfidenceGetsRedClass(t *testing.T) {
 	}
 
 	body := w.Body.String()
-	if !strings.Contains(body, "bg-red-500") {
-		t.Errorf("expected red bar class for low confidence, got: %s", body[:800])
+	if !strings.Contains(body, "20%") {
+		t.Errorf("expected 20%% in template, got: %s", body[:800])
+	}
+	if !strings.Contains(body, "confidenceGauge") {
+		t.Error("expected confidence gauge canvas in template")
 	}
 }
 
@@ -2928,8 +2940,8 @@ func TestConfidenceDetail_FailedDiagnosisHidesConfidenceChart(t *testing.T) {
 	if !strings.Contains(body, "AI Analysis Could Not Be Completed") {
 		t.Error("expected failure message in failed diagnosis")
 	}
-	if strings.Contains(body, "Confidence") && strings.Contains(body, "bg-") {
-		t.Error("failed diagnosis should not show confidence chart")
+	if strings.Contains(body, "<canvas id=\"confidenceGauge\"") {
+		t.Error("failed diagnosis should not show confidence gauge canvas")
 	}
 }
 

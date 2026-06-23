@@ -22,7 +22,7 @@
   <div class="flex flex-wrap gap-2 mb-6">
     <span class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full font-medium">Image: uploaded</span>
     <span class="text-xs {{if eq $d.Status "completed"}}bg-green-50 text-green-600{{else if eq $d.Status "processing"}}bg-blue-50 text-blue-600{{else}}bg-red-50 text-red-600{{end}} px-2 py-1 rounded-full font-medium">AI analysis: {{$d.Status}}</span>
-    <span class="text-xs {{if .Reviews}}bg-green-50 text-green-600{{else}}bg-gray-50 text-gray-600{{end}} px-2 py-1 rounded-full font-medium">Officer reviews: {{len .Reviews}}</span>
+    <span class="text-xs {{if .UniqueOfficerCount}}bg-green-50 text-green-600{{else}}bg-gray-50 text-gray-600{{end}} px-2 py-1 rounded-full font-medium">Officer reviews: {{.UniqueOfficerCount}}</span>
   </div>
 
   <div class="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
@@ -233,7 +233,7 @@
     <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
       <div class="flex items-center gap-2 mb-3">
         <i data-lucide="message-square" class="w-4 h-4 text-[#2E7D32]"></i>
-        <h3 class="font-semibold text-[#1F2937] text-sm">Officer Reviews ({{len .Reviews}})</h3>
+        <h3 class="font-semibold text-[#1F2937] text-sm">Officer Reviews ({{.UniqueOfficerCount}})</h3>
       </div>
       <div class="space-y-3">
         {{range .Reviews}}

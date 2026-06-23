@@ -161,20 +161,36 @@ func (h *OfficerHandler) GetDiagnosis(c *gin.Context) {
 		return
 	}
 
-	type reviewWithOfficer struct {
-		auth.DiagnosisReview
-		OfficerName string `json:"officer_name"`
+	type reviewRow struct {
+		ID                 string    `json:"id"`
+		DiagnosisID        string    `json:"diagnosis_id"`
+		OfficerID          string    `json:"officer_id"`
+		OfficerName        string    `json:"officer_name"`
+		ReviewStatus       string    `json:"review_status"`
+		ConfirmedCondition string    `json:"confirmed_condition"`
+		OfficerComment     string    `json:"officer_comment"`
+		Recommendation     string    `json:"recommendation"`
+		Urgency            string    `json:"urgency"`
+		RequiresFieldVisit bool      `json:"requires_field_visit"`
+		IsAccepted         bool      `json:"is_accepted"`
+		IsHidden           bool      `json:"is_hidden"`
+		CreatedAt          time.Time `json:"created_at"`
+		UpdatedAt          time.Time `json:"updated_at"`
 	}
-	var reviews []reviewWithOfficer
+	var reviews []reviewRow
 	h.db.Table("diagnosis_reviews").
-		Select("diagnosis_reviews.*, COALESCE(users.full_name, 'Unknown') as officer_name").
+		Select("diagnosis_reviews.id::text, diagnosis_reviews.diagnosis_id::text, diagnosis_reviews.officer_id::text, COALESCE(users.full_name, 'Unknown') as officer_name, diagnosis_reviews.review_status, COALESCE(diagnosis_reviews.confirmed_condition,'') as confirmed_condition, COALESCE(diagnosis_reviews.officer_comment,'') as officer_comment, COALESCE(diagnosis_reviews.recommendation,'') as recommendation, COALESCE(diagnosis_reviews.urgency,'') as urgency, diagnosis_reviews.requires_field_visit, diagnosis_reviews.is_accepted, diagnosis_reviews.is_hidden, diagnosis_reviews.created_at, diagnosis_reviews.updated_at").
 		Joins("LEFT JOIN users ON users.id = diagnosis_reviews.officer_id").
 		Where("diagnosis_reviews.diagnosis_id = ? AND diagnosis_reviews.is_hidden = false", diagID).
 		Order("diagnosis_reviews.created_at DESC").
 		Find(&reviews)
 
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
+
 	view := diagnosisToView(&d)
 	view["reviews"] = reviews
+	view["current_officer_id"] = user.ID.String()
+	view["current_officer_name"] = user.FullName
 
 	c.JSON(http.StatusOK, view)
 }

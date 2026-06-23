@@ -58,11 +58,11 @@
         return;
       }
 
-      const hasUnread = notifications.some(function(n) { return !n.read_at; });
+      const hasUnread = notifications.some(function(n) { return !n.is_read; });
       document.getElementById('mark-all-read').classList.toggle('hidden', !hasUnread);
 
       container.innerHTML = notifications.map(function(n) {
-        var isUnread = !n.read_at;
+        var isUnread = !n.is_read;
         var badge = getTypeBadge(n.type || n.notification_type);
         var timeAgo = formatTimeAgo(n.created_at);
         var entityPath = getEntityPath(n);
@@ -158,6 +158,8 @@
       var res = await fetch('/api/v1/notifications/read-all', { method: 'PATCH' });
       if (res.status === 429) { alert('Too many requests. Please wait a moment and try again.'); btn.disabled = false; btn.textContent = 'Mark All Read'; return; }
       if (!res.ok) throw new Error('Failed');
+      btn.disabled = false;
+      btn.textContent = 'Mark All Read';
       loadNotifications();
     } catch (e) {
       btn.disabled = false;

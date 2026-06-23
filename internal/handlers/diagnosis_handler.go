@@ -109,6 +109,7 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 		OfficerName string `json:"officer_name"`
 	}
 	var reviews []reviewWithOfficer
+	var uniqueOfficerCount int64 = 0
 	if h.db != nil {
 		h.db.Table("diagnosis_reviews").
 			Select("diagnosis_reviews.*, COALESCE(users.full_name, 'Unknown') as officer_name").
@@ -116,10 +117,14 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 			Where("diagnosis_reviews.diagnosis_id = ? AND diagnosis_reviews.is_hidden = false", id).
 			Order("diagnosis_reviews.created_at DESC").
 			Find(&reviews)
+		h.db.Table("diagnosis_reviews").
+			Where("diagnosis_id = ? AND is_hidden = false", id).
+			Distinct("officer_id").
+			Count(&uniqueOfficerCount)
 	}
 
 	var relatedDocs []models.AgriculturalDocument
-	if d.Crop != "" {
+	if d.Crop != "" && h.db != nil {
 		h.db.Model(&models.AgriculturalDocument{}).
 			Where("reviewed = ? AND LOWER(crop) = ?", true, strings.ToLower(d.Crop)).
 			Order("created_at DESC").
@@ -134,6 +139,7 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 		"Title":                 "AgriConnect AI - Diagnosis Detail",
 		"Diagnosis":             d,
 		"Reviews":               reviews,
+		"UniqueOfficerCount":    uniqueOfficerCount,
 		"RelatedResources":      relatedDocs,
 		"Year":                  time.Now().Year(),
 		"ContentBlock":          "contentDiagnosisDetail",
@@ -428,6 +434,9 @@ func (h *DiagnosisHandler) AcceptReview(c *gin.Context) {
 	// Un-accept all other reviews for this diagnosis, then accept this one
 	h.db.Model(&auth.DiagnosisReview{}).Where("diagnosis_id = ?", diagID).Update("is_accepted", false)
 	h.db.Model(&auth.DiagnosisReview{}).Where("id = ?", reviewID).Update("is_accepted", true)
+
+	// Update diagnosis status to reflect accepted review
+	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", "reviewed")
 
 	// Notify the officer
 	h.db.Exec(`INSERT INTO notifications (id, user_id, title, message, notification_type, entity_type, entity_id, created_at)
