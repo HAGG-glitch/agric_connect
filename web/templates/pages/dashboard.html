@@ -66,7 +66,7 @@
       <p class="qa-title">Profile</p>
       <p class="qa-desc">Manage your account</p>
     </a>
-    <a href="/resources" class="quick-action-card">
+    <a href="/assistant" class="quick-action-card">
       <div class="qa-icon"><i data-lucide="cloud-sun" class="w-6 h-6 text-[#FFC107]"></i></div>
       <p class="qa-title">Weather</p>
       <p class="qa-desc">Check forecasts</p>
@@ -181,8 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
   fetch('/api/v1/weather?district={{.UserDistrict}}')
     .then(r => r.json())
     .then(data => {
-      if (data.temperature) {
-        document.getElementById('weather-temp').textContent = Math.round(data.temperature) + '°C';
+      if (data.current && data.current.temperature_c != null) {
+        document.getElementById('weather-temp').textContent = Math.round(data.current.temperature_c) + '°C';
       }
     })
     .catch(() => {});
