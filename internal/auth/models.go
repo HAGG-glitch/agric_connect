@@ -60,6 +60,8 @@ type DiagnosisReview struct {
 	RequiresFieldVisit bool       `gorm:"not null;default:false"`
 	IsAccepted         bool       `gorm:"not null;default:false"`
 	IsHidden           bool       `gorm:"not null;default:false"`
+	RequestStatus      string     `gorm:"size:20;not null;default:none"`
+	SiteVisitDate      *time.Time `gorm:"default:null"`
 	CreatedAt          time.Time  `gorm:"not null;default:now()"`
 	UpdatedAt          time.Time  `gorm:"not null;default:now()"`
 }

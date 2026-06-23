@@ -1,0 +1,3 @@
+ALTER TABLE diagnosis_reviews
+  ADD COLUMN IF NOT EXISTS request_status VARCHAR(20) NOT NULL DEFAULT 'none',
+  ADD COLUMN IF NOT EXISTS site_visit_date TIMESTAMP NULL;

@@ -229,7 +229,53 @@
     </div>
     {{end}}
 
-    {{if .Reviews}}
+    {{$hasPending := false}}
+    {{$hasActive := false}}
+    {{range .Reviews}}{{if not .IsHidden}}{{if eq .RequestStatus "pending"}}{{$hasPending = true}}{{else}}{{$hasActive = true}}{{end}}{{end}}{{end}}
+
+    {{if $hasPending}}
+    <div class="bg-white border border-amber-200 rounded-xl p-5 mb-4">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="clock" class="w-4 h-4 text-amber-600"></i>
+        <h3 class="font-semibold text-[#1F2937] text-sm">Pending Requests</h3>
+      </div>
+      <div class="space-y-3">
+        {{range .Reviews}}
+        {{if and (not .IsHidden) (eq .RequestStatus "pending")}}
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center">
+                <i data-lucide="user" class="w-4 h-4 text-amber-600"></i>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-[#1F2937]">{{.OfficerName}}</span>
+                <span class="text-xs text-[#6B7280] ml-1">{{.CreatedAt.Format "Jan 2, 2006 15:04"}}</span>
+              </div>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">{{.ReviewStatus}}</span>
+          </div>
+          {{if .OfficerComment}}<p class="text-sm text-[#4B5563] mb-1 whitespace-pre-wrap">{{.OfficerComment}}</p>{{end}}
+          {{if .Recommendation}}<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Recommendation:</span> {{.Recommendation}}</p>{{end}}
+          {{if eq .ReviewStatus "field_visit_required"}}
+          <p class="text-xs text-amber-600 mb-2"><i data-lucide="calendar" class="w-3 h-3 inline"></i> Proposed site visit{{if .SiteVisitDate}}: {{.SiteVisitDate.Format "Jan 2, 2006"}}{{end}}</p>
+          {{end}}
+          <div class="flex gap-2 mt-2 pt-2 border-t border-amber-200">
+            <button onclick="approveRequest('{{$.Diagnosis.ID}}','{{.ID}}')" class="text-xs px-3 py-1.5 rounded-lg bg-[#2E7D32] text-white hover:bg-[#245F27] font-medium transition-colors">
+              <i data-lucide="check" class="w-3 h-3 inline"></i> Approve
+            </button>
+            <button onclick="rejectRequest('{{$.Diagnosis.ID}}','{{.ID}}')" class="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-medium transition-colors">
+              <i data-lucide="x" class="w-3 h-3 inline"></i> Decline
+            </button>
+          </div>
+        </div>
+        {{end}}
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+
+    {{if $hasActive}}
     <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
       <div class="flex items-center gap-2 mb-3">
         <i data-lucide="message-square" class="w-4 h-4 text-[#2E7D32]"></i>
@@ -237,7 +283,7 @@
       </div>
       <div class="space-y-3">
         {{range .Reviews}}
-        {{if not .IsHidden}}
+        {{if and (not .IsHidden) (ne .RequestStatus "pending")}}
         <div class="bg-white border border-[#E5E7EB] rounded-xl p-4 {{if .IsAccepted}}ring-2 ring-[#2E7D32]{{end}}">
           <div class="flex items-start justify-between mb-2">
             <div class="flex items-center gap-2">
@@ -251,12 +297,13 @@
             </div>
             <div class="flex items-center gap-2">
               {{if .IsAccepted}}<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium"><i data-lucide="check" class="w-3 h-3 inline"></i> Accepted</span>{{end}}
-              <span class="text-xs px-2 py-0.5 rounded-full font-medium {{if eq .ReviewStatus "confirmed"}}bg-green-100 text-green-700{{else if eq .ReviewStatus "in_review"}}bg-blue-100 text-blue-700{{else if eq .ReviewStatus "closed"}}bg-gray-100 text-gray-700{{else}}bg-amber-100 text-amber-700{{end}}">{{.ReviewStatus}}</span>
+              <span class="text-xs px-2 py-0.5 rounded-full font-medium {{if eq .ReviewStatus "confirmed"}}bg-green-100 text-green-700{{else if eq .ReviewStatus "in_review"}}bg-blue-100 text-blue-700{{else if eq .ReviewStatus "closed"}}bg-gray-100 text-gray-700{{else if eq .ReviewStatus "field_visit_required"}}bg-amber-100 text-amber-700{{else}}bg-amber-100 text-amber-700{{end}}">{{.ReviewStatus}}</span>
             </div>
           </div>
           {{if .ConfirmedCondition}}<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Condition:</span> {{.ConfirmedCondition}}</p>{{end}}
           {{if .OfficerComment}}<p class="text-sm text-[#4B5563] mb-1 whitespace-pre-wrap">{{.OfficerComment}}</p>{{end}}
           {{if .Recommendation}}<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Recommendation:</span> {{.Recommendation}}</p>{{end}}
+          {{if .SiteVisitDate}}<p class="text-xs text-amber-600 mb-1"><i data-lucide="calendar" class="w-3 h-3 inline"></i> Site visit: {{.SiteVisitDate.Format "Jan 2, 2006"}}</p>{{end}}
           {{if .RequiresFieldVisit}}<p class="text-xs text-amber-600 mb-2"><i data-lucide="truck" class="w-3 h-3 inline"></i> Field visit recommended</p>{{end}}
           {{if or (eq .ReviewStatus "confirmed") (eq .ReviewStatus "closed")}}
           <div class="flex gap-2 mt-2 pt-2 border-t border-[#F3F4F6]">
@@ -313,6 +360,23 @@
     } catch (e) {
       alert('Failed to delete.');
     }
+  }
+
+  async function approveRequest(diagId, reviewId) {
+    try {
+      const res = await fetch('/api/v1/diagnoses/' + diagId + '/reviews/' + reviewId + '/approve-request', { method: 'POST' });
+      if (!res.ok) { const d = await res.json(); alert(d.error || 'Failed'); return; }
+      window.location.reload();
+    } catch (e) { alert('Failed to approve request.'); }
+  }
+
+  async function rejectRequest(diagId, reviewId) {
+    if (!confirm('Decline this officer request?')) return;
+    try {
+      const res = await fetch('/api/v1/diagnoses/' + diagId + '/reviews/' + reviewId + '/reject-request', { method: 'POST' });
+      if (!res.ok) { const d = await res.json(); alert(d.error || 'Failed'); return; }
+      window.location.reload();
+    } catch (e) { alert('Failed to reject request.'); }
   }
 
   async function acceptReview(diagId, reviewId) {

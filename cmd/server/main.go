@@ -260,6 +260,8 @@ func main() {
 		v1User.POST("/diagnoses/:id/continue-in-chat", diagnosisHandler.ContinueInChat)
 		v1User.POST("/diagnoses/:id/reviews/:reviewId/accept", diagnosisHandler.AcceptReview)
 		v1User.POST("/diagnoses/:id/reviews/:reviewId/reject", diagnosisHandler.RejectReview)
+		v1User.POST("/diagnoses/:id/reviews/:reviewId/approve-request", diagnosisHandler.ApproveRequest)
+		v1User.POST("/diagnoses/:id/reviews/:reviewId/reject-request", diagnosisHandler.RejectRequest)
 
 		// Transcription
 		v1User.POST("/ai/transcribe", transcriptionHandler.Transcribe)

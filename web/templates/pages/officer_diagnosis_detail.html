@@ -50,55 +50,16 @@
       </div>
 
       <div>
-        <div class="bg-white rounded-xl border border-[#E5E7EB] p-5 mb-4">
+        <div id="request-section" class="bg-white rounded-xl border border-[#E5E7EB] p-5 mb-4">
           <h2 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
-            <i data-lucide="clipboard-check" class="w-5 h-5 text-[#2E7D32]"></i> Extension Officer Review
+            <i data-lucide="clipboard-check" class="w-5 h-5 text-[#2E7D32]"></i>
+            <span>Extension Officer Review</span>
           </h2>
-          <form id="review-form" onsubmit="return submitReview(event)">
-            <input type="hidden" id="diagnosis-id">
-            <input type="hidden" id="review-id">
-
-            <div class="mb-3">
-              <label class="block text-sm font-medium text-[#374151] mb-1">Review Status</label>
-              <select id="review-status" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2">
-                <option value="pending">Pending</option>
-                <option value="in_review">In Review</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="needs_more_information">Needs More Information</option>
-                <option value="field_visit_required">Field Visit Required</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label class="block text-sm font-medium text-[#374151] mb-1">Confirmed Condition</label>
-              <input type="text" id="confirmed-condition" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2">
-            </div>
-
-            <div class="mb-3">
-              <label class="block text-sm font-medium text-[#374151] mb-1">Comment</label>
-              <textarea id="officer-comment" rows="3" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2"></textarea>
-            </div>
-
-            <div class="mb-3">
-              <label class="block text-sm font-medium text-[#374151] mb-1">Recommendation</label>
-              <textarea id="recommendation" rows="3" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2"></textarea>
-            </div>
-
-            <div class="mb-3">
-              <label class="flex items-center gap-2">
-                <input type="checkbox" id="requires-field-visit" class="rounded border-[#D1D5DB]">
-                <span class="text-sm text-[#374151]">Requires Field Visit</span>
-              </label>
-            </div>
-
-            <div id="review-error" class="text-red-600 text-sm mb-3 hidden"></div>
-            <button type="submit" class="w-full bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl py-2.5 text-sm font-medium">Save Review</button>
-          </form>
+          <div id="request-state"></div>
         </div>
 
         <div class="bg-white rounded-xl border border-[#E5E7EB] p-5">
-          <h2 class="font-semibold text-[#1F2937] mb-3">Review History</h2>
+          <h2 class="font-semibold text-[#1F2937] mb-3">All Officer Reviews</h2>
           <div id="review-history">
             <p class="text-[#6B7280] text-sm">No reviews yet</p>
           </div>
@@ -123,9 +84,80 @@ function formatShortDate(dateStr) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+var currentDiagnosis = null;
+
+function getRequestFormHTML(d, myReview) {
+  var status = myReview ? myReview.review_status : 'in_review';
+  var requiresFieldVisit = myReview ? myReview.requires_field_visit : false;
+  var siteVisitDate = myReview ? (myReview.site_visit_date || '') : '';
+  var comment = myReview ? (myReview.officer_comment || '') : '';
+  var condition = myReview ? (myReview.confirmed_condition || '') : '';
+  var recommendation = myReview ? (myReview.recommendation || '') : '';
+
+  return '<form id="review-form" onsubmit="return submitReview(event)">' +
+    '<input type="hidden" id="diagnosis-id" value="' + d.id + '">' +
+    '<input type="hidden" id="review-id" value="' + (myReview ? myReview.id : '') + '">' +
+
+    '<div class="mb-3">' +
+      '<label class="block text-sm font-medium text-[#374151] mb-1">Action Type</label>' +
+      '<select id="review-status" onchange="onStatusChange()" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2">' +
+        '<option value="in_review"' + (status === 'in_review' ? ' selected' : '') + '>In Review</option>' +
+        '<option value="confirmed"' + (status === 'confirmed' ? ' selected' : '') + '>Confirmed</option>' +
+        '<option value="needs_more_information"' + (status === 'needs_more_information' ? ' selected' : '') + '>Needs More Information</option>' +
+        '<option value="field_visit_required"' + (status === 'field_visit_required' ? ' selected' : '') + '>Field Visit Required</option>' +
+        '<option value="closed"' + (status === 'closed' ? ' selected' : '') + '>Closed</option>' +
+      '</select>' +
+    '</div>' +
+
+    '<div id="field-visit-date-group" class="mb-3' + (status !== 'field_visit_required' ? ' hidden' : '') + '">' +
+      '<label class="block text-sm font-medium text-[#374151] mb-1">Proposed Visit Date</label>' +
+      '<input type="date" id="site-visit-date" value="' + siteVisitDate + '" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2">' +
+      '<p class="text-xs text-[#6B7280] mt-1">Farmer must approve the visit date</p>' +
+    '</div>' +
+
+    '<div id="confirmed-condition-group" class="mb-3' + (status !== 'confirmed' ? ' hidden' : '') + '">' +
+      '<label class="block text-sm font-medium text-[#374151] mb-1">Confirmed Condition</label>' +
+      '<input type="text" id="confirmed-condition" value="' + condition + '" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2" placeholder="e.g., Late Blight">' +
+    '</div>' +
+
+    '<div class="mb-3">' +
+      '<label class="block text-sm font-medium text-[#374151] mb-1">' +
+        '<span id="comment-label">Comment / Notes</span>' +
+      '</label>' +
+      '<textarea id="officer-comment" rows="3" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2" placeholder="Add your observations or notes...">' + comment + '</textarea>' +
+    '</div>' +
+
+    '<div id="recommendation-group" class="mb-3' + (status !== 'confirmed' && status !== 'closed' ? ' hidden' : '') + '">' +
+      '<label class="block text-sm font-medium text-[#374151] mb-1">Recommendation</label>' +
+      '<textarea id="recommendation" rows="3" class="w-full text-sm border border-[#D1D5DB] rounded-lg px-3 py-2">' + recommendation + '</textarea>' +
+    '</div>' +
+
+    '<div id="review-error" class="text-red-600 text-sm mb-3 hidden"></div>' +
+    '<button type="submit" class="w-full bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl py-2.5 text-sm font-medium">' +
+      (myReview ? 'Update Request' : 'Submit Request') +
+    '</button>' +
+    '<p class="text-xs text-[#6B7280] mt-2 text-center">The farmer will review and approve or decline your request.</p>' +
+  '</form>';
+}
+
+function onStatusChange() {
+  var status = document.getElementById('review-status').value;
+  document.getElementById('field-visit-date-group').classList.toggle('hidden', status !== 'field_visit_required');
+  document.getElementById('confirmed-condition-group').classList.toggle('hidden', status !== 'confirmed');
+  document.getElementById('recommendation-group').classList.toggle('hidden', status !== 'confirmed' && status !== 'closed');
+
+  var label = document.getElementById('comment-label');
+  if (status === 'needs_more_information') {
+    label.textContent = 'What information do you need?';
+  } else if (status === 'field_visit_required') {
+    label.textContent = 'Site Visit Notes';
+  } else {
+    label.textContent = 'Comment / Notes';
+  }
+}
+
 async function loadDiagnosis() {
   const id = window.location.pathname.split('/').pop();
-  document.getElementById('diagnosis-id').value = id;
 
   try {
     const res = await fetch('/api/v1/officer/diagnoses/' + id);
@@ -135,6 +167,7 @@ async function loadDiagnosis() {
     }
     if (!res.ok) throw new Error('Failed');
     const d = await res.json();
+    currentDiagnosis = d;
 
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('content').classList.remove('hidden');
@@ -142,7 +175,6 @@ async function loadDiagnosis() {
 
     var confidence = Math.round(d.confidence || 0);
     var confidenceColor = confidence >= 70 ? '#16a34a' : confidence >= 40 ? '#f59e0b' : '#dc2626';
-    var confidenceLabel = d.confidence_label || (confidence >= 70 ? 'high' : confidence >= 40 ? 'moderate' : 'low');
 
     // AI Assessment
     var assessmentHTML =
@@ -267,50 +299,128 @@ async function loadDiagnosis() {
       document.getElementById('continue-in-chat').onclick = function() { continueInChat(d.id); };
     }
 
-    // Reviews
+    // --- Officer Request Section ---
+    var myReview = null;
     if (d.reviews && d.reviews.length > 0) {
-      var myReview = d.reviews.find(function(r) { return r.officer_id === d.current_officer_id; });
-      if (myReview) {
-        document.getElementById('review-id').value = myReview.id;
-        document.getElementById('review-status').value = myReview.review_status;
-        document.getElementById('confirmed-condition').value = myReview.confirmed_condition || '';
-        document.getElementById('officer-comment').value = myReview.officer_comment || '';
-        document.getElementById('recommendation').value = myReview.recommendation || '';
-        document.getElementById('requires-field-visit').checked = myReview.requires_field_visit || false;
-      }
-
-      document.getElementById('review-history').innerHTML = d.reviews.map(function(r) {
-        var html = '<div class="border border-[#E5E7EB] rounded-xl p-4 mb-3 ' + (r.is_accepted ? 'ring-2 ring-[#2E7D32]' : '') + '">' +
-          '<div class="flex items-center justify-between mb-2">' +
-            '<div class="flex items-center gap-2">' +
-              '<div class="w-7 h-7 rounded-full bg-[#2E7D32]/10 flex items-center justify-center">' +
-                '<i data-lucide="user" class="w-4 h-4 text-[#2E7D32]"></i>' +
-              '</div>' +
-              '<div>' +
-                '<span class="text-sm font-medium text-[#1F2937]">' + (r.officer_name || 'Unknown Officer') + '</span>' +
-                '<span class="text-xs text-[#6B7280] ml-1">' + formatDate(r.created_at) + '</span>' +
-              '</div>' +
-            '</div>' +
-            '<div class="flex items-center gap-2">' +
-              (r.is_accepted ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full"><i data-lucide="check" class="w-3 h-3 inline"></i> Accepted by Farmer</span>' : '') +
-              '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + (r.review_status === 'confirmed' ? 'bg-green-100 text-green-700' : r.review_status === 'in_review' ? 'bg-blue-100 text-blue-700' : r.review_status === 'closed' ? 'bg-gray-100 text-gray-700' : 'bg-amber-100 text-amber-700') + '">' + (r.review_status || 'pending') + '</span>' +
-            '</div>' +
-          '</div>' +
-          (r.confirmed_condition ? '<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Condition:</span> ' + r.confirmed_condition + '</p>' : '') +
-          (r.officer_comment ? '<p class="text-sm text-[#4B5563] mb-1 whitespace-pre-wrap">' + r.officer_comment + '</p>' : '') +
-          (r.recommendation ? '<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Recommendation:</span> ' + r.recommendation + '</p>' : '') +
-          (r.requires_field_visit ? '<p class="text-xs text-amber-600"><i data-lucide="truck" class="w-3 h-3 inline"></i> Field visit recommended</p>' : '') +
-        '</div>';
-        return html;
-      }).join('');
-    } else {
-      document.getElementById('review-history').innerHTML = '<p class="text-[#6B7280] text-sm">No reviews yet. Be the first to review this diagnosis.</p>';
+      myReview = d.reviews.find(function(r) { return r.officer_id === d.current_officer_id; });
     }
+    renderRequestSection(d, myReview);
+
+    // --- Review History (all officers, excluding hidden/pending) ---
+    renderReviewHistory(d);
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
   } catch (e) {
     document.getElementById('loading').innerHTML = '<p class="text-red-600">Failed to load diagnosis</p>';
   }
+}
+
+function renderRequestSection(d, myReview) {
+  var container = document.getElementById('request-state');
+
+  if (!myReview) {
+    // No existing request — show the form
+    container.innerHTML =
+      '<p class="text-sm text-[#6B7280] mb-4">Submit a request to the farmer with your proposed action. The farmer will need to approve before it takes effect.</p>' +
+      getRequestFormHTML(d, null);
+  } else if (myReview.request_status === 'pending') {
+    // Waiting for farmer approval
+    container.innerHTML =
+      '<div class="text-center py-4">' +
+        '<div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">' +
+          '<i data-lucide="clock" class="w-5 h-5 text-amber-600"></i>' +
+        '</div>' +
+        '<p class="text-sm font-medium text-[#1F2937] mb-1">Your Request is Pending</p>' +
+        '<p class="text-xs text-[#6B7280] mb-3">Waiting for the farmer to approve your request.</p>' +
+        '<button onclick="showEditForm()" class="text-sm px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-[#2E7D32] hover:bg-[#2E7D32]/5 transition-colors">Edit Request</button>' +
+        '<div id="edit-form-container" class="hidden mt-4"></div>' +
+      '</div>';
+  } else if (myReview.request_status === 'approved') {
+    // Approved — show status
+    var badgeClass = myReview.review_status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                     myReview.review_status === 'closed' ? 'bg-gray-100 text-gray-700' :
+                     myReview.review_status === 'field_visit_required' ? 'bg-amber-100 text-amber-700' :
+                     myReview.review_status === 'needs_more_information' ? 'bg-blue-100 text-blue-700' :
+                     'bg-blue-100 text-blue-700';
+    container.innerHTML =
+      '<div class="text-center py-4">' +
+        '<div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">' +
+          '<i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>' +
+        '</div>' +
+        '<p class="text-sm font-medium text-[#1F2937] mb-1">Your Request was Approved</p>' +
+        '<p class="text-xs text-[#6B7280] mb-3">Status: <span class="px-2 py-0.5 rounded-full font-medium text-xs ' + badgeClass + '">' + myReview.review_status + '</span></p>' +
+        (myReview.review_status === 'field_visit_required' && myReview.site_visit_date
+          ? '<p class="text-xs text-[#2E7D32]"><i data-lucide="calendar" class="w-3 h-3 inline"></i> Visit scheduled: ' + formatShortDate(myReview.site_visit_date) + '</p>'
+          : '') +
+        (myReview.officer_comment ? '<p class="text-sm text-[#4B5563] mt-2">' + myReview.officer_comment + '</p>' : '') +
+      '</div>';
+  } else if (myReview.request_status === 'rejected') {
+    // Rejected
+    container.innerHTML =
+      '<div class="text-center py-4">' +
+        '<div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">' +
+          '<i data-lucide="x-circle" class="w-5 h-5 text-red-500"></i>' +
+        '</div>' +
+        '<p class="text-sm font-medium text-[#1F2937] mb-1">Your Request was Declined</p>' +
+        '<p class="text-xs text-[#6B7280] mb-3">The farmer has declined your request.</p>' +
+        '<button onclick="showNewRequestForm()" class="text-sm px-3 py-1.5 rounded-lg bg-[#2E7D32] text-white hover:bg-[#245F27] transition-colors">Submit New Request</button>' +
+      '</div>';
+  } else {
+    // Old flow (request_status = 'none' or null) — show form as before
+    container.innerHTML = getRequestFormHTML(d, myReview);
+  }
+}
+
+function showEditForm() {
+  var container = document.getElementById('edit-form-container');
+  container.classList.remove('hidden');
+  container.innerHTML = getRequestFormHTML(currentDiagnosis,
+    currentDiagnosis.reviews.find(function(r) { return r.officer_id === currentDiagnosis.current_officer_id; }));
+}
+
+function showNewRequestForm() {
+  var container = document.getElementById('request-state');
+  container.innerHTML =
+    '<p class="text-sm text-[#6B7280] mb-4">Submit a new request to the farmer with your proposed action.</p>' +
+    getRequestFormHTML(currentDiagnosis, null);
+}
+
+function renderReviewHistory(d) {
+  var visible = d.reviews ? d.reviews.filter(function(r) {
+    // Show non-hidden reviews that are either approved, old-flow, or from the current officer
+    return !r.is_hidden && (r.request_status === 'approved' || r.request_status === 'none' || r.request_status === '' || r.officer_id === d.current_officer_id);
+  }) : [];
+
+  if (visible.length === 0) {
+    document.getElementById('review-history').innerHTML = '<p class="text-[#6B7280] text-sm">No reviews yet</p>';
+    return;
+  }
+
+  document.getElementById('review-history').innerHTML = visible.map(function(r) {
+    return '<div class="border border-[#E5E7EB] rounded-xl p-4 mb-3 ' + (r.is_accepted ? 'ring-2 ring-[#2E7D32]' : '') + '">' +
+      '<div class="flex items-center justify-between mb-2">' +
+        '<div class="flex items-center gap-2">' +
+          '<div class="w-7 h-7 rounded-full bg-[#2E7D32]/10 flex items-center justify-center">' +
+            '<i data-lucide="user" class="w-4 h-4 text-[#2E7D32]"></i>' +
+          '</div>' +
+          '<div>' +
+            '<span class="text-sm font-medium text-[#1F2937]">' + (r.officer_name || 'Unknown') + '</span>' +
+            '<span class="text-xs text-[#6B7280] ml-1">' + formatDate(r.created_at) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="flex items-center gap-2">' +
+          (r.is_accepted ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full"><i data-lucide="check" class="w-3 h-3 inline"></i> Accepted</span>' : '') +
+          (r.request_status === 'pending' ? '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Pending Approval</span>' : '') +
+          '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + (r.review_status === 'confirmed' ? 'bg-green-100 text-green-700' : r.review_status === 'in_review' ? 'bg-blue-100 text-blue-700' : r.review_status === 'closed' ? 'bg-gray-100 text-gray-700' : r.review_status === 'field_visit_required' ? 'bg-amber-100 text-amber-700' : 'bg-amber-100 text-amber-700') + '">' + (r.review_status || 'pending') + '</span>' +
+        '</div>' +
+      '</div>' +
+      (r.confirmed_condition ? '<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Condition:</span> ' + r.confirmed_condition + '</p>' : '') +
+      (r.officer_comment ? '<p class="text-sm text-[#4B5563] mb-1 whitespace-pre-wrap">' + r.officer_comment + '</p>' : '') +
+      (r.recommendation ? '<p class="text-sm text-[#4B5563] mb-1"><span class="font-medium">Recommendation:</span> ' + r.recommendation + '</p>' : '') +
+      (r.site_visit_date ? '<p class="text-xs text-amber-600"><i data-lucide="calendar" class="w-3 h-3 inline"></i> Site visit: ' + formatShortDate(r.site_visit_date) + '</p>' : '') +
+      (r.requires_field_visit ? '<p class="text-xs text-amber-600"><i data-lucide="truck" class="w-3 h-3 inline"></i> Field visit recommended</p>' : '') +
+    '</div>';
+  }).join('');
 }
 
 async function continueInChat(id) {
@@ -332,12 +442,15 @@ async function submitReview(e) {
   var errEl = document.getElementById('review-error');
   errEl.classList.add('hidden');
 
+  var status = document.getElementById('review-status').value;
+
   var body = {
-    review_status: document.getElementById('review-status').value,
-    confirmed_condition: document.getElementById('confirmed-condition').value,
+    review_status: status,
+    confirmed_condition: document.getElementById('confirmed-condition') ? document.getElementById('confirmed-condition').value : '',
     officer_comment: document.getElementById('officer-comment').value,
-    recommendation: document.getElementById('recommendation').value,
-    requires_field_visit: document.getElementById('requires-field-visit').checked
+    recommendation: document.getElementById('recommendation') ? document.getElementById('recommendation').value : '',
+    requires_field_visit: status === 'field_visit_required',
+    site_visit_date: document.getElementById('site-visit-date') ? document.getElementById('site-visit-date').value || null : null
   };
 
   try {

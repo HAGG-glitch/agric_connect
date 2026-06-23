@@ -162,24 +162,26 @@ func (h *OfficerHandler) GetDiagnosis(c *gin.Context) {
 	}
 
 	type reviewRow struct {
-		ID                 string    `json:"id"`
-		DiagnosisID        string    `json:"diagnosis_id"`
-		OfficerID          string    `json:"officer_id"`
-		OfficerName        string    `json:"officer_name"`
-		ReviewStatus       string    `json:"review_status"`
-		ConfirmedCondition string    `json:"confirmed_condition"`
-		OfficerComment     string    `json:"officer_comment"`
-		Recommendation     string    `json:"recommendation"`
-		Urgency            string    `json:"urgency"`
-		RequiresFieldVisit bool      `json:"requires_field_visit"`
-		IsAccepted         bool      `json:"is_accepted"`
-		IsHidden           bool      `json:"is_hidden"`
-		CreatedAt          time.Time `json:"created_at"`
-		UpdatedAt          time.Time `json:"updated_at"`
+		ID                 string     `json:"id"`
+		DiagnosisID        string     `json:"diagnosis_id"`
+		OfficerID          string     `json:"officer_id"`
+		OfficerName        string     `json:"officer_name"`
+		ReviewStatus       string     `json:"review_status"`
+		ConfirmedCondition string     `json:"confirmed_condition"`
+		OfficerComment     string     `json:"officer_comment"`
+		Recommendation     string     `json:"recommendation"`
+		Urgency            string     `json:"urgency"`
+		RequiresFieldVisit bool       `json:"requires_field_visit"`
+		IsAccepted         bool       `json:"is_accepted"`
+		IsHidden           bool       `json:"is_hidden"`
+		RequestStatus      string     `json:"request_status"`
+		SiteVisitDate      *time.Time `json:"site_visit_date"`
+		CreatedAt          time.Time  `json:"created_at"`
+		UpdatedAt          time.Time  `json:"updated_at"`
 	}
 	var reviews []reviewRow
 	h.db.Table("diagnosis_reviews").
-		Select("diagnosis_reviews.id::text, diagnosis_reviews.diagnosis_id::text, diagnosis_reviews.officer_id::text, COALESCE(users.full_name, 'Unknown') as officer_name, diagnosis_reviews.review_status, COALESCE(diagnosis_reviews.confirmed_condition,'') as confirmed_condition, COALESCE(diagnosis_reviews.officer_comment,'') as officer_comment, COALESCE(diagnosis_reviews.recommendation,'') as recommendation, COALESCE(diagnosis_reviews.urgency,'') as urgency, diagnosis_reviews.requires_field_visit, diagnosis_reviews.is_accepted, diagnosis_reviews.is_hidden, diagnosis_reviews.created_at, diagnosis_reviews.updated_at").
+		Select("diagnosis_reviews.id::text, diagnosis_reviews.diagnosis_id::text, diagnosis_reviews.officer_id::text, COALESCE(users.full_name, 'Unknown') as officer_name, diagnosis_reviews.review_status, COALESCE(diagnosis_reviews.confirmed_condition,'') as confirmed_condition, COALESCE(diagnosis_reviews.officer_comment,'') as officer_comment, COALESCE(diagnosis_reviews.recommendation,'') as recommendation, COALESCE(diagnosis_reviews.urgency,'') as urgency, diagnosis_reviews.requires_field_visit, diagnosis_reviews.is_accepted, diagnosis_reviews.is_hidden, diagnosis_reviews.request_status, diagnosis_reviews.site_visit_date, diagnosis_reviews.created_at, diagnosis_reviews.updated_at").
 		Joins("LEFT JOIN users ON users.id = diagnosis_reviews.officer_id").
 		Where("diagnosis_reviews.diagnosis_id = ? AND diagnosis_reviews.is_hidden = false", diagID).
 		Order("diagnosis_reviews.created_at DESC").
@@ -211,12 +213,13 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 	}
 
 	var req struct {
-		ReviewStatus       string `json:"review_status"`
-		ConfirmedCondition string `json:"confirmed_condition"`
-		OfficerComment     string `json:"officer_comment"`
-		Recommendation     string `json:"recommendation"`
-		Urgency            string `json:"urgency"`
-		RequiresFieldVisit bool   `json:"requires_field_visit"`
+		ReviewStatus       string     `json:"review_status"`
+		ConfirmedCondition string     `json:"confirmed_condition"`
+		OfficerComment     string     `json:"officer_comment"`
+		Recommendation     string     `json:"recommendation"`
+		Urgency            string     `json:"urgency"`
+		RequiresFieldVisit bool       `json:"requires_field_visit"`
+		SiteVisitDate      *time.Time `json:"site_visit_date"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
@@ -233,6 +236,26 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 		reviewStatus = "pending"
 	}
 
+	// Check for existing pending review from this officer (resubmission)
+	var existing auth.DiagnosisReview
+	if err := h.db.Where("diagnosis_id = ? AND officer_id = ? AND request_status = 'pending'", diagID, user.ID).First(&existing).Error; err == nil {
+		// Update existing pending request
+		updates := map[string]interface{}{
+			"review_status":        reviewStatus,
+			"confirmed_condition":  req.ConfirmedCondition,
+			"officer_comment":      req.OfficerComment,
+			"recommendation":       req.Recommendation,
+			"urgency":              req.Urgency,
+			"requires_field_visit": req.RequiresFieldVisit,
+			"site_visit_date":      req.SiteVisitDate,
+			"updated_at":           time.Now().UTC(),
+		}
+		h.db.Model(&existing).Updates(updates)
+		h.writeAuditLog(&user.ID, "review_request_updated", "diagnosis_review", &existing.ID, "diagnosis_id", diagID.String())
+		c.JSON(http.StatusOK, gin.H{"review": existing, "message": "Request updated"})
+		return
+	}
+
 	review := &auth.DiagnosisReview{
 		ID:                 uuid.New(),
 		DiagnosisID:        diagID,
@@ -243,6 +266,8 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 		Recommendation:     req.Recommendation,
 		Urgency:            req.Urgency,
 		RequiresFieldVisit: req.RequiresFieldVisit,
+		RequestStatus:      "pending",
+		SiteVisitDate:      req.SiteVisitDate,
 		CreatedAt:          time.Now().UTC(),
 		UpdatedAt:          time.Now().UTC(),
 	}
@@ -252,30 +277,27 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 		return
 	}
 
-	// Set diagnosis status based on review status
-	newDiagStatus := "under_review"
-	if reviewStatus == "confirmed" || reviewStatus == "closed" {
-		newDiagStatus = "reviewed"
-	} else if reviewStatus == "needs_more_information" {
-		newDiagStatus = "awaiting_review"
-	}
-	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
+	// Don't change diagnosis status — deferred to farmer approval
 
-	// Create notification for farmer
-	if reviewStatus == "confirmed" || reviewStatus == "closed" {
-		h.createNotification(d.UserID, "New Diagnosis Review",
-			fmt.Sprintf("An extension officer has submitted feedback on your %s diagnosis.", d.Crop),
-			"review_created", "crop_diagnosis", diagID)
+	// Notify farmer about the request
+	if reviewStatus == "field_visit_required" && req.SiteVisitDate != nil {
+		h.createNotification(d.UserID, "Site Visit Requested",
+			fmt.Sprintf("An extension officer has requested a site visit on %s for your %s diagnosis.", req.SiteVisitDate.Format("Jan 2, 2006"), d.Crop),
+			"review_requested", "crop_diagnosis", diagID)
+	} else if reviewStatus == "confirmed" || reviewStatus == "closed" {
+		h.createNotification(d.UserID, "Review Submitted for Approval",
+			fmt.Sprintf("An extension officer has submitted their findings on your %s diagnosis for your approval.", d.Crop),
+			"review_requested", "crop_diagnosis", diagID)
 	} else {
-		h.createNotification(d.UserID, "Diagnosis Under Review",
-			fmt.Sprintf("An extension officer has started reviewing your %s diagnosis. You will be notified once feedback is submitted.", d.Crop),
+		h.createNotification(d.UserID, "Officer Wants to Review",
+			fmt.Sprintf("An extension officer wants to review your %s diagnosis.", d.Crop),
 			"review_requested", "crop_diagnosis", diagID)
 	}
 
 	// Audit log
-	h.writeAuditLog(&user.ID, "review_created", "diagnosis_review", &review.ID, "diagnosis_id", diagID.String())
+	h.writeAuditLog(&user.ID, "review_requested", "diagnosis_review", &review.ID, "diagnosis_id", diagID.String())
 
-	c.JSON(http.StatusCreated, review)
+	c.JSON(http.StatusCreated, gin.H{"review": review})
 }
 
 func (h *OfficerHandler) UpdateReview(c *gin.Context) {
@@ -307,13 +329,20 @@ func (h *OfficerHandler) UpdateReview(c *gin.Context) {
 		return
 	}
 
+	// Only allow updating if request is 'pending' (not yet approved) or 'none' (old flow)
+	if review.RequestStatus != "pending" && review.RequestStatus != "none" && review.RequestStatus != "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Review cannot be edited after approval"})
+		return
+	}
+
 	var req struct {
-		ReviewStatus       string `json:"review_status"`
-		ConfirmedCondition string `json:"confirmed_condition"`
-		OfficerComment     string `json:"officer_comment"`
-		Recommendation     string `json:"recommendation"`
-		Urgency            string `json:"urgency"`
-		RequiresFieldVisit bool   `json:"requires_field_visit"`
+		ReviewStatus       string     `json:"review_status"`
+		ConfirmedCondition string     `json:"confirmed_condition"`
+		OfficerComment     string     `json:"officer_comment"`
+		Recommendation     string     `json:"recommendation"`
+		Urgency            string     `json:"urgency"`
+		RequiresFieldVisit bool       `json:"requires_field_visit"`
+		SiteVisitDate      *time.Time `json:"site_visit_date"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
@@ -339,16 +368,20 @@ func (h *OfficerHandler) UpdateReview(c *gin.Context) {
 	updates["recommendation"] = req.Recommendation
 	updates["urgency"] = req.Urgency
 	updates["requires_field_visit"] = req.RequiresFieldVisit
+	updates["site_visit_date"] = req.SiteVisitDate
 
 	h.db.Model(&review).Updates(updates)
 
-	newDiagStatus := "under_review"
-	if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
-		newDiagStatus = "reviewed"
-	} else if req.ReviewStatus == "needs_more_information" {
-		newDiagStatus = "awaiting_review"
+	// For 'none' request_status (old flow), update diagnosis status immediately
+	if review.RequestStatus == "" || review.RequestStatus == "none" {
+		newDiagStatus := "under_review"
+		if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
+			newDiagStatus = "reviewed"
+		} else if req.ReviewStatus == "needs_more_information" {
+			newDiagStatus = "awaiting_review"
+		}
+		h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
 	}
-	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
 
 	h.db.First(&review, "id = ?", reviewID)
 
@@ -358,9 +391,11 @@ func (h *OfficerHandler) UpdateReview(c *gin.Context) {
 			"The extension officer needs more information about your crop diagnosis.",
 			"info_requested", "crop_diagnosis", diagID)
 	} else if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
-		h.createNotification(d.UserID, "New Diagnosis Review",
-			fmt.Sprintf("An extension officer has submitted feedback on your %s diagnosis.", d.Crop),
-			"review_created", "crop_diagnosis", diagID)
+		if review.RequestStatus == "none" || review.RequestStatus == "" {
+			h.createNotification(d.UserID, "New Diagnosis Review",
+				fmt.Sprintf("An extension officer has submitted feedback on your %s diagnosis.", d.Crop),
+				"review_created", "crop_diagnosis", diagID)
+		}
 	}
 
 	h.writeAuditLog(&user.ID, "review_updated", "diagnosis_review", &reviewID, "diagnosis_id", diagID.String())

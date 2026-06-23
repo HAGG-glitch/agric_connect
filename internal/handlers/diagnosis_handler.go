@@ -480,6 +480,109 @@ func (h *DiagnosisHandler) RejectReview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Review rejected"})
 }
 
+func (h *DiagnosisHandler) ApproveRequest(c *gin.Context) {
+	userID := getUserID(c)
+	idStr := c.Param("id")
+	reviewIDStr := c.Param("reviewId")
+
+	diagID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid diagnosis ID"})
+		return
+	}
+	reviewID, err := uuid.Parse(reviewIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid review ID"})
+		return
+	}
+
+	// Verify diagnosis belongs to this user
+	d, err := h.svc.GetDiagnosis(c.Request.Context(), diagID, userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
+		return
+	}
+
+	var review auth.DiagnosisReview
+	if err := h.db.First(&review, "id = ? AND diagnosis_id = ? AND request_status = 'pending'", reviewID, diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pending request not found"})
+		return
+	}
+
+	// Approve the request
+	h.db.Model(&review).Updates(map[string]interface{}{
+		"request_status": "approved",
+		"updated_at":     time.Now().UTC(),
+	})
+
+	// Update diagnosis status based on review status
+	reviewStatus := review.ReviewStatus
+	newDiagStatus := "under_review"
+	if reviewStatus == "confirmed" || reviewStatus == "closed" {
+		newDiagStatus = "reviewed"
+	} else if reviewStatus == "needs_more_information" {
+		newDiagStatus = "awaiting_review"
+	} else if reviewStatus == "field_visit_required" {
+		newDiagStatus = "under_review"
+	}
+	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
+
+	// Notify the officer
+	h.db.Exec(`INSERT INTO notifications (id, user_id, title, message, notification_type, entity_type, entity_id, created_at)
+		SELECT gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW()`,
+		review.OfficerID, "Request Approved",
+		fmt.Sprintf("The farmer approved your request regarding their %s diagnosis.", d.Crop),
+		"request_approved", "crop_diagnosis", diagID)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Request approved"})
+}
+
+func (h *DiagnosisHandler) RejectRequest(c *gin.Context) {
+	userID := getUserID(c)
+	idStr := c.Param("id")
+	reviewIDStr := c.Param("reviewId")
+
+	diagID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid diagnosis ID"})
+		return
+	}
+	reviewID, err := uuid.Parse(reviewIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid review ID"})
+		return
+	}
+
+	// Verify diagnosis belongs to this user
+	d, err := h.svc.GetDiagnosis(c.Request.Context(), diagID, userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
+		return
+	}
+
+	var review auth.DiagnosisReview
+	if err := h.db.First(&review, "id = ? AND diagnosis_id = ? AND request_status = 'pending'", reviewID, diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pending request not found"})
+		return
+	}
+
+	// Reject the request — hide the review from view
+	h.db.Model(&review).Updates(map[string]interface{}{
+		"request_status": "rejected",
+		"is_hidden":      true,
+		"updated_at":     time.Now().UTC(),
+	})
+
+	// Notify the officer
+	h.db.Exec(`INSERT INTO notifications (id, user_id, title, message, notification_type, entity_type, entity_id, created_at)
+		SELECT gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW()`,
+		review.OfficerID, "Request Rejected",
+		fmt.Sprintf("The farmer declined your request regarding their %s diagnosis.", d.Crop),
+		"request_rejected", "crop_diagnosis", diagID)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Request rejected"})
+}
+
 func diagnosisToView(d *diagnosis.CropDiagnosis) gin.H {
 	view := gin.H{
 		"id":                     d.ID.String(),
