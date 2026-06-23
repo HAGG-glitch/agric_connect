@@ -240,9 +240,15 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", "under_review")
 
 	// Create notification for farmer
-	h.createNotification(d.UserID, "New Diagnosis Review",
-		fmt.Sprintf("An extension officer has shared their opinion on your %s diagnosis.", d.Crop),
-		"review_created", "crop_diagnosis", diagID)
+	if reviewStatus == "confirmed" || reviewStatus == "closed" {
+		h.createNotification(d.UserID, "New Diagnosis Review",
+			fmt.Sprintf("An extension officer has submitted feedback on your %s diagnosis.", d.Crop),
+			"review_created", "crop_diagnosis", diagID)
+	} else {
+		h.createNotification(d.UserID, "Diagnosis Under Review",
+			fmt.Sprintf("An extension officer has started reviewing your %s diagnosis. You will be notified once feedback is submitted.", d.Crop),
+			"review_requested", "crop_diagnosis", diagID)
+	}
 
 	// Audit log
 	h.writeAuditLog(&user.ID, "review_created", "diagnosis_review", &review.ID, "diagnosis_id", diagID.String())
@@ -330,9 +336,9 @@ func (h *OfficerHandler) UpdateReview(c *gin.Context) {
 			"The extension officer needs more information about your crop diagnosis.",
 			"info_requested", "crop_diagnosis", diagID)
 	} else if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
-		h.createNotification(d.UserID, "Diagnosis Review Completed",
-			"The extension officer has completed reviewing your crop diagnosis.",
-			"review_completed", "crop_diagnosis", diagID)
+		h.createNotification(d.UserID, "New Diagnosis Review",
+			fmt.Sprintf("An extension officer has submitted feedback on your %s diagnosis.", d.Crop),
+			"review_created", "crop_diagnosis", diagID)
 	}
 
 	h.writeAuditLog(&user.ID, "review_updated", "diagnosis_review", &reviewID, "diagnosis_id", diagID.String())
@@ -377,9 +383,9 @@ func (h *OfficerHandler) ClaimCase(c *gin.Context) {
 
 	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", "under_review")
 
-	h.createNotification(d.UserID, "Diagnosis Claimed",
-		fmt.Sprintf("An extension officer has started reviewing your %s diagnosis.", d.Crop),
-		"review_started", "crop_diagnosis", diagID)
+	h.createNotification(d.UserID, "Diagnosis Under Review",
+		fmt.Sprintf("An extension officer has started reviewing your %s diagnosis. You will be notified once feedback is submitted.", d.Crop),
+		"review_requested", "crop_diagnosis", diagID)
 
 	h.writeAuditLog(&user.ID, "case_claimed", "crop_diagnosis", &diagID, "officer_id", user.ID.String())
 

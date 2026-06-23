@@ -96,6 +96,13 @@
   function getTypeBadge(type) {
     var colors = {
       diagnosis: 'bg-blue-50 text-blue-700',
+      diagnosis_needs_review: 'bg-purple-50 text-purple-700',
+      review_requested: 'bg-blue-50 text-blue-700',
+      review_created: 'bg-green-50 text-green-700',
+      review_started: 'bg-blue-50 text-blue-700',
+      review_completed: 'bg-green-50 text-green-700',
+      review_accepted: 'bg-green-50 text-green-700',
+      info_requested: 'bg-amber-50 text-amber-700',
       weather: 'bg-amber-50 text-amber-700',
       market: 'bg-green-50 text-green-700',
       system: 'bg-gray-50 text-gray-700',
@@ -123,7 +130,7 @@
 
   function getEntityPath(n) {
     if (n.entity_id && n.entity_type) {
-      if (n.entity_type === 'diagnosis') return '/diagnoses/' + n.entity_id;
+      if (n.entity_type === 'diagnosis' || n.entity_type === 'crop_diagnosis') return '/diagnoses/' + n.entity_id;
       if (n.entity_type === 'conversation') return '/assistant';
       if (n.entity_type === 'market_price') return '/market-prices';
       return '/' + n.entity_type + '/' + n.entity_id;
