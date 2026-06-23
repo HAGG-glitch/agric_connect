@@ -25,9 +25,31 @@
     <p class="stat-label">Completed</p>
   </div>
   <div class="stat-card">
-    <div class="stat-icon bg-purple-50"><i data-lucide="briefcase" class="w-5 h-5 text-purple-600"></i></div>
-    <p class="stat-value">{{.PendingCount}}</p>
-    <p class="stat-label">My Queue</p>
+    <div class="stat-icon bg-purple-50"><i data-lucide="file-text" class="w-5 h-5 text-purple-600"></i></div>
+    <p class="stat-value">{{.MyTotal}}</p>
+    <p class="stat-label">My Reviews</p>
+  </div>
+</div>
+
+<div class="section-card mb-6">
+  <h3 class="section-title"><i data-lucide="user" class="w-4 h-4 text-[#2E7D32]"></i> My Stats ({{.UserName}})</h3>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="text-center p-3 bg-gray-50 rounded-lg">
+      <p class="text-2xl font-bold text-[#1F2937]">{{.MyTotal}}</p>
+      <p class="text-xs text-[#6B7280]">Total Reviews</p>
+    </div>
+    <div class="text-center p-3 bg-green-50 rounded-lg">
+      <p class="text-2xl font-bold text-green-700">{{.MyConfirmed}}</p>
+      <p class="text-xs text-green-600">Confirmed</p>
+    </div>
+    <div class="text-center p-3 bg-red-50 rounded-lg">
+      <p class="text-2xl font-bold text-red-700">{{.MyClosed}}</p>
+      <p class="text-xs text-red-600">Closed</p>
+    </div>
+    <div class="text-center p-3 bg-blue-50 rounded-lg">
+      <p class="text-2xl font-bold text-blue-700">{{.MyAccepted}}</p>
+      <p class="text-xs text-blue-600">Accepted by Farmers</p>
+    </div>
   </div>
 </div>
 

@@ -262,6 +262,7 @@ func main() {
 		v1User.POST("/diagnoses/:id/reviews/:reviewId/reject", diagnosisHandler.RejectReview)
 		v1User.POST("/diagnoses/:id/reviews/:reviewId/approve-request", diagnosisHandler.ApproveRequest)
 		v1User.POST("/diagnoses/:id/reviews/:reviewId/reject-request", diagnosisHandler.RejectRequest)
+		v1User.POST("/diagnoses/:id/close", diagnosisHandler.GlobalClose)
 
 		// Transcription
 		v1User.POST("/ai/transcribe", transcriptionHandler.Transcribe)

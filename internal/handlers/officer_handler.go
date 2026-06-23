@@ -50,17 +50,36 @@ func (h *OfficerHandler) OfficerPage(c *gin.Context) {
 	h.db.Table("users").Select("full_name, district").
 		Where("id = ?", user.ID).Scan(&userRecord)
 
+	// Personal stats — this officer's own reviews
+	var myTotal, myConfirmed, myClosed, myAccepted int64
+	h.db.Model(&auth.DiagnosisReview{}).
+		Where("officer_id = ?", user.ID).
+		Count(&myTotal)
+	h.db.Model(&auth.DiagnosisReview{}).
+		Where("officer_id = ? AND review_status = 'confirmed'", user.ID).
+		Count(&myConfirmed)
+	h.db.Model(&auth.DiagnosisReview{}).
+		Where("officer_id = ? AND review_status = 'closed'", user.ID).
+		Count(&myClosed)
+	h.db.Model(&auth.DiagnosisReview{}).
+		Where("officer_id = ? AND is_accepted = true", user.ID).
+		Count(&myAccepted)
+
 	c.HTML(http.StatusOK, "officer_dashboard.html", gin.H{
-		"Title":         "AgriConnect AI - Officer Dashboard",
-		"Year":          time.Now().Year(),
-		"ContentBlock":  "contentOfficerDashboard",
-		"PendingCount":  pendingCount,
-		"InReviewCount": inReviewCount,
+		"Title":          "AgriConnect AI - Officer Dashboard",
+		"Year":           time.Now().Year(),
+		"ContentBlock":   "contentOfficerDashboard",
+		"PendingCount":   pendingCount,
+		"InReviewCount":  inReviewCount,
 		"CompletedCount": completedCount,
-		"UserName":      userRecord.FullName,
+		"MyTotal":        myTotal,
+		"MyConfirmed":    myConfirmed,
+		"MyClosed":       myClosed,
+		"MyAccepted":     myAccepted,
+		"UserName":       userRecord.FullName,
 		"OfficerDistrict": userRecord.District,
-		"UserRole":      "officer",
-		"ActivePage":    "officer",
+		"UserRole":       "officer",
+		"ActivePage":     "officer",
 	})
 }
 
@@ -253,6 +272,12 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 		h.db.Model(&existing).Updates(updates)
 		h.writeAuditLog(&user.ID, "review_request_updated", "diagnosis_review", &existing.ID, "diagnosis_id", diagID.String())
 		c.JSON(http.StatusOK, gin.H{"review": existing, "message": "Request updated"})
+		return
+	}
+
+	// Block new requests from new officers if globally closed
+	if d.GloballyClosedAt != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "This case has been closed and no new requests can be submitted"})
 		return
 	}
 

@@ -16,6 +16,14 @@
     <p class="text-sm text-[#6B7280] mt-2">Loading diagnosis...</p>
   </div>
 
+  <div id="global-close-banner" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center gap-3">
+    <i data-lucide="lock" class="w-5 h-5 text-red-500 flex-shrink-0"></i>
+    <div>
+      <p class="text-sm font-medium text-red-800">This case has been closed</p>
+      <p class="text-xs text-red-600">No new officer requests. Existing requests can still be completed.</p>
+    </div>
+  </div>
+
   <div id="content" class="hidden">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div>
@@ -299,6 +307,11 @@ async function loadDiagnosis() {
       document.getElementById('continue-in-chat').onclick = function() { continueInChat(d.id); };
     }
 
+    // --- Global Close Banner ---
+    if (d.globally_closed) {
+      document.getElementById('global-close-banner').classList.remove('hidden');
+    }
+
     // --- Officer Request Section ---
     var myReview = null;
     if (d.reviews && d.reviews.length > 0) {
@@ -317,6 +330,19 @@ async function loadDiagnosis() {
 
 function renderRequestSection(d, myReview) {
   var container = document.getElementById('request-state');
+
+  // If globally closed and officer has no existing review, block new requests entirely
+  if (d.globally_closed && !myReview) {
+    container.innerHTML =
+      '<div class="text-center py-4">' +
+        '<div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">' +
+          '<i data-lucide="lock" class="w-5 h-5 text-red-500"></i>' +
+        '</div>' +
+        '<p class="text-sm font-medium text-[#1F2937] mb-1">Case Closed</p>' +
+        '<p class="text-xs text-[#6B7280]">This case has been closed by the farmer. No new requests can be submitted.</p>' +
+      '</div>';
+    return;
+  }
 
   if (!myReview) {
     // No existing request — show the form

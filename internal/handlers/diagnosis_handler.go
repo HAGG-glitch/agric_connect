@@ -155,6 +155,7 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 			data["UserRole"] = user.Role
 			data["UserDistrict"] = user.District
 			data["UserLanguage"] = user.PreferredLanguage
+			data["AuthUserID"] = user.ID.String()
 		}
 	}
 	if data["UserName"] == nil {
@@ -520,6 +521,9 @@ func (h *DiagnosisHandler) ApproveRequest(c *gin.Context) {
 	newDiagStatus := "under_review"
 	if reviewStatus == "confirmed" || reviewStatus == "closed" {
 		newDiagStatus = "reviewed"
+		// Auto-accept confirmed/closed reviews on approval — one-step complete
+		h.db.Model(&auth.DiagnosisReview{}).Where("diagnosis_id = ?", diagID).Update("is_accepted", false)
+		h.db.Model(&auth.DiagnosisReview{}).Where("id = ?", reviewID).Update("is_accepted", true)
 	} else if reviewStatus == "needs_more_information" {
 		newDiagStatus = "awaiting_review"
 	} else if reviewStatus == "field_visit_required" {
@@ -528,10 +532,14 @@ func (h *DiagnosisHandler) ApproveRequest(c *gin.Context) {
 	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
 
 	// Notify the officer
+	notifMsg := fmt.Sprintf("The farmer approved your request regarding their %s diagnosis.", d.Crop)
+	if reviewStatus == "confirmed" || reviewStatus == "closed" {
+		notifMsg = fmt.Sprintf("The farmer approved and accepted your review on their %s diagnosis.", d.Crop)
+	}
 	h.db.Exec(`INSERT INTO notifications (id, user_id, title, message, notification_type, entity_type, entity_id, created_at)
 		SELECT gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW()`,
 		review.OfficerID, "Request Approved",
-		fmt.Sprintf("The farmer approved your request regarding their %s diagnosis.", d.Crop),
+		notifMsg,
 		"request_approved", "crop_diagnosis", diagID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Request approved"})
@@ -583,6 +591,70 @@ func (h *DiagnosisHandler) RejectRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Request rejected"})
 }
 
+func (h *DiagnosisHandler) GlobalClose(c *gin.Context) {
+	userID := getUserID(c)
+	idStr := c.Param("id")
+
+	diagID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid diagnosis ID"})
+		return
+	}
+
+	var d diagnosis.CropDiagnosis
+	if err := h.db.First(&d, "id = ?", diagID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
+		return
+	}
+
+	// Only the diagnosis owner or admin can close globally
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	user, ok := authUser.(*middleware.AuthUser)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	if d.UserID != userID && user.Role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only the diagnosis owner or admin can close this case"})
+		return
+	}
+
+	// Already closed?
+	if d.GloballyClosedAt != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Case is already globally closed"})
+		return
+	}
+
+	now := time.Now().UTC()
+	closedBy := userID
+	h.db.Model(&d).Updates(map[string]interface{}{
+		"globally_closed_at": now,
+		"globally_closed_by": closedBy,
+	})
+
+	// Notify officers with active reviews on this diagnosis
+	var activeReviews []auth.DiagnosisReview
+	h.db.Where("diagnosis_id = ? AND request_status IN ('pending', 'approved')", diagID).Find(&activeReviews)
+	for _, r := range activeReviews {
+		notifType := "case_globally_closed"
+		msg := fmt.Sprintf("The case for %s has been closed by the farmer. ", d.Crop)
+		if r.RequestStatus == "approved" {
+			msg += "Your approved request can still be completed."
+		} else {
+			msg += "Your pending request can no longer be processed."
+		}
+		h.db.Exec(`INSERT INTO notifications (id, user_id, title, message, notification_type, entity_type, entity_id, created_at)
+			SELECT gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW()`,
+			r.OfficerID, "Case Closed", msg, notifType, "crop_diagnosis", diagID)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Case closed globally"})
+}
+
 func diagnosisToView(d *diagnosis.CropDiagnosis) gin.H {
 	view := gin.H{
 		"id":                     d.ID.String(),
@@ -604,12 +676,13 @@ func diagnosisToView(d *diagnosis.CropDiagnosis) gin.H {
 		"status":                 d.Status,
 		"error_message":          d.ErrorMessage,
 		"created_at":             d.CreatedAt,
-		"affected_percentage":   d.AffectedPercentage,
-		"affected_display":      d.GetAffectedPercentageDisplay(),
-		"symptoms_started_at":   d.SymptomsStartedAt,
-		"recent_weather":        d.RecentWeather,
-		"fertiliser_history":    d.FertiliserHistory,
-		"pesticide_history":     d.PesticideHistory,
+		"affected_percentage":    d.AffectedPercentage,
+		"affected_display":       d.GetAffectedPercentageDisplay(),
+		"symptoms_started_at":    d.SymptomsStartedAt,
+		"recent_weather":         d.RecentWeather,
+		"fertiliser_history":     d.FertiliserHistory,
+		"pesticide_history":      d.PesticideHistory,
+		"globally_closed":        d.GloballyClosedAt != nil,
 	}
 
 	if d.ConfidenceLabel != "" {

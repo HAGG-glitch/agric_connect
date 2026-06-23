@@ -23,7 +23,18 @@
     <span class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full font-medium">Image: uploaded</span>
     <span class="text-xs {{if eq $d.Status "completed"}}bg-green-50 text-green-600{{else if eq $d.Status "processing"}}bg-blue-50 text-blue-600{{else}}bg-red-50 text-red-600{{end}} px-2 py-1 rounded-full font-medium">AI analysis: {{$d.Status}}</span>
     <span class="text-xs {{if .UniqueOfficerCount}}bg-green-50 text-green-600{{else}}bg-gray-50 text-gray-600{{end}} px-2 py-1 rounded-full font-medium">Officer reviews: {{.UniqueOfficerCount}}</span>
+    {{if $d.GloballyClosedAt}}<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Case Closed</span>{{end}}
   </div>
+
+  {{if $d.GloballyClosedAt}}
+  <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+    <i data-lucide="lock" class="w-5 h-5 text-red-500 flex-shrink-0"></i>
+    <div>
+      <p class="text-sm font-medium text-red-800">This case has been closed</p>
+      <p class="text-xs text-red-600">No new officer requests. Existing requests can still be approved and completed.</p>
+    </div>
+  </div>
+  {{end}}
 
   <div class="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
     <div class="flex flex-col sm:flex-row items-start gap-4">
@@ -328,6 +339,11 @@
       <button onclick="continueInChat('{{$d.ID}}')" class="flex-1 bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
         Continue in AI Chat
       </button>
+      {{if and (eq (printf "%s" $d.UserID) $.AuthUserID) (not $d.GloballyClosedAt)}}
+      <button onclick="globalClose('{{$d.ID}}')" class="px-4 py-2.5 border border-red-300 text-red-600 rounded-xl text-sm hover:bg-red-50 transition-colors">
+        Close Case
+      </button>
+      {{end}}
       <button onclick="deleteAndGoBack('{{$d.ID}}')" class="px-4 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm hover:bg-red-50 transition-colors">
         Delete
       </button>
@@ -394,6 +410,16 @@
       if (!res.ok) { const d = await res.json(); alert(d.error || 'Failed'); return; }
       window.location.reload();
     } catch (e) { alert('Failed to reject review.'); }
+  }
+
+  async function globalClose(diagId) {
+    if (!confirm('Close this case globally? This will prevent new officer requests. In-progress requests can still be completed.')) return;
+    try {
+      const res = await fetch('/api/v1/diagnoses/' + diagId + '/close', { method: 'POST' });
+      if (res.status === 429) { alert('Too many requests. Please wait.'); return; }
+      if (!res.ok) { const d = await res.json(); alert(d.error || 'Failed'); return; }
+      window.location.reload();
+    } catch (e) { alert('Failed to close case.'); }
   }
 
   function initConfidenceGauge() {

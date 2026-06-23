@@ -87,6 +87,7 @@ async function loadList() {
           '</div>' +
           '<p class="text-xs text-[#6B7280] mt-0.5">' + (d.is_own_district ? '<span class="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-1.5 py-0.5 rounded font-medium mr-1">Your District</span>' : '') + (d.district || 'No district') + ' &middot; ' + new Date(d.created_at).toLocaleDateString() + '</p>' +
         '</div>' +
+        (d.globally_closed ? '<span class="text-xs px-2 py-1 rounded-full bg-red-50 text-red-600 mr-1">Closed</span>' : '') +
         '<span class="text-xs px-2 py-1 rounded-full ' + statusClass + '">' + d.status + '</span>' +
       '</a>';
     }).join('');

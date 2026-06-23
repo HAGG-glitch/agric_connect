@@ -1,0 +1,3 @@
+ALTER TABLE crop_diagnoses
+  ADD COLUMN globally_closed_at TIMESTAMPTZ DEFAULT NULL,
+  ADD COLUMN globally_closed_by UUID DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL;

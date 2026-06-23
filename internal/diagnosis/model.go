@@ -51,6 +51,9 @@ type CropDiagnosis struct {
 	Status       string `gorm:"size:30;not null;default:processing"`
 	ErrorMessage string `gorm:"type:text"`
 
+	GloballyClosedAt *time.Time `gorm:"default:null"`
+	GloballyClosedBy *uuid.UUID  `gorm:"type:uuid;default:null"`
+
 	CreatedAt time.Time `gorm:"not null;default:now();index"`
 	UpdatedAt time.Time `gorm:"not null;default:now()"`
 }
