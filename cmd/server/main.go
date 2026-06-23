@@ -120,7 +120,7 @@ func main() {
 	authSvc := auth.NewService(db, cfg.JWTAccessSecret, cfg.JWTRefreshSecret, accessDur, refreshDur)
 
 	// Handlers
-	pageHandler := handlers.NewPageHandler(cfg, authSvc)
+	pageHandler := handlers.NewPageHandler(cfg, authSvc, db)
 	convHandler := handlers.NewConversationHandler(chatSvc)
 	chatHandler := handlers.NewChatHandler(chatSvc, orchestrator, cfg)
 	weatherHandler := handlers.NewWeatherHandler(weatherSvc)

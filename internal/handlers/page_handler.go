@@ -10,15 +10,17 @@ import (
 	"github.com/agriconnect-ai/internal/weather"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type PageHandler struct {
 	cfg     *config.Config
 	authSvc auth.Service
+	db      *gorm.DB
 }
 
-func NewPageHandler(cfg *config.Config, authSvc auth.Service) *PageHandler {
-	return &PageHandler{cfg: cfg, authSvc: authSvc}
+func NewPageHandler(cfg *config.Config, authSvc auth.Service, db *gorm.DB) *PageHandler {
+	return &PageHandler{cfg: cfg, authSvc: authSvc, db: db}
 }
 
 func (h *PageHandler) Home(c *gin.Context) {
@@ -52,12 +54,29 @@ func (h *PageHandler) WeatherPage(c *gin.Context) {
 	userDistrict := ""
 	userName := ""
 	userRole := ""
+	var userID uuid.UUID
 	authUser, exists := c.Get(middleware.ContextKeyUser)
 	if exists && authUser != nil {
 		if user, ok := authUser.(*middleware.AuthUser); ok {
+			userID = user.ID
 			userDistrict = user.District
 			userName = user.FullName
 			userRole = user.Role
+		}
+	}
+
+	// Fallback: query DB if JWT claims are empty
+	if (userDistrict == "" || userName == "") && h.db != nil && userID != uuid.Nil {
+		var rec struct {
+			FullName string
+			District string
+		}
+		h.db.Table("users").Select("full_name, district").Where("id = ?", userID).Scan(&rec)
+		if userDistrict == "" && rec.District != "" {
+			userDistrict = rec.District
+		}
+		if userName == "" && rec.FullName != "" {
+			userName = rec.FullName
 		}
 	}
 
@@ -86,9 +105,34 @@ func (h *PageHandler) AssistantPage(c *gin.Context) {
 	userID, _ := uuid.Parse(userIDStr.(string))
 
 	userDistrict := ""
+	userName := ""
+	userRole := ""
+	userLanguage := ""
 	if authUser, exists := c.Get(middleware.ContextKeyUser); exists {
 		if user, ok := authUser.(*middleware.AuthUser); ok {
 			userDistrict = user.District
+			userName = user.FullName
+			userRole = user.Role
+			userLanguage = user.PreferredLanguage
+		}
+	}
+
+	// Fallback: query DB if JWT claims are empty (old tokens)
+	if (userDistrict == "" || userName == "") && h.db != nil {
+		var rec struct {
+			FullName          string
+			District          string
+			PreferredLanguage string
+		}
+		h.db.Table("users").Select("full_name, district, preferred_language").Where("id = ?", userID).Scan(&rec)
+		if userDistrict == "" && rec.District != "" {
+			userDistrict = rec.District
+		}
+		if userName == "" && rec.FullName != "" {
+			userName = rec.FullName
+		}
+		if userLanguage == "" && rec.PreferredLanguage != "" {
+			userLanguage = rec.PreferredLanguage
 		}
 	}
 
@@ -97,21 +141,13 @@ func (h *PageHandler) AssistantPage(c *gin.Context) {
 		"UserID":        userID,
 		"Districts":     weather.SupportedDistricts,
 		"UserDistrict":  userDistrict,
+		"UserName":      userName,
+		"UserRole":      userRole,
+		"UserLanguage":  userLanguage,
 		"AIAvailable":   h.cfg.AIAvailable(),
 		"Year":          time.Now().Year(),
 		"ContentBlock":  "contentAssistant",
 		"ActivePage":    "assistant",
-	}
-	authUser, exists := c.Get(middleware.ContextKeyUser)
-	if exists && authUser != nil {
-		if user, ok := authUser.(*middleware.AuthUser); ok {
-			data["UserName"] = user.FullName
-			data["UserRole"] = user.Role
-			data["UserLanguage"] = user.PreferredLanguage
-			if data["UserDistrict"] == "" {
-				data["UserDistrict"] = user.District
-			}
-		}
 	}
 	c.HTML(http.StatusOK, "assistant.html", data)
 }

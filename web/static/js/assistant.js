@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch {}
   }
 
-  // If user has a saved district from registration, auto-fetch weather once
+  // Pre-fill district from user profile if not already set by session restore
   const userDistrict = window.AGRI_CONFIG?.userDistrict;
   if (userDistrict && !State.district) {
     State.district = userDistrict;
@@ -43,15 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
     saveState();
   }
 
-  // Preserve user district even if not saved to session
-  if (userDistrict && !saved) {
-    setDistrict(userDistrict);
-  }
-
-  // Reload last conversation if present
+  // Reload last conversation if present (silent — no toast on fail)
   const lastConv = sessionStorage.getItem('agri_conv');
   if (lastConv) {
-    loadConversation(lastConv).catch(function() {
+    loadConversation(lastConv, true).catch(function() {
       sessionStorage.removeItem('agri_conv');
     });
   }
@@ -188,7 +183,7 @@ async function startNewConversation() {
   }
 }
 
-async function loadConversation(id) {
+async function loadConversation(id, silent) {
   try {
     const res = await fetch(`/api/v1/conversations/${id}`);
     if (!res.ok) throw new Error('Not found');
@@ -231,7 +226,9 @@ async function loadConversation(id) {
     closeSidebar();
     document.getElementById('message-input').focus();
   } catch (e) {
-    showToast('Failed to load conversation.', 'error');
+    if (!silent) {
+      showToast('Failed to load conversation.', 'error');
+    }
   }
 }
 
