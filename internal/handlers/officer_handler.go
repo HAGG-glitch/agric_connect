@@ -329,8 +329,8 @@ func (h *OfficerHandler) UpdateReview(c *gin.Context) {
 		return
 	}
 
-	// Only allow updating if request is 'pending' (not yet approved) or 'none' (old flow)
-	if review.RequestStatus != "pending" && review.RequestStatus != "none" && review.RequestStatus != "" {
+	// Block editing only for rejected reviews
+	if review.RequestStatus == "rejected" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Review cannot be edited after approval"})
 		return
 	}
@@ -372,30 +372,26 @@ func (h *OfficerHandler) UpdateReview(c *gin.Context) {
 
 	h.db.Model(&review).Updates(updates)
 
-	// For 'none' request_status (old flow), update diagnosis status immediately
-	if review.RequestStatus == "" || review.RequestStatus == "none" {
-		newDiagStatus := "under_review"
-		if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
-			newDiagStatus = "reviewed"
-		} else if req.ReviewStatus == "needs_more_information" {
-			newDiagStatus = "awaiting_review"
-		}
-		h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
+	// Update diagnosis status based on review status (all flows)
+	newDiagStatus := "under_review"
+	if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
+		newDiagStatus = "reviewed"
+	} else if req.ReviewStatus == "needs_more_information" {
+		newDiagStatus = "awaiting_review"
 	}
+	h.db.Model(&diagnosis.CropDiagnosis{}).Where("id = ?", diagID).Update("status", newDiagStatus)
 
 	h.db.First(&review, "id = ?", reviewID)
 
-	// Create notification
-	if req.ReviewStatus == "needs_more_information" {
+	// Create notification for farmer
+	if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
+		h.createNotification(d.UserID, "New Diagnosis Review",
+			fmt.Sprintf("An extension officer has submitted their findings on your %s diagnosis.", d.Crop),
+			"review_created", "crop_diagnosis", diagID)
+	} else if req.ReviewStatus == "needs_more_information" {
 		h.createNotification(d.UserID, "More Information Needed",
 			"The extension officer needs more information about your crop diagnosis.",
 			"info_requested", "crop_diagnosis", diagID)
-	} else if req.ReviewStatus == "confirmed" || req.ReviewStatus == "closed" {
-		if review.RequestStatus == "none" || review.RequestStatus == "" {
-			h.createNotification(d.UserID, "New Diagnosis Review",
-				fmt.Sprintf("An extension officer has submitted feedback on your %s diagnosis.", d.Crop),
-				"review_created", "crop_diagnosis", diagID)
-		}
 	}
 
 	h.writeAuditLog(&user.ID, "review_updated", "diagnosis_review", &reviewID, "diagnosis_id", diagID.String())
