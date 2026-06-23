@@ -1,0 +1,2 @@
+-- No clean revert — this is a data fix for records that had the wrong status.
+-- Re-running the up migration is safe (idempotent).
