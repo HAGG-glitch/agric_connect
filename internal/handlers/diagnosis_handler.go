@@ -234,6 +234,45 @@ func (h *DiagnosisHandler) Create(c *gin.Context) {
 		"id":     result.ID.String(),
 		"status": result.Status,
 	})
+
+	// Notify officers and admins after AI completes
+	go func() {
+		diagID := result.ID
+		for i := 0; i < 40; i++ {
+			time.Sleep(2 * time.Second)
+			var d diagnosis.CropDiagnosis
+			if err := h.db.First(&d, "id = ?", diagID).Error; err != nil {
+				return
+			}
+			if d.Status != "completed" {
+				if d.Status == "failed" {
+					return
+				}
+				continue
+			}
+			if d.RequiresExpertReview {
+				var users []auth.User
+				h.db.Where("role IN ?", []string{"officer", "admin"}).Find(&users)
+				msg := fmt.Sprintf("A new %s diagnosis in %s needs your review.", d.Crop, d.District)
+				if d.ProbableCondition != "" {
+					msg = fmt.Sprintf("A new %s diagnosis (%s) in %s needs your review.", d.Crop, d.ProbableCondition, d.District)
+				}
+				for _, u := range users {
+					h.db.Create(&auth.Notification{
+						ID:               uuid.New(),
+						UserID:           u.ID,
+						Title:            "New Diagnosis Needs Review",
+						Message:          msg,
+						NotificationType: "diagnosis_needs_review",
+						EntityType:       "crop_diagnosis",
+						EntityID:         &d.ID,
+						CreatedAt:        time.Now().UTC(),
+					})
+				}
+			}
+			return
+		}
+	}()
 }
 
 func (h *DiagnosisHandler) List(c *gin.Context) {

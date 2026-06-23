@@ -75,7 +75,7 @@
         {{if $d.AffectedPercentage}}
         <div>
           <p class="text-xs text-[#6B7280] mb-1">Crop Affected</p>
-          <p class="text-sm text-[#1F2937]">{{printf "%.0f" $d.AffectedPercentage}}%</p>
+          <p class="text-sm text-[#1F2937]">{{$d.GetAffectedPercentageDisplay}}</p>
         </div>
         {{end}}
         {{if $d.RecentWeather}}

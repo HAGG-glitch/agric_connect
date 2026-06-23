@@ -2,6 +2,7 @@ package diagnosis
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -72,6 +73,13 @@ func (d *CropDiagnosis) GetRecommendedActions() []string {
 
 func (d *CropDiagnosis) GetPreventionTips() []string {
 	return parseJSONArray(d.PreventionTips)
+}
+
+func (d *CropDiagnosis) GetAffectedPercentageDisplay() string {
+	if d.AffectedPercentage == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.0f%%", *d.AffectedPercentage)
 }
 
 func parseJSONArray(data datatypes.JSON) []string {

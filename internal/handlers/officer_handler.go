@@ -32,21 +32,15 @@ func (h *OfficerHandler) OfficerPage(c *gin.Context) {
 	var pendingCount, inReviewCount, completedCount int64
 
 	h.db.Model(&diagnosis.CropDiagnosis{}).
-		Where("status IN ? AND (district = ? OR ? OR ?)",
-			[]string{"completed", "awaiting_review"},
-			user.District, user.District == "", user.Role == "admin").
+		Where("status IN ?", []string{"completed", "awaiting_review"}).
 		Count(&pendingCount)
 
 	h.db.Model(&diagnosis.CropDiagnosis{}).
-		Where("status = ? AND (district = ? OR ? OR ?)",
-			"under_review",
-			user.District, user.District == "", user.Role == "admin").
+		Where("status = ?", "under_review").
 		Count(&inReviewCount)
 
 	h.db.Model(&diagnosis.CropDiagnosis{}).
-		Where("status = ? AND (district = ? OR ? OR ?)",
-			"reviewed",
-			user.District, user.District == "", user.Role == "admin").
+		Where("status = ?", "reviewed").
 		Count(&completedCount)
 
 	var userRecord struct {
@@ -93,8 +87,6 @@ func (h *OfficerHandler) OfficerDiagnosisDetailPage(c *gin.Context) {
 }
 
 func (h *OfficerHandler) ListDiagnoses(c *gin.Context) {
-	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
-
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 	status := c.Query("status")
@@ -110,14 +102,6 @@ func (h *OfficerHandler) ListDiagnoses(c *gin.Context) {
 
 	query := h.db.Model(&diagnosis.CropDiagnosis{}).
 		Where("status IN ?", []string{"completed", "awaiting_review", "under_review", "reviewed"})
-
-	if user.Role != "admin" {
-		if user.District == "" {
-			query = query.Where("district IS NULL OR district = ''")
-		} else {
-			query = query.Where("district = ?", user.District)
-		}
-	}
 
 	if status != "" {
 		query = query.Where("status = ?", status)
@@ -153,7 +137,6 @@ func (h *OfficerHandler) ListDiagnoses(c *gin.Context) {
 }
 
 func (h *OfficerHandler) GetDiagnosis(c *gin.Context) {
-	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
 	idStr := c.Param("id")
 	diagID, err := uuid.Parse(idStr)
 	if err != nil {
@@ -164,11 +147,6 @@ func (h *OfficerHandler) GetDiagnosis(c *gin.Context) {
 	var d diagnosis.CropDiagnosis
 	if err := h.db.First(&d, "id = ?", diagID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
-		return
-	}
-
-	if user.Role != "admin" && user.District != "" && d.District != user.District {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: not your district"})
 		return
 	}
 
@@ -202,11 +180,6 @@ func (h *OfficerHandler) CreateReview(c *gin.Context) {
 	var d diagnosis.CropDiagnosis
 	if err := h.db.First(&d, "id = ?", diagID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
-		return
-	}
-
-	if user.Role != "admin" && user.District != "" && d.District != user.District {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: not your district"})
 		return
 	}
 
@@ -368,11 +341,6 @@ func (h *OfficerHandler) ClaimCase(c *gin.Context) {
 	var d diagnosis.CropDiagnosis
 	if err := h.db.First(&d, "id = ?", diagID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Diagnosis not found"})
-		return
-	}
-
-	if user.Role != "admin" && user.District != "" && d.District != user.District {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: not your district"})
 		return
 	}
 
