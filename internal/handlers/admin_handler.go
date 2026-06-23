@@ -435,3 +435,23 @@ func (h *AdminHandler) ListAuditLogs(c *gin.Context) {
 		"page_size": pageSize,
 	})
 }
+
+func (h *AdminHandler) CleanupConversations(c *gin.Context) {
+	var convCount, diagCount int64
+	h.db.Raw("SELECT count(*) FROM ai_conversations WHERE user_id IN (SELECT id FROM users WHERE role IN ('admin', 'officer'))").Scan(&convCount)
+	h.db.Raw("SELECT count(*) FROM crop_diagnoses WHERE user_id IN (SELECT id FROM users WHERE role IN ('admin', 'officer'))").Scan(&diagCount)
+
+	if convCount == 0 && diagCount == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Nothing to clean up", "conversations_deleted": 0, "diagnoses_deleted": 0})
+		return
+	}
+
+	delConvs := h.db.Exec("DELETE FROM ai_conversations WHERE user_id IN (SELECT id FROM users WHERE role IN ('admin', 'officer'))")
+	delDiags := h.db.Exec("DELETE FROM crop_diagnoses WHERE user_id IN (SELECT id FROM users WHERE role IN ('admin', 'officer'))")
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":              "Transferred conversations cleaned up",
+		"conversations_deleted": delConvs.RowsAffected,
+		"diagnoses_deleted":     delDiags.RowsAffected,
+	})
+}

@@ -310,6 +310,7 @@ func main() {
 		adminAPI.GET("/diagnoses", adminHandler.ListDiagnoses)
 		adminAPI.GET("/reviews", adminHandler.ListReviews)
 		adminAPI.GET("/audit-logs", adminHandler.ListAuditLogs)
+		adminAPI.DELETE("/conversations/cleanup", adminHandler.CleanupConversations)
 	}
 
 	// API v1 — notifications (auth, any role)
