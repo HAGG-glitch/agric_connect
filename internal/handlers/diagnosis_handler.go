@@ -501,6 +501,12 @@ func diagnosisToView(d *diagnosis.CropDiagnosis) gin.H {
 		"status":                 d.Status,
 		"error_message":          d.ErrorMessage,
 		"created_at":             d.CreatedAt,
+		"affected_percentage":   d.AffectedPercentage,
+		"affected_display":      d.GetAffectedPercentageDisplay(),
+		"symptoms_started_at":   d.SymptomsStartedAt,
+		"recent_weather":        d.RecentWeather,
+		"fertiliser_history":    d.FertiliserHistory,
+		"pesticide_history":     d.PesticideHistory,
 	}
 
 	if d.ConfidenceLabel != "" {

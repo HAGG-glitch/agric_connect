@@ -29,10 +29,23 @@
         </div>
 
         <div class="bg-white rounded-xl border border-[#E5E7EB] p-5 mb-4">
-          <h2 class="font-semibold text-[#1F2937] mb-3">Farmer Information</h2>
-          <div id="farmer-info">
-            <p class="text-[#6B7280] text-sm">Loading...</p>
-          </div>
+          <h2 class="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-5 h-5 text-[#2E7D32]"></i> Farmer Report
+          </h2>
+          <details class="group">
+            <summary class="flex items-center justify-between cursor-pointer list-none">
+              <span class="text-sm text-[#6B7280]">View farmer's full report</span>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-[#6B7280] group-open:rotate-180 transition-transform"></i>
+            </summary>
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4" id="farmer-report-details">
+            </div>
+          </details>
+        </div>
+
+        <div class="flex gap-3 mb-4">
+          <button id="continue-in-chat" class="flex-1 bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl py-2.5 text-sm font-medium transition-colors hidden">
+            Continue in AI Chat
+          </button>
         </div>
       </div>
 
@@ -96,6 +109,20 @@
 </div>
 
 <script>
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString();
+}
+
+function formatShortDate(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 async function loadDiagnosis() {
   const id = window.location.pathname.split('/').pop();
   document.getElementById('diagnosis-id').value = id;
@@ -113,25 +140,135 @@ async function loadDiagnosis() {
     document.getElementById('content').classList.remove('hidden');
     document.getElementById('diagnosis-meta').textContent = d.crop + ' - ' + (d.district || 'No district');
 
-    document.getElementById('ai-assessment').innerHTML =
-      '<div class="space-y-2">' +
-        '<p class="text-sm"><span class="font-medium">Condition:</span> ' + (d.probable_condition || 'Pending') + '</p>' +
-        '<p class="text-sm"><span class="font-medium">Confidence:</span> ' + Math.round(d.confidence || 0) + '%</p>' +
-        '<p class="text-sm"><span class="font-medium">Urgency:</span> <span class="' + (d.urgency === 'urgent' ? 'text-red-600' : '') + '">' + (d.urgency || 'unknown') + '</span></p>' +
-        '<p class="text-sm text-[#4B5563]">' + (d.description || '') + '</p>' +
-      '</div>';
+    var confidence = Math.round(d.confidence || 0);
+    var confidenceColor = confidence >= 70 ? '#16a34a' : confidence >= 40 ? '#f59e0b' : '#dc2626';
+    var confidenceLabel = d.confidence_label || (confidence >= 70 ? 'high' : confidence >= 40 ? 'moderate' : 'low');
 
-    document.getElementById('farmer-info').innerHTML =
-      '<div class="space-y-2 text-sm">' +
-        '<p><span class="font-medium">Crop:</span> ' + d.crop + '</p>' +
-        '<p><span class="font-medium">District:</span> ' + (d.district || 'Not specified') + '</p>' +
-        '<p><span class="font-medium">Plant Part:</span> ' + (d.plant_part || 'Not specified') + '</p>' +
-        '<p><span class="font-medium">Symptoms:</span> ' + (d.symptom_description || 'Not specified') + '</p>' +
-        '<p><span class="font-medium">Status:</span> ' + d.status + '</p>' +
-      '</div>';
+    // AI Assessment
+    var assessmentHTML =
+      '<div class="flex items-center justify-between mb-4">' +
+        '<div>' +
+          '<p class="text-xs text-[#6B7280] mb-1">Condition</p>' +
+          '<p class="text-lg font-bold text-[#1F2937]">' + (d.probable_condition || 'Pending') + '</p>' +
+        '</div>' +
+        '<div class="w-20 h-20">' +
+          '<canvas id="confidenceGauge"></canvas>' +
+        '</div>' +
+      '</div>' +
+      '<div class="flex flex-wrap gap-2 mb-3">' +
+        '<span class="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">Confidence: ' + confidence + '%</span>' +
+        '<span class="text-xs capitalize px-2 py-0.5 rounded-full font-medium ' + (d.urgency === 'urgent' ? 'bg-red-50 text-red-600' : d.urgency === 'high' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600') + '">' + (d.urgency || 'unknown') + ' urgency</span>' +
+      '</div>' +
+      (d.description ? '<div class="mb-3"><h3 class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-1">Description</h3><p class="text-sm text-[#4B5563]">' + d.description + '</p></div>' : '') +
+      '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">';
 
+    if (d.observed_signs && d.observed_signs.length > 0) {
+      assessmentHTML +=
+        '<div class="bg-[#F9FAFB] rounded-lg p-3">' +
+          '<h3 class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-1">Observed Signs</h3>' +
+          '<ul class="text-sm text-[#4B5563] space-y-0.5">';
+      d.observed_signs.forEach(function(s) { assessmentHTML += '<li>&bull; ' + s + '</li>'; });
+      assessmentHTML += '</ul></div>';
+    }
+
+    if (d.possible_alternatives && d.possible_alternatives.length > 0) {
+      assessmentHTML +=
+        '<div class="bg-[#F9FAFB] rounded-lg p-3">' +
+          '<h3 class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-1">Possible Alternatives</h3>' +
+          '<div class="flex flex-wrap gap-1">';
+      d.possible_alternatives.forEach(function(a) { assessmentHTML += '<span class="text-xs bg-white text-[#4B5563] px-2 py-0.5 rounded border border-[#E5E7EB]">' + a + '</span>'; });
+      assessmentHTML += '</div></div>';
+    }
+
+    assessmentHTML += '</div>';
+
+    if (d.recommended_actions && d.recommended_actions.length > 0) {
+      assessmentHTML +=
+        '<div class="mb-3">' +
+          '<h3 class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-1">Recommended Actions</h3>' +
+          '<ul class="text-sm text-[#4B5563] space-y-0.5">';
+      d.recommended_actions.forEach(function(a) { assessmentHTML += '<li>&bull; ' + a + '</li>'; });
+      assessmentHTML += '</ul></div>';
+    }
+
+    if (d.prevention_tips && d.prevention_tips.length > 0) {
+      assessmentHTML +=
+        '<div class="mb-3">' +
+          '<h3 class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-1">Prevention Tips</h3>' +
+          '<ul class="text-sm text-[#4B5563] space-y-0.5">';
+      d.prevention_tips.forEach(function(t) { assessmentHTML += '<li>&bull; ' + t + '</li>'; });
+      assessmentHTML += '</ul></div>';
+    }
+
+    if (d.disclaimer) {
+      assessmentHTML +=
+        '<div class="bg-amber-50 border border-amber-200 rounded-lg p-3">' +
+          '<div class="flex items-start gap-2">' +
+            '<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"></i>' +
+            '<p class="text-sm text-amber-800">' + d.disclaimer + '</p>' +
+          '</div>' +
+        '</div>';
+    }
+
+    document.getElementById('ai-assessment').innerHTML = assessmentHTML;
+
+    // Init confidence gauge
+    var canvas = document.getElementById('confidenceGauge');
+    if (canvas && typeof Chart !== 'undefined') {
+      new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [confidence, 100 - confidence],
+            backgroundColor: [confidenceColor, '#E5E7EB'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          cutout: '80%',
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { tooltip: { enabled: false }, legend: { display: false } }
+        }
+      });
+    }
+
+    // Farmer Report
+    var reportHTML = '';
+    if (d.plant_part) {
+      reportHTML += '<div><p class="text-xs text-[#6B7280] mb-1">Affected Plant Part</p><p class="text-sm text-[#1F2937] capitalize">' + d.plant_part + '</p></div>';
+    }
+    if (d.district) {
+      reportHTML += '<div><p class="text-xs text-[#6B7280] mb-1">District</p><p class="text-sm text-[#1F2937]">' + d.district + '</p></div>';
+    }
+    if (d.symptoms_started_at) {
+      reportHTML += '<div><p class="text-xs text-[#6B7280] mb-1">Symptoms Started</p><p class="text-sm text-[#1F2937]">' + formatShortDate(d.symptoms_started_at) + '</p></div>';
+    }
+    if (d.affected_percentage) {
+      reportHTML += '<div><p class="text-xs text-[#6B7280] mb-1">Crop Affected</p><p class="text-sm text-[#1F2937]">' + d.affected_display + '</p></div>';
+    }
+    if (d.recent_weather) {
+      reportHTML += '<div><p class="text-xs text-[#6B7280] mb-1">Recent Weather</p><p class="text-sm text-[#4B5563]">' + d.recent_weather + '</p></div>';
+    }
+    if (d.fertiliser_history) {
+      reportHTML += '<div><p class="text-xs text-[#6B7280] mb-1">Fertiliser History</p><p class="text-sm text-[#4B5563]">' + d.fertiliser_history + '</p></div>';
+    }
+    if (d.pesticide_history) {
+      reportHTML += '<div><p class="text-xs text-[#6B7280] mb-1">Pesticide History</p><p class="text-sm text-[#4B5563]">' + d.pesticide_history + '</p></div>';
+    }
+    if (d.symptom_description) {
+      reportHTML += '<div class="sm:col-span-2"><p class="text-xs text-[#6B7280] mb-1">Farmer\'s Description</p><p class="text-sm text-[#4B5563] whitespace-pre-wrap">' + d.symptom_description + '</p></div>';
+    }
+    document.getElementById('farmer-report-details').innerHTML = reportHTML || '<p class="text-sm text-[#6B7280] col-span-2">No additional report data</p>';
+
+    // Continue in Chat button
+    if (d.status === 'completed' || d.status === 'reviewed') {
+      document.getElementById('continue-in-chat').classList.remove('hidden');
+      document.getElementById('continue-in-chat').onclick = function() { continueInChat(d.id); };
+    }
+
+    // Reviews
     if (d.reviews && d.reviews.length > 0) {
-      // Find the current officer's existing review to pre-fill form
       var myReview = d.reviews.find(function(r) { return r.officer_id === d.current_officer_id; });
       if (myReview) {
         document.getElementById('review-id').value = myReview.id;
@@ -140,13 +277,6 @@ async function loadDiagnosis() {
         document.getElementById('officer-comment').value = myReview.officer_comment || '';
         document.getElementById('recommendation').value = myReview.recommendation || '';
         document.getElementById('requires-field-visit').checked = myReview.requires_field_visit || false;
-      }
-
-      function formatReviewDate(dateStr) {
-        if (!dateStr) return '';
-        var d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '';
-        return d.toLocaleString();
       }
 
       document.getElementById('review-history').innerHTML = d.reviews.map(function(r) {
@@ -158,7 +288,7 @@ async function loadDiagnosis() {
               '</div>' +
               '<div>' +
                 '<span class="text-sm font-medium text-[#1F2937]">' + (r.officer_name || 'Unknown Officer') + '</span>' +
-                '<span class="text-xs text-[#6B7280] ml-1">' + formatReviewDate(r.created_at) + '</span>' +
+                '<span class="text-xs text-[#6B7280] ml-1">' + formatDate(r.created_at) + '</span>' +
               '</div>' +
             '</div>' +
             '<div class="flex items-center gap-2">' +
@@ -180,6 +310,18 @@ async function loadDiagnosis() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
   } catch (e) {
     document.getElementById('loading').innerHTML = '<p class="text-red-600">Failed to load diagnosis</p>';
+  }
+}
+
+async function continueInChat(id) {
+  try {
+    const res = await fetch('/api/v1/diagnoses/' + id + '/continue-in-chat', { method: 'POST' });
+    if (res.status === 429) { alert('Too many requests. Please wait a moment and try again.'); return; }
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    window.location.href = '/assistant?conv=' + data.conversation_id;
+  } catch (e) {
+    alert('Failed to continue in chat.');
   }
 }
 
