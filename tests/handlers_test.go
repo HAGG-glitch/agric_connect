@@ -3123,7 +3123,7 @@ func (m *mockAudioTranscriber) Transcribe(_ context.Context, _ ai.TranscriptionI
 func TestHome_Unauthenticated_LandingPage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{})
+	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{}, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)
@@ -3154,7 +3154,7 @@ func TestHome_Unauthenticated_LandingPage(t *testing.T) {
 func TestHome_AuthenticatedFarmer_RedirectsDashboard(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{})
+	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{}, nil)
 
 	r := gin.New()
 	r.GET("/", func(c *gin.Context) {
@@ -3181,7 +3181,7 @@ func TestHome_AuthenticatedFarmer_RedirectsDashboard(t *testing.T) {
 func TestHome_AuthenticatedOfficer_RedirectsOfficer(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{})
+	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{}, nil)
 
 	r := gin.New()
 	r.GET("/", func(c *gin.Context) {
@@ -3208,7 +3208,7 @@ func TestHome_AuthenticatedOfficer_RedirectsOfficer(t *testing.T) {
 func TestHome_AuthenticatedAdmin_RedirectsAdmin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{})
+	handler := handlers.NewPageHandler(&config.Config{}, &mockAuthService{}, nil)
 
 	r := gin.New()
 	r.GET("/", func(c *gin.Context) {
@@ -3235,7 +3235,7 @@ func TestHome_AuthenticatedAdmin_RedirectsAdmin(t *testing.T) {
 func TestAssistant_Unauthenticated_RedirectsRegister(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := handlers.NewPageHandler(&config.Config{AllowAnonymousAssistant: false}, &mockAuthService{})
+	handler := handlers.NewPageHandler(&config.Config{AllowAnonymousAssistant: false}, &mockAuthService{}, nil)
 
 	r := gin.New()
 	r.GET("/assistant", handler.AssistantPage)
@@ -3256,7 +3256,7 @@ func TestAssistant_Unauthenticated_RedirectsRegister(t *testing.T) {
 func TestAssistant_AuthenticatedFarmer_Allowed(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := handlers.NewPageHandler(&config.Config{AllowAnonymousAssistant: false}, &mockAuthService{})
+	handler := handlers.NewPageHandler(&config.Config{AllowAnonymousAssistant: false}, &mockAuthService{}, nil)
 
 	r := gin.New()
 	setupTemplateEngine(r)

@@ -85,7 +85,7 @@ async function loadList() {
             '<p class="text-sm font-medium text-[#1F2937]">' + (d.crop || '') + (d.probable_condition ? ' - ' + d.probable_condition : '') + '</p>' +
             '<span class="text-xs ' + urgencyClass + ' px-2 py-0.5 rounded-full">' + (d.urgency || 'unknown') + '</span>' +
           '</div>' +
-          '<p class="text-xs text-[#6B7280] mt-0.5">' + (d.district || 'No district') + ' &middot; ' + new Date(d.created_at).toLocaleDateString() + '</p>' +
+          '<p class="text-xs text-[#6B7280] mt-0.5">' + (d.is_own_district ? '<span class="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-1.5 py-0.5 rounded font-medium mr-1">Your District</span>' : '') + (d.district || 'No district') + ' &middot; ' + new Date(d.created_at).toLocaleDateString() + '</p>' +
         '</div>' +
         '<span class="text-xs px-2 py-1 rounded-full ' + statusClass + '">' + d.status + '</span>' +
       '</a>';

@@ -87,6 +87,7 @@ func (h *OfficerHandler) OfficerDiagnosisDetailPage(c *gin.Context) {
 }
 
 func (h *OfficerHandler) ListDiagnoses(c *gin.Context) {
+	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 	status := c.Query("status")
@@ -118,14 +119,24 @@ func (h *OfficerHandler) ListDiagnoses(c *gin.Context) {
 
 	var diags []diagnosis.CropDiagnosis
 	offset := (page - 1) * pageSize
-	if err := query.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&diags).Error; err != nil {
+	var orderExpr interface{} = "created_at DESC"
+	if user.District != "" {
+		orderExpr = gorm.Expr("CASE WHEN district = ? THEN 0 ELSE 1 END, created_at DESC", user.District)
+	}
+	if err := query.Order(orderExpr).Limit(pageSize).Offset(offset).Find(&diags).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load diagnoses"})
 		return
 	}
 
 	views := make([]gin.H, 0, len(diags))
 	for _, d := range diags {
-		views = append(views, diagnosisToView(&d))
+		view := diagnosisToView(&d)
+		if user.District != "" {
+			view["is_own_district"] = d.District == user.District
+		} else {
+			view["is_own_district"] = false
+		}
+		views = append(views, view)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
