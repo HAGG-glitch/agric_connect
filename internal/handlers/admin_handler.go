@@ -436,19 +436,4 @@ func (h *AdminHandler) ListAuditLogs(c *gin.Context) {
 	})
 }
 
-func (h *AdminHandler) CleanupConversations(c *gin.Context) {
-	var convCount int64
-	h.db.Raw("SELECT count(*) FROM ai_conversations WHERE user_id IN (SELECT id FROM users WHERE role IN ('admin', 'officer'))").Scan(&convCount)
 
-	if convCount == 0 {
-		c.JSON(http.StatusOK, gin.H{"message": "Nothing to clean up", "conversations_deleted": 0})
-		return
-	}
-
-	delConvs := h.db.Exec("DELETE FROM ai_conversations WHERE user_id IN (SELECT id FROM users WHERE role IN ('admin', 'officer'))")
-
-	c.JSON(http.StatusOK, gin.H{
-		"message":              "Transferred conversations cleaned up",
-		"conversations_deleted": delConvs.RowsAffected,
-	})
-}
