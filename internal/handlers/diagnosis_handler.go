@@ -102,7 +102,7 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 		confidence = 100
 	}
 
-	hasConfidence := d.Status == "completed" && confidence > 0
+	hasConfidence := confidence > 0
 
 	type reviewWithOfficer struct {
 		auth.DiagnosisReview
