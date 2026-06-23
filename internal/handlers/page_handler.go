@@ -48,6 +48,31 @@ func (h *PageHandler) Home(c *gin.Context) {
 	}
 }
 
+func (h *PageHandler) WeatherPage(c *gin.Context) {
+	userDistrict := ""
+	userName := ""
+	userRole := ""
+	authUser, exists := c.Get(middleware.ContextKeyUser)
+	if exists && authUser != nil {
+		if user, ok := authUser.(*middleware.AuthUser); ok {
+			userDistrict = user.District
+			userName = user.FullName
+			userRole = user.Role
+		}
+	}
+
+	c.HTML(http.StatusOK, "weather_forecast.html", gin.H{
+		"Title":        "AgriConnect AI - Weather Forecast",
+		"Year":         time.Now().Year(),
+		"ContentBlock": "contentWeather",
+		"ActivePage":   "weather-forecast",
+		"Districts":    weather.SupportedDistricts,
+		"UserDistrict": userDistrict,
+		"UserName":     userName,
+		"UserRole":     userRole,
+	})
+}
+
 func (h *PageHandler) AssistantPage(c *gin.Context) {
 	if !h.cfg.AllowAnonymousAssistant {
 		authUser, exists := c.Get(middleware.ContextKeyUser)

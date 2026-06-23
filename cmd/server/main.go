@@ -179,6 +179,7 @@ func main() {
 	{
 		publicPages.GET("/", pageHandler.Home)
 		publicPages.GET("/assistant", pageHandler.AssistantPage)
+		publicPages.GET("/weather-forecast", pageHandler.WeatherPage)
 		publicPages.GET("/dashboard", dashboardHandler.DashboardPage)
 		publicPages.GET("/diagnose", diagnosisHandler.DiagnosePage)
 		publicPages.GET("/diagnoses", diagnosisHandler.HistoryPage)
