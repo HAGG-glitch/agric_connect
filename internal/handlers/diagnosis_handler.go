@@ -14,6 +14,7 @@ import (
 	"github.com/agriconnect-ai/internal/middleware"
 	"github.com/agriconnect-ai/internal/config"
 	"github.com/agriconnect-ai/internal/diagnosis"
+	"github.com/agriconnect-ai/internal/models"
 	"github.com/agriconnect-ai/internal/services"
 	"github.com/agriconnect-ai/internal/storage"
 	"github.com/agriconnect-ai/internal/weather"
@@ -103,16 +104,6 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 
 	hasConfidence := d.Status == "completed" && confidence > 0
 
-	var confidenceBarClass string
-	switch {
-	case confidence >= 70:
-		confidenceBarClass = "bg-green-600"
-	case confidence >= 40:
-		confidenceBarClass = "bg-amber-500"
-	default:
-		confidenceBarClass = "bg-red-500"
-	}
-
 	type reviewWithOfficer struct {
 		auth.DiagnosisReview
 		OfficerName string `json:"officer_name"`
@@ -127,15 +118,26 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 			Find(&reviews)
 	}
 
+	var relatedDocs []models.AgriculturalDocument
+	if d.Crop != "" {
+		h.db.Model(&models.AgriculturalDocument{}).
+			Where("reviewed = ? AND LOWER(crop) = ?", true, strings.ToLower(d.Crop)).
+			Order("created_at DESC").
+			Limit(5).
+			Find(&relatedDocs)
+	}
+	if relatedDocs == nil {
+		relatedDocs = []models.AgriculturalDocument{}
+	}
+
 	data := gin.H{
 		"Title":                 "AgriConnect AI - Diagnosis Detail",
 		"Diagnosis":             d,
 		"Reviews":               reviews,
+		"RelatedResources":      relatedDocs,
 		"Year":                  time.Now().Year(),
 		"ContentBlock":          "contentDiagnosisDetail",
 		"ConfidencePercent":     confidence,
-		"ConfidenceWidth":       strconv.Itoa(confidence) + "%",
-		"ConfidenceBarClass":    confidenceBarClass,
 		"HasConfidence":         hasConfidence,
 		"ConfidenceDisplayText": strconv.Itoa(confidence) + "%",
 		"ActivePage":            "diagnosis-detail",

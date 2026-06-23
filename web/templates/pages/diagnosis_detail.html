@@ -43,6 +43,70 @@
     </div>
   </div>
 
+  {{if or $d.PlantPart $d.SymptomsStartedAt $d.AffectedPercentage $d.RecentWeather $d.FertiliserHistory $d.PesticideHistory $d.SymptomDescription $d.District}}
+  <div class="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
+    <details class="group">
+      <summary class="flex items-center justify-between cursor-pointer list-none">
+        <div class="flex items-center gap-2">
+          <i data-lucide="clipboard-list" class="w-4 h-4 text-[#2E7D32]"></i>
+          <h3 class="font-semibold text-[#1F2937] text-sm">Farmer Report</h3>
+        </div>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-[#6B7280] group-open:rotate-180 transition-transform"></i>
+      </summary>
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {{if $d.PlantPart}}
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">Affected Plant Part</p>
+          <p class="text-sm text-[#1F2937] capitalize">{{$d.PlantPart}}</p>
+        </div>
+        {{end}}
+        {{if $d.District}}
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">District</p>
+          <p class="text-sm text-[#1F2937]">{{$d.District}}</p>
+        </div>
+        {{end}}
+        {{if $d.SymptomsStartedAt}}
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">Symptoms Started</p>
+          <p class="text-sm text-[#1F2937]">{{$d.SymptomsStartedAt.Format "Jan 2, 2006"}}</p>
+        </div>
+        {{end}}
+        {{if $d.AffectedPercentage}}
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">Crop Affected</p>
+          <p class="text-sm text-[#1F2937]">{{printf "%.0f" $d.AffectedPercentage}}%</p>
+        </div>
+        {{end}}
+        {{if $d.RecentWeather}}
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">Recent Weather</p>
+          <p class="text-sm text-[#4B5563]">{{$d.RecentWeather}}</p>
+        </div>
+        {{end}}
+        {{if $d.FertiliserHistory}}
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">Fertiliser History</p>
+          <p class="text-sm text-[#4B5563]">{{$d.FertiliserHistory}}</p>
+        </div>
+        {{end}}
+        {{if $d.PesticideHistory}}
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">Pesticide History</p>
+          <p class="text-sm text-[#4B5563]">{{$d.PesticideHistory}}</p>
+        </div>
+        {{end}}
+        {{if $d.SymptomDescription}}
+        <div class="sm:col-span-2">
+          <p class="text-xs text-[#6B7280] mb-1">Farmer's Description</p>
+          <p class="text-sm text-[#4B5563] whitespace-pre-wrap">{{$d.SymptomDescription}}</p>
+        </div>
+        {{end}}
+      </div>
+    </details>
+  </div>
+  {{end}}
+
   {{if eq $d.Status "processing"}}
   <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center mb-6">
     <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
@@ -62,7 +126,7 @@
     </div>
   </div>
 
-  {{else if and .Reviews (gt (len .Reviews) 0)}}
+{{else if and .Reviews (gt (len .Reviews) 0)}}  
   <div class="mb-6">
     <div class="flex items-center gap-2 mb-3">
       <i data-lucide="message-square" class="w-4 h-4 text-[#2E7D32]"></i>
@@ -108,20 +172,24 @@
   </div>
 {{else}}
   <div class="space-y-4">
+    {{if .HasConfidence}}
+    <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs text-[#6B7280] mb-1">AI Confidence</p>
+          <p class="text-2xl font-bold text-[#1F2937]">{{.ConfidenceDisplayText}}</p>
+          <p class="text-xs text-[#6B7280] mt-1 capitalize" style="text-transform:capitalize">{{$d.ConfidenceLabel}} confidence</p>
+        </div>
+        <div class="w-20 h-20">
+          <canvas id="confidenceGauge"></canvas>
+        </div>
+      </div>
+    </div>
+    {{end}}
+
     <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
       <h3 class="font-semibold text-[#1F2937] mb-3 text-sm">Diagnosis Summary</h3>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {{if .HasConfidence}}
-        <div>
-          <p class="text-xs text-[#6B7280] mb-1">Confidence</p>
-          <div class="flex items-center gap-2">
-            <div class="flex-1 h-2 bg-[#E5E7EB] rounded-full overflow-hidden">
-              <div class="h-full rounded-full {{.ConfidenceBarClass}}" style="width: {{.ConfidenceWidth}}"></div>
-            </div>
-            <span class="text-xs font-medium text-[#1F2937]">{{.ConfidenceDisplayText}}</span>
-          </div>
-        </div>
-        {{end}}
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {{if eq $d.Urgency "urgent"}}{{else if eq $d.Urgency "high"}}{{else if eq $d.Urgency ""}}{{else}}
         <div>
           <p class="text-xs text-[#6B7280] mb-1">Urgency</p>
@@ -180,6 +248,31 @@
       </div>
     </div>
 
+    {{if .RelatedResources}}
+    <div class="bg-white border border-[#E5E7EB] rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="book-open" class="w-4 h-4 text-[#2E7D32]"></i>
+        <h3 class="font-semibold text-[#1F2937] text-sm">Related Resources ({{len .RelatedResources}})</h3>
+      </div>
+      <div class="space-y-2">
+        {{range .RelatedResources}}
+        <a href="/resources/{{.ID}}" class="block p-3 rounded-lg border border-[#E5E7EB] hover:border-[#2E7D32] hover:bg-[#F5F7F5] transition-colors">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-[#1F2937] truncate">{{.Title}}</p>
+              <div class="flex items-center gap-2 mt-1">
+                {{if .Crop}}<span class="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-1.5 py-0.5 rounded capitalize">{{.Crop}}</span>{{end}}
+                {{if .Category}}<span class="text-xs bg-[#F5F7F5] text-[#6B7280] px-1.5 py-0.5 rounded capitalize">{{.Category}}</span>{{end}}
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-[#6B7280] flex-shrink-0 mt-1"></i>
+          </div>
+        </a>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+
     <div class="flex gap-3">
       <button onclick="continueInChat('{{$d.ID}}')" class="flex-1 bg-[#2E7D32] hover:bg-[#245F27] text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
         Continue in AI Chat
@@ -235,8 +328,35 @@
     } catch (e) { alert('Failed to reject review.'); }
   }
 
+  function initConfidenceGauge() {
+    var canvas = document.getElementById('confidenceGauge');
+    if (!canvas || typeof Chart === 'undefined') return;
+    var confidence = {{.ConfidencePercent}};
+    var color = confidence >= 70 ? '#16a34a' : confidence >= 40 ? '#f59e0b' : '#dc2626';
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [confidence, 100 - confidence],
+          backgroundColor: [color, '#E5E7EB'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        cutout: '80%',
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          tooltip: { enabled: false },
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
+    initConfidenceGauge();
   });
 </script>
       </div>
