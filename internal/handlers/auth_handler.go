@@ -138,7 +138,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	anonymousID := h.getAnonymousID(c)
 	h.setCookies(c, tokens)
-	h.tryTransfer(c, anonymousID, tokens.User.ID)
+	// Only transfer anonymous data for farmer users — admins/officers should
+	// not inherit conversations created by anonymous usage of a shared browser.
+	if tokens.User.Role == "farmer" {
+		h.tryTransfer(c, anonymousID, tokens.User.ID)
+	}
 
 	redirectTo := "/dashboard"
 	switch tokens.User.Role {
