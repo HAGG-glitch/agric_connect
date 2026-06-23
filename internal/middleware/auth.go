@@ -119,7 +119,9 @@ func extractUser(c *gin.Context, accessSecret string) (*AuthUser, error) {
 	}
 
 	return &AuthUser{
-		ID:   claims.UserID,
-		Role: claims.Role,
+		ID:       claims.UserID,
+		Role:     claims.Role,
+		FullName: claims.FullName,
+		District: claims.District,
 	}, nil
 }

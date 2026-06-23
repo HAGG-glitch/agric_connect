@@ -63,8 +63,10 @@ type Service interface {
 }
 
 type Claims struct {
-	UserID uuid.UUID `json:"user_id"`
-	Role   string    `json:"role"`
+	UserID   uuid.UUID `json:"user_id"`
+	Role     string    `json:"role"`
+	FullName string    `json:"full_name"`
+	District string    `json:"district"`
 	jwt.RegisteredClaims
 }
 
@@ -301,8 +303,10 @@ func (s *service) generateTokenPair(user *User) (*TokenPair, error) {
 	now := time.Now().UTC()
 
 	accessClaims := &Claims{
-		UserID: user.ID,
-		Role:   user.Role,
+		UserID:   user.ID,
+		Role:     user.Role,
+		FullName: user.FullName,
+		District: user.District,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.accessDuration)),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -318,8 +322,10 @@ func (s *service) generateTokenPair(user *User) (*TokenPair, error) {
 
 	refreshID := uuid.New()
 	refreshClaims := &Claims{
-		UserID: user.ID,
-		Role:   user.Role,
+		UserID:   user.ID,
+		Role:     user.Role,
+		FullName: user.FullName,
+		District: user.District,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.refreshDuration)),
 			IssuedAt:  jwt.NewNumericDate(now),

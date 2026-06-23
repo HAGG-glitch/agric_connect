@@ -19,6 +19,17 @@ func populateTemplateData(c *gin.Context, db *gorm.DB, data gin.H) {
 		return
 	}
 
+	// extractUser only sets ID and Role from JWT — FullName/District need a DB lookup
+	if user.FullName == "" && db != nil {
+		var rec struct {
+			FullName string
+			District string
+		}
+		db.Table("users").Select("full_name, district").Where("id = ?", user.ID).Scan(&rec)
+		user.FullName = rec.FullName
+		user.District = rec.District
+	}
+
 	data["UserName"] = user.FullName
 	data["UserRole"] = user.Role
 	data["UserDistrict"] = user.District
