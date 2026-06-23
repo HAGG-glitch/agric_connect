@@ -4,6 +4,30 @@
     <script src="/static/js/recorder.js?v={{assetVersion}}"></script>
     <script>
         if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        // Poll for unread notification count every 30s
+        setInterval(function() {
+            fetch('/api/v1/notifications/unread-count')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var count = data.unread_count || 0;
+                    document.querySelectorAll('.notif-badge').forEach(function(el) {
+                        if (count > 0) {
+                            el.textContent = count;
+                            el.style.display = 'flex';
+                        } else {
+                            el.style.display = 'none';
+                        }
+                    });
+                    // Also update stat-card value on dashboard
+                    var statValue = document.querySelector('.stat-card .stat-value');
+                    if (statValue && statValue.parentElement && statValue.parentElement.querySelector('.stat-label') &&
+                        statValue.parentElement.querySelector('.stat-label').textContent.indexOf('Unread') !== -1) {
+                        statValue.textContent = count;
+                    }
+                })
+                .catch(function() {});
+        }, 30000);
     </script>
 </body>
 </html>
