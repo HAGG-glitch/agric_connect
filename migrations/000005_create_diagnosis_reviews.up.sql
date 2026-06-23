@@ -15,4 +15,5 @@ CREATE TABLE IF NOT EXISTS diagnosis_reviews (
 CREATE INDEX IF NOT EXISTS idx_diagnosis_reviews_diagnosis_id ON diagnosis_reviews(diagnosis_id);
 CREATE INDEX IF NOT EXISTS idx_diagnosis_reviews_officer_id ON diagnosis_reviews(officer_id);
 CREATE INDEX IF NOT EXISTS idx_diagnosis_reviews_review_status ON diagnosis_reviews(review_status);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_diagnosis_reviews_unique_active ON diagnosis_reviews(diagnosis_id) WHERE review_status NOT IN ('closed');
+-- NOTE: idx_diagnosis_reviews_unique_active was removed in 000012 (Reddit-style reviews)
+-- DO NOT add it back — multiple officers must be able to review the same diagnosis.
