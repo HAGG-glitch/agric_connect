@@ -51,14 +51,38 @@ type UpdatePreferencesInput struct {
 	PreferredLanguage *string
 }
 
+// Service defines the contract for authentication and user management
+// operations: registration, login, token refresh, logout, profile queries,
+// preference updates, and anonymous data transfer.
 type Service interface {
+	// Register creates a new user account with the given details, hashes the
+	// password with bcrypt, and returns a signed JWT token pair.
 	Register(ctx context.Context, input RegisterInput) (*TokenPair, error)
+
+	// Login authenticates a user by phone number and password. Returns a
+	// token pair on success; deactivated accounts are rejected.
 	Login(ctx context.Context, input LoginInput) (*TokenPair, error)
+
+	// RefreshToken validates and rotates a refresh token, issuing a new
+	// token pair and revoking the old one.
 	RefreshToken(ctx context.Context, refreshTokenStr string) (*TokenPair, error)
+
+	// Logout revokes the specified refresh token for the user.
 	Logout(ctx context.Context, userID, refreshTokenID uuid.UUID) error
+
+	// GetUser returns the user's public profile by ID.
 	GetUser(ctx context.Context, userID uuid.UUID) (*UserView, error)
+
+	// UpdatePreferences updates the user's name, district, and/or language
+	// preference. Only non-nil fields are updated.
 	UpdatePreferences(ctx context.Context, input UpdatePreferencesInput) (*UserView, error)
+
+	// TransferAnonymousData reassigns anonymous conversations, diagnoses,
+	// and transcription feedback to the user's account after registration.
 	TransferAnonymousData(ctx context.Context, anonymousID, userID uuid.UUID) error
+
+	// NormalizePhone converts various Sierra Leone phone number formats
+	// to the canonical +232XXXXXXXXX form.
 	NormalizePhone(phone string) string
 }
 
@@ -78,6 +102,8 @@ type service struct {
 	refreshDuration  time.Duration
 }
 
+// NewService creates an auth Service backed by the given database and
+// JWT signing keys. accessDuration and refreshDuration control token lifetimes.
 func NewService(db *gorm.DB, accessSecret, refreshSecret string, accessDuration, refreshDuration time.Duration) Service {
 	return &service{
 		db:              db,
@@ -88,12 +114,19 @@ func NewService(db *gorm.DB, accessSecret, refreshSecret string, accessDuration,
 	}
 }
 
+// NormalizePhone strips whitespace and delimiters from a phone number and
+// prepends the +232 country code for Sierra Leone if missing. Handles
+// formats: 076XXXXXX, 23276XXXXXX, 0023276XXXXXX, +23276XXXXXX.
+// Returns empty string unchanged.
 func (s *service) NormalizePhone(phone string) string {
 	phone = strings.TrimSpace(phone)
 	phone = strings.ReplaceAll(phone, " ", "")
 	phone = strings.ReplaceAll(phone, "-", "")
 	phone = strings.ReplaceAll(phone, "(", "")
 	phone = strings.ReplaceAll(phone, ")", "")
+	if phone == "" {
+		return ""
+	}
 	if strings.HasPrefix(phone, "00") {
 		phone = "+" + phone[2:]
 	}
@@ -109,6 +142,9 @@ func (s *service) NormalizePhone(phone string) string {
 	return phone
 }
 
+// Register creates a new user with validated input, hashes the password
+// with bcrypt (cost 12), normalizes the phone number, and returns a JWT
+// token pair. Duplicate phone numbers are rejected.
 func (s *service) Register(ctx context.Context, input RegisterInput) (*TokenPair, error) {
 	if input.FullName == "" {
 		return nil, errors.New("full name is required")
@@ -167,6 +203,8 @@ func (s *service) Register(ctx context.Context, input RegisterInput) (*TokenPair
 	return tokens, nil
 }
 
+// Login authenticates the user by phone number and bcrypt password hash.
+// Deactivated accounts are rejected with a clear error.
 func (s *service) Login(ctx context.Context, input LoginInput) (*TokenPair, error) {
 	phone := s.NormalizePhone(input.PhoneNumber)
 
@@ -194,6 +232,9 @@ func (s *service) Login(ctx context.Context, input LoginInput) (*TokenPair, erro
 	return tokens, nil
 }
 
+// RefreshToken validates the refresh token's signature and expiry, checks
+// that it has not been revoked in the database, revokes the old token
+// (rotation), and issues a fresh token pair.
 func (s *service) RefreshToken(ctx context.Context, refreshTokenStr string) (*TokenPair, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(refreshTokenStr, claims, func(token *jwt.Token) (interface{}, error) {
@@ -230,6 +271,8 @@ func (s *service) RefreshToken(ctx context.Context, refreshTokenStr string) (*To
 	return s.generateTokenPair(&user)
 }
 
+// Logout revokes the specified refresh token by setting its revoked_at
+// timestamp, preventing further use.
 func (s *service) Logout(ctx context.Context, userID, refreshTokenID uuid.UUID) error {
 	now := time.Now().UTC()
 	result := s.db.WithContext(ctx).Model(&RefreshToken{}).
@@ -238,6 +281,8 @@ func (s *service) Logout(ctx context.Context, userID, refreshTokenID uuid.UUID) 
 	return result.Error
 }
 
+// GetUser fetches a user's public profile (name, phone, district, role,
+// language) by their UUID.
 func (s *service) GetUser(ctx context.Context, userID uuid.UUID) (*UserView, error) {
 	var user User
 	if err := s.db.WithContext(ctx).First(&user, "id = ?", userID).Error; err != nil {
@@ -253,6 +298,9 @@ func (s *service) GetUser(ctx context.Context, userID uuid.UUID) (*UserView, err
 	}, nil
 }
 
+// UpdatePreferences updates the user's full_name, district, and/or
+// preferred_language. Only non-nil pointer fields are applied. Returns the
+// updated user view.
 func (s *service) UpdatePreferences(ctx context.Context, input UpdatePreferencesInput) (*UserView, error) {
 	var user User
 	if err := s.db.WithContext(ctx).First(&user, "id = ?", input.UserID).Error; err != nil {
@@ -284,6 +332,9 @@ func (s *service) UpdatePreferences(ctx context.Context, input UpdatePreferences
 	}, nil
 }
 
+// TransferAnonymousData reassigns all conversations, diagnoses, and
+// transcription feedback from the anonymous session ID to the newly
+// registered user within a single transaction.
 func (s *service) TransferAnonymousData(ctx context.Context, anonymousID, userID uuid.UUID) error {
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec("UPDATE ai_conversations SET user_id = ? WHERE user_id = ?", userID, anonymousID).Error; err != nil {
@@ -372,6 +423,8 @@ func hashToken(token string) string {
 	return hex.EncodeToString(h[:])
 }
 
+// ValidateToken parses and validates a JWT token string using HMAC-SHA256
+// with the given secret. Returns the claims on success.
 func ValidateToken(tokenStr string, secret string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
@@ -383,6 +436,8 @@ func ValidateToken(tokenStr string, secret string) (*Claims, error) {
 	return claims, nil
 }
 
+// GenerateRandomToken produces a cryptographically secure random hex
+// string (64 hex chars / 32 bytes) suitable for one-time secrets.
 func GenerateRandomToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {

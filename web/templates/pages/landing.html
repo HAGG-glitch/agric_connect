@@ -1,103 +1,338 @@
 {{template "layout_head" .}}
+<style>
+  .hero-gradient {
+    background: linear-gradient(135deg, rgba(21, 58, 23, 0.92) 0%, rgba(46, 125, 50, 0.85) 50%, rgba(21, 58, 23, 0.92) 100%);
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  .glass-card-solid {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .feature-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: all 0.3s ease;
+  }
+  .feature-card:hover {
+    background: rgba(255, 255, 255, 0.14);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+  .stats-glass {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .bg-texture {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .parallax-bg {
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+  @media (max-width: 768px) {
+    .parallax-bg {
+      background-attachment: scroll;
+    }
+  }
+  .glow-green {
+    box-shadow: 0 0 40px rgba(46, 125, 50, 0.3);
+  }
+  .hero-sprout {
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  .fade-in-up {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeInUp 0.8s ease forwards;
+  }
+  .fade-in-up:nth-child(1) { animation-delay: 0.1s; }
+  .fade-in-up:nth-child(2) { animation-delay: 0.2s; }
+  .fade-in-up:nth-child(3) { animation-delay: 0.3s; }
+  .fade-in-up:nth-child(4) { animation-delay: 0.4s; }
+  .fade-in-up:nth-child(5) { animation-delay: 0.5s; }
+  .fade-in-up:nth-child(6) { animation-delay: 0.6s; }
+  @keyframes fadeInUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
 <div class="min-h-screen flex flex-col">
-  <header class="bg-white border-b border-[#E5E7EB] px-4 py-3">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-[#2E7D32] flex items-center justify-center">
+
+  {{/* ── NAV ── */}}
+  <nav class="fixed top-0 left-0 right-0 z-50 glass-card-solid border-b border-white/20">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center shadow-lg shadow-green-900/30">
           <i data-lucide="sprout" class="w-5 h-5 text-white"></i>
         </div>
-        <span class="font-bold text-[#2E7D32] text-lg">AgriConnect AI</span>
+        <span class="font-bold text-lg text-[#1F2937]">AgriConnect<span class="text-[#2E7D32]">AI</span></span>
       </div>
       <div class="flex items-center gap-3">
-        <a href="/login" class="text-sm font-medium text-[#1F2937] hover:text-[#2E7D32] px-3 py-1.5 rounded-lg hover:bg-[#F5F7F5] transition-colors">Log In</a>
-        <a href="/register" class="text-sm font-medium bg-[#2E7D32] hover:bg-[#245F27] text-white px-4 py-1.5 rounded-xl transition-colors">Get Started</a>
+        <a href="/login" class="text-sm font-medium text-[#1F2937] hover:text-[#2E7D32] px-4 py-2 rounded-lg hover:bg-[#2E7D32]/5 transition-all">Log In</a>
+        <a href="/register" class="text-sm font-medium bg-gradient-to-r from-[#2E7D32] to-[#388E3C] hover:from-[#245F27] hover:to-[#2E7D32] text-white px-5 py-2 rounded-xl transition-all shadow-md hover:shadow-lg">Get Started Free</a>
       </div>
     </div>
-  </header>
+  </nav>
 
   <main class="flex-1">
-    <section class="px-4 pt-16 pb-12 md:pt-24 md:pb-16">
-      <div class="max-w-4xl mx-auto text-center">
-        <div class="w-16 h-16 rounded-2xl bg-[#2E7D32] flex items-center justify-center mx-auto mb-6">
-          <i data-lucide="sprout" class="w-8 h-8 text-white"></i>
+
+    {{/* ── HERO ── */}}
+    <section class="relative min-h-screen flex items-center overflow-hidden">
+      <div class="absolute inset-0">
+        <img src="https://images.unsplash.com/photo-1593113598332-cd59a0c3a9a1?w=1600&q=80" alt="Sierra Leone farmland" class="w-full h-full object-cover" loading="lazy">
+        <div class="absolute inset-0 hero-gradient"></div>
+        <div class="absolute inset-0 bg-texture"></div>
+      </div>
+      <div class="relative z-10 max-w-6xl mx-auto px-4 w-full pt-24 pb-16 md:pt-32 md:pb-24">
+        <div class="grid md:grid-cols-2 gap-12 items-center">
+          <div>
+            <div class="inline-flex items-center gap-2 glass-card text-white/90 text-sm px-4 py-2 rounded-full mb-6">
+              <span class="w-2 h-2 rounded-full bg-[#4CAF50] animate-pulse"></span>
+              Empowering Sierra Leonean Farmers
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold text-white leading-tight mb-4">
+              AI-Powered Agriculture<br>
+              <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#81C784] to-[#A5D6A7]">for Every Farmer</span>
+            </h1>
+            <p class="text-lg text-white/80 max-w-lg mb-8 leading-relaxed">
+              Crop diagnosis, weather forecasts, market prices, and expert advisory — in English and Krio. Built for Sierra Leone.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <a href="/register" class="inline-flex items-center justify-center gap-2 bg-white hover:bg-[#F5F7F5] text-[#2E7D32] px-8 py-3.5 rounded-xl font-semibold text-base transition-all shadow-xl hover:shadow-2xl glow-green">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                Create Free Account
+              </a>
+              <a href="/login" class="inline-flex items-center justify-center gap-2 glass-card text-white hover:bg-white/20 px-8 py-3.5 rounded-xl font-medium text-base transition-all">
+                Sign In
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </a>
+            </div>
+            <div class="flex items-center gap-6 mt-8 text-white/60 text-sm">
+              <span class="flex items-center gap-1.5"><i data-lucide="check-circle" class="w-4 h-4 text-[#81C784]"></i> Free to use</span>
+              <span class="flex items-center gap-1.5"><i data-lucide="check-circle" class="w-4 h-4 text-[#81C784]"></i> English &amp; Krio</span>
+              <span class="flex items-center gap-1.5"><i data-lucide="check-circle" class="w-4 h-4 text-[#81C784]"></i> 16 districts</span>
+            </div>
+          </div>
+          <div class="hidden md:flex justify-center">
+            <div class="glass-card rounded-2xl p-8 w-full max-w-sm">
+              <div class="hero-sprout w-20 h-20 rounded-2xl bg-gradient-to-br from-[#2E7D32] to-[#66BB6A] flex items-center justify-center mx-auto mb-6 shadow-xl">
+                <i data-lucide="sprout" class="w-10 h-10 text-white"></i>
+              </div>
+              <h3 class="text-white font-semibold text-center text-lg mb-2">AI Instant Diagnosis</h3>
+              <p class="text-white/70 text-sm text-center mb-6">Snap a photo, get a diagnosis in seconds</p>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3 text-white/80 text-sm">
+                  <i data-lucide="leaf" class="w-4 h-4 text-[#81C784] shrink-0"></i>
+                  <span>18+ crop types supported</span>
+                </div>
+                <div class="flex items-center gap-3 text-white/80 text-sm">
+                  <i data-lucide="mic" class="w-4 h-4 text-[#81C784] shrink-0"></i>
+                  <span>Voice input in Krio</span>
+                </div>
+                <div class="flex items-center gap-3 text-white/80 text-sm">
+                  <i data-lucide="users" class="w-4 h-4 text-[#81C784] shrink-0"></i>
+                  <span>Officer review included</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <h1 class="text-3xl md:text-5xl font-bold text-[#1F2937] leading-tight mb-4">AI-Powered Agriculture<br>for Sierra Leone</h1>
-        <p class="text-lg text-[#6B7280] max-w-2xl mx-auto mb-8">Crop diagnosis, weather forecasts, market prices, and expert advisory — all in one platform, in English and Krio.</p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a href="/register" class="w-full sm:w-auto bg-[#2E7D32] hover:bg-[#245F27] text-white px-8 py-3 rounded-xl font-medium text-base transition-colors">Create Free Account</a>
-          <a href="/login" class="w-full sm:w-auto border border-[#D1D5DB] hover:bg-[#F5F7F5] text-[#1F2937] px-8 py-3 rounded-xl font-medium text-base transition-colors">Sign In</a>
+      </div>
+      <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0F1E10] to-transparent"></div>
+    </section>
+
+    {{/* ── STATS ── */}}
+    <section class="relative py-16 bg-[#0F1E10] overflow-hidden">
+      <div class="absolute inset-0 bg-texture"></div>
+      <div class="relative z-10 max-w-6xl mx-auto px-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+          <div class="stats-glass rounded-xl p-6 text-center">
+            <div class="text-3xl md:text-4xl font-bold text-white mb-1">18+</div>
+            <div class="text-white/60 text-sm">Crop Types</div>
+          </div>
+          <div class="stats-glass rounded-xl p-6 text-center">
+            <div class="text-3xl md:text-4xl font-bold text-white mb-1">16</div>
+            <div class="text-white/60 text-sm">Districts Covered</div>
+          </div>
+          <div class="stats-glass rounded-xl p-6 text-center">
+            <div class="text-3xl md:text-4xl font-bold text-white mb-1">2</div>
+            <div class="text-white/60 text-sm">Languages (EN &amp; Krio)</div>
+          </div>
+          <div class="stats-glass rounded-xl p-6 text-center">
+            <div class="text-3xl md:text-4xl font-bold text-white mb-1">24/7</div>
+            <div class="text-white/60 text-sm">AI Assistant</div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="px-4 py-12 bg-white border-t border-[#E5E7EB]">
-      <div class="max-w-6xl mx-auto">
-        <h2 class="text-2xl font-bold text-[#1F2937] text-center mb-10">Everything you need</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div class="bg-[#F5F7F5] rounded-xl p-5 border border-[#E5E7EB]">
-            <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-3">
-              <i data-lucide="bot" class="w-5 h-5 text-[#2E7D32]"></i>
+    {{/* ── FEATURES ── */}}
+    <section class="relative py-20 md:py-28 bg-[#0F1E10] overflow-hidden">
+      <div class="absolute inset-0">
+        <img src="https://images.unsplash.com/photo-1587574293340-e0011c4e8ecf?w=1600&q=80" alt="Rice field" class="w-full h-full object-cover opacity-20" loading="lazy">
+        <div class="absolute inset-0 bg-gradient-to-b from-[#0F1E10] via-[#0F1E10]/95 to-[#0F1E10]"></div>
+      </div>
+      <div class="relative z-10 max-w-6xl mx-auto px-4">
+        <div class="text-center mb-14">
+          <span class="inline-block glass-card text-white/80 text-sm px-4 py-1.5 rounded-full mb-4">Features</span>
+          <h2 class="text-3xl md:text-4xl font-bold text-white">Everything you need to grow</h2>
+          <p class="text-white/60 mt-3 max-w-xl mx-auto">From AI diagnosis to market prices — one platform for Sierra Leone's farmers</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div class="feature-card rounded-xl p-6 fade-in-up">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center mb-4 shadow-lg">
+              <i data-lucide="bot" class="w-5 h-5 text-white"></i>
             </div>
-            <h3 class="font-semibold text-[#1F2937] mb-1">AI Farming Assistant</h3>
-            <p class="text-sm text-[#6B7280]">Ask questions about farming practices, pest control, and crop management. Supports English and Krio.</p>
+            <h3 class="font-semibold text-white mb-1.5">AI Farming Assistant</h3>
+            <p class="text-sm text-white/60 leading-relaxed">Ask questions about farming, pests, and crop management. Knows Sierra Leone conditions.</p>
           </div>
-          <div class="bg-[#F5F7F5] rounded-xl p-5 border border-[#E5E7EB]">
-            <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-3">
-              <i data-lucide="camera" class="w-5 h-5 text-[#2E7D32]"></i>
+          <div class="feature-card rounded-xl p-6 fade-in-up">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center mb-4 shadow-lg">
+              <i data-lucide="camera" class="w-5 h-5 text-white"></i>
             </div>
-            <h3 class="font-semibold text-[#1F2937] mb-1">Crop Diagnosis</h3>
-            <p class="text-sm text-[#6B7280]">Snap a photo of your crop and get instant AI-powered diagnosis with treatment recommendations.</p>
+            <h3 class="font-semibold text-white mb-1.5">AI Crop Diagnosis</h3>
+            <p class="text-sm text-white/60 leading-relaxed">Snap a photo — AI identifies the disease, suggests treatment, and flags urgency.</p>
           </div>
-          <div class="bg-[#F5F7F5] rounded-xl p-5 border border-[#E5E7EB]">
-            <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-3">
-              <i data-lucide="cloud-sun" class="w-5 h-5 text-[#2E7D32]"></i>
+          <div class="feature-card rounded-xl p-6 fade-in-up">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center mb-4 shadow-lg">
+              <i data-lucide="cloud-sun" class="w-5 h-5 text-white"></i>
             </div>
-            <h3 class="font-semibold text-[#1F2937] mb-1">Weather Forecast</h3>
-            <p class="text-sm text-[#6B7280]">District-level weather forecasts to help plan planting, spraying, and harvesting.</p>
+            <h3 class="font-semibold text-white mb-1.5">Weather Intelligence</h3>
+            <p class="text-sm text-white/60 leading-relaxed">7-day district forecasts to plan planting, spraying, and harvesting.</p>
           </div>
-          <div class="bg-[#F5F7F5] rounded-xl p-5 border border-[#E5E7EB]">
-            <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-3">
-              <i data-lucide="clipboard-check" class="w-5 h-5 text-[#2E7D32]"></i>
+          <div class="feature-card rounded-xl p-6 fade-in-up">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center mb-4 shadow-lg">
+              <i data-lucide="clipboard-check" class="w-5 h-5 text-white"></i>
             </div>
-            <h3 class="font-semibold text-[#1F2937] mb-1">Extension Officer Review</h3>
-            <p class="text-sm text-[#6B7280]">Expert review of AI diagnoses by district extension officers for confirmed treatment plans.</p>
+            <h3 class="font-semibold text-white mb-1.5">Officer Review</h3>
+            <p class="text-sm text-white/60 leading-relaxed">Extension officers confirm AI diagnoses, request site visits, and track cases.</p>
           </div>
-          <div class="bg-[#F5F7F5] rounded-xl p-5 border border-[#E5E7EB]">
-            <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-3">
-              <i data-lucide="shopping-bag" class="w-5 h-5 text-[#2E7D32]"></i>
+          <div class="feature-card rounded-xl p-6 fade-in-up">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center mb-4 shadow-lg">
+              <i data-lucide="shopping-bag" class="w-5 h-5 text-white"></i>
             </div>
-            <h3 class="font-semibold text-[#1F2937] mb-1">Market Prices</h3>
-            <p class="text-sm text-[#6B7280]">Current commodity prices across Sierra Leone markets in SLE.</p>
+            <h3 class="font-semibold text-white mb-1.5">Market Prices</h3>
+            <p class="text-sm text-white/60 leading-relaxed">Current commodity prices across Sierra Leone markets in SLE.</p>
           </div>
-          <div class="bg-[#F5F7F5] rounded-xl p-5 border border-[#E5E7EB]">
-            <div class="w-10 h-10 rounded-lg bg-[#2E7D32]/10 flex items-center justify-center mb-3">
-              <i data-lucide="book-open" class="w-5 h-5 text-[#2E7D32]"></i>
+          <div class="feature-card rounded-xl p-6 fade-in-up">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center mb-4 shadow-lg">
+              <i data-lucide="mic" class="w-5 h-5 text-white"></i>
             </div>
-            <h3 class="font-semibold text-[#1F2937] mb-1">Learning Resources</h3>
-            <p class="text-sm text-[#6B7280]">Agricultural guides and best practices for common crops and farming methods.</p>
+            <h3 class="font-semibold text-white mb-1.5">Voice in Krio</h3>
+            <p class="text-sm text-white/60 leading-relaxed">Record your symptoms in Krio — AI transcribes and diagnoses. No typing needed.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="px-4 py-12">
-      <div class="max-w-4xl mx-auto bg-[#2E7D32] rounded-2xl p-8 md:p-12 text-center">
-        <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">Ready to transform your farming?</h2>
-        <p class="text-[#C8E6C9] mb-8 max-w-lg mx-auto">Join thousands of Sierra Leonean farmers using AI-powered agricultural advisory.</p>
-        <a href="/register" class="inline-block bg-white hover:bg-[#F5F7F5] text-[#2E7D32] px-8 py-3 rounded-xl font-medium transition-colors">Create Free Account</a>
+    {{/* ── HOW IT WORKS ── */}}
+    <section class="relative py-20 md:py-28 bg-[#0F1E10] overflow-hidden">
+      <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center mb-14">
+          <span class="inline-block glass-card text-white/80 text-sm px-4 py-1.5 rounded-full mb-4">How It Works</span>
+          <h2 class="text-3xl md:text-4xl font-bold text-white">Three simple steps</h2>
+        </div>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center mx-auto mb-5 shadow-xl">
+              <span class="text-2xl font-bold text-white">1</span>
+            </div>
+            <div class="glass-card rounded-xl p-6">
+              <h3 class="font-semibold text-white mb-2">Snap &amp; Describe</h3>
+              <p class="text-sm text-white/60">Take a photo of your crop and describe the symptoms in English or Krio.</p>
+            </div>
+            <div class="hidden md:block absolute top-1/2 left-[60%] w-[30%] h-0.5 bg-gradient-to-r from-[#4CAF50] to-transparent"></div>
+          </div>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center mx-auto mb-5 shadow-xl">
+              <span class="text-2xl font-bold text-white">2</span>
+            </div>
+            <div class="glass-card rounded-xl p-6">
+              <h3 class="font-semibold text-white mb-2">AI Analysis</h3>
+              <p class="text-sm text-white/60">AI identifies the condition, confidence level, urgency, and treatment recommendations.</p>
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center mx-auto mb-5 shadow-xl">
+              <span class="text-2xl font-bold text-white">3</span>
+            </div>
+            <div class="glass-card rounded-xl p-6">
+              <h3 class="font-semibold text-white mb-2">Get Help</h3>
+              <p class="text-sm text-white/60">Officer confirms, suggests treatment, or schedules a visit. Follow through with AI chat.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
+
+    {{/* ── CTA ── */}}
+    <section class="relative py-20 overflow-hidden">
+      <div class="absolute inset-0">
+        <img src="https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=1600&q=80" alt="Green field" class="w-full h-full object-cover" loading="lazy">
+        <div class="absolute inset-0 bg-gradient-to-r from-[#0F1E10]/95 via-[#0F1E10]/85 to-[#0F1E10]/95"></div>
+      </div>
+      <div class="relative z-10 max-w-4xl mx-auto px-4 text-center">
+        <div class="glass-card rounded-2xl p-10 md:p-14 inline-block w-full">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Ready to transform your farming?</h2>
+          <p class="text-white/70 mb-8 max-w-md mx-auto">Join Sierra Leonean farmers using AI-powered agricultural advisory — free, in English and Krio.</p>
+          <a href="/register" class="inline-flex items-center gap-2 bg-white hover:bg-[#F5F7F5] text-[#2E7D32] px-10 py-3.5 rounded-xl font-semibold text-base transition-all shadow-xl hover:shadow-2xl">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            Create Free Account
+          </a>
+          <p class="text-white/40 text-sm mt-4">No credit card required &middot; Works on any phone</p>
+        </div>
+      </div>
+    </section>
+
   </main>
 
-  <footer class="bg-white border-t border-[#E5E7EB] px-4 py-6">
-    <div class="max-w-6xl mx-auto text-center text-sm text-[#6B7280]">
-      <p>AgriConnect AI &mdash; Sierra Leone Agricultural Advisory</p>
+  {{/* ── FOOTER ── */}}
+  <footer class="bg-[#0A130B] border-t border-white/5 px-4 py-8">
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] flex items-center justify-center">
+          <i data-lucide="sprout" class="w-4 h-4 text-white"></i>
+        </div>
+        <span class="font-semibold text-white/70 text-sm">AgriConnect AI</span>
+      </div>
+      <p class="text-white/40 text-xs">&copy; 2026 AgriConnect AI &mdash; Sierra Leone Agricultural Advisory Platform</p>
     </div>
   </footer>
 </div>
+
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Intersection Observer for fade-in-up
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-in-up').forEach(function(el) {
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
+    });
   });
 </script>
 {{template "layout_foot" .}}

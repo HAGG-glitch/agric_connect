@@ -26,11 +26,30 @@ import (
 	"gorm.io/datatypes"
 )
 
+// Service defines the interface for crop diagnosis operations.
+// Implementations handle the full lifecycle from submission and AI analysis
+// through retrieval, listing, deletion, and chat continuation.
 type Service interface {
+	// CreateDiagnosis validates input, stores the image, calls the AI vision
+	// model, and persists the result. Returns the created diagnosis (status
+	// "processing" — the AI call runs asynchronously).
 	CreateDiagnosis(ctx context.Context, userID uuid.UUID, input DiagnosisInput, file multipart.File, header *multipart.FileHeader) (*CropDiagnosis, error)
+
+	// GetDiagnosis retrieves a single diagnosis by ID, verifying the caller
+	// is the owner.
 	GetDiagnosis(ctx context.Context, id, userID uuid.UUID) (*CropDiagnosis, error)
+
+	// ListDiagnoses returns a paginated list of the user's diagnoses along
+	// with the total count.
 	ListDiagnoses(ctx context.Context, userID uuid.UUID, page, pageSize int) ([]CropDiagnosis, int64, error)
+
+	// DeleteDiagnosis removes a diagnosis record and its associated image
+	// from storage, verifying the caller is the owner.
 	DeleteDiagnosis(ctx context.Context, id, userID uuid.UUID) error
+
+	// ContinueInChat creates a new chat conversation seeded with the
+	// diagnosis context (crop, condition, district) so the user can follow
+	// up with the AI assistant.
 	ContinueInChat(ctx context.Context, id, userID uuid.UUID, chatSvc services.ChatService) (uuid.UUID, error)
 }
 
@@ -42,6 +61,8 @@ type service struct {
 	cfg          *config.Config
 }
 
+// NewService creates a diagnosis Service wired to the given repository,
+// object storage backend, AI vision client, knowledge service, and config.
 func NewService(repo Repository, objStore storage.ObjectStorage, visionAI ai.CropDiagnosisAI, knowledgeSvc services.KnowledgeService, cfg *config.Config) Service {
 	return &service{
 		repo:         repo,
@@ -278,6 +299,8 @@ func (s *service) CreateDiagnosis(ctx context.Context, userID uuid.UUID, input D
 	return diag, nil
 }
 
+// GetDiagnosis retrieves the caller's diagnosis by ID. Returns an error if
+// the diagnosis does not exist or belongs to a different user.
 func (s *service) GetDiagnosis(ctx context.Context, id, userID uuid.UUID) (*CropDiagnosis, error) {
 	d, err := s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -289,6 +312,8 @@ func (s *service) GetDiagnosis(ctx context.Context, id, userID uuid.UUID) (*Crop
 	return d, nil
 }
 
+// ListDiagnoses returns a paginated list of the user's diagnoses. Defaults
+// to page 1, pageSize 20 (capped at 50). Also returns the total count.
 func (s *service) ListDiagnoses(ctx context.Context, userID uuid.UUID, page, pageSize int) ([]CropDiagnosis, int64, error) {
 	if page < 1 {
 		page = 1
@@ -311,6 +336,8 @@ func (s *service) ListDiagnoses(ctx context.Context, userID uuid.UUID, page, pag
 	return diags, count, nil
 }
 
+// DeleteDiagnosis removes the diagnosis record and its stored image. Only
+// the owner may delete a diagnosis.
 func (s *service) DeleteDiagnosis(ctx context.Context, id, userID uuid.UUID) error {
 	d, err := s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -328,6 +355,9 @@ func (s *service) DeleteDiagnosis(ctx context.Context, id, userID uuid.UUID) err
 	return nil
 }
 
+// ContinueInChat creates a new conversation pre-populated with the
+// diagnosis context (crop, condition, district) so the user can ask
+// follow-up questions to the AI assistant.
 func (s *service) ContinueInChat(ctx context.Context, id, userID uuid.UUID, chatSvc services.ChatService) (uuid.UUID, error) {
 	d, err := s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -361,6 +391,9 @@ func (s *service) cleanupImage(ctx context.Context, path string) {
 	}
 }
 
+// OptimizeImageForAI resizes the image to a maximum dimension of 768px and
+// re-encodes it as JPEG quality 75, reducing payload size for the AI vision
+// API while preserving sufficient detail for diagnosis.
 func OptimizeImageForAI(data []byte, contentType string) []byte {
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {

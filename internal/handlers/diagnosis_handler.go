@@ -31,10 +31,15 @@ type DiagnosisHandler struct {
 	db       *gorm.DB
 }
 
+// NewDiagnosisHandler creates a handler for diagnosis-related pages and
+// API endpoints, wrapping the diagnosis service, configuration, object
+// storage, chat service, and database.
 func NewDiagnosisHandler(svc diagnosis.Service, cfg *config.Config, objStore storage.ObjectStorage, chatSvc services.ChatService, db *gorm.DB) *DiagnosisHandler {
 	return &DiagnosisHandler{svc: svc, cfg: cfg, objStore: objStore, chatSvc: chatSvc, db: db}
 }
 
+// DiagnosePage renders the crop diagnosis submission form with available
+// districts, plant parts, and AI availability status.
 func (h *DiagnosisHandler) DiagnosePage(c *gin.Context) {
 	data := gin.H{
 		"Title":          "AgriConnect AI - Crop Diagnosis",
@@ -176,6 +181,9 @@ func (h *DiagnosisHandler) DetailPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "diagnosis_detail.html", data)
 }
 
+// Create handles multipart diagnosis submission: image, voice, crop type,
+// symptoms, and context. Validates input, stores the image, and triggers
+// async AI analysis. Returns the diagnosis detail page.
 func (h *DiagnosisHandler) Create(c *gin.Context) {
 	userID := getUserID(c)
 
@@ -403,6 +411,8 @@ func (h *DiagnosisHandler) ContinueInChat(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"conversation_id": convID.String()})
 }
 
+// AcceptReview marks an officer's review as accepted by the farmer,
+// updating the diagnosis status and notifying the officer.
 func (h *DiagnosisHandler) AcceptReview(c *gin.Context) {
 	userID := getUserID(c)
 	idStr := c.Param("id")
@@ -449,6 +459,8 @@ func (h *DiagnosisHandler) AcceptReview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Review accepted"})
 }
 
+// RejectReview marks an officer's review as rejected by the farmer and
+// notifies the officer.
 func (h *DiagnosisHandler) RejectReview(c *gin.Context) {
 	userID := getUserID(c)
 	idStr := c.Param("id")
@@ -481,6 +493,9 @@ func (h *DiagnosisHandler) RejectReview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Review rejected"})
 }
 
+// ApproveRequest transitions a review's request_status from "pending" to
+// "approved", allowing the officer to fill in the full review. For
+// confirmed/closed reviews, also sets is_accepted in one step.
 func (h *DiagnosisHandler) ApproveRequest(c *gin.Context) {
 	userID := getUserID(c)
 	idStr := c.Param("id")
@@ -545,6 +560,8 @@ func (h *DiagnosisHandler) ApproveRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Request approved"})
 }
 
+// RejectRequest denies an officer's pending review request, notifying the
+// officer that the farmer declined the request.
 func (h *DiagnosisHandler) RejectRequest(c *gin.Context) {
 	userID := getUserID(c)
 	idStr := c.Param("id")
@@ -591,6 +608,9 @@ func (h *DiagnosisHandler) RejectRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Request rejected"})
 }
 
+// GlobalClose sets globally_closed_at on a diagnosis, preventing new
+// officer review requests. The diagnosis owner or any admin can close.
+// Existing pending/approved reviews can still be completed.
 func (h *DiagnosisHandler) GlobalClose(c *gin.Context) {
 	userID := getUserID(c)
 	idStr := c.Param("id")

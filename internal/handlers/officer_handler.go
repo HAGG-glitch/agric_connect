@@ -26,6 +26,9 @@ func NewOfficerHandler(db *gorm.DB, diagnosisSvc diagnosis.Service) *OfficerHand
 	return &OfficerHandler{db: db, diagnosisSvc: diagnosisSvc}
 }
 
+// OfficerPage renders the officer dashboard with system-wide stats
+// (pending, in-review, completed) and the authenticated officer's personal
+// review counts (total, confirmed, closed, accepted).
 func (h *OfficerHandler) OfficerPage(c *gin.Context) {
 	user := c.MustGet(middleware.ContextKeyUser).(*middleware.AuthUser)
 
@@ -83,6 +86,8 @@ func (h *OfficerHandler) OfficerPage(c *gin.Context) {
 	})
 }
 
+// OfficerDiagnosesPage renders the diagnosis queue page. The actual data
+// is fetched client-side via the ListDiagnoses API endpoint.
 func (h *OfficerHandler) OfficerDiagnosesPage(c *gin.Context) {
 	data := gin.H{
 		"Title":        "AgriConnect AI - Diagnosis Queue",
@@ -94,6 +99,8 @@ func (h *OfficerHandler) OfficerDiagnosesPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "officer_diagnoses.html", data)
 }
 
+// OfficerDiagnosisDetailPage renders the officer's diagnosis detail view.
+// Data is populated via the GET API endpoint.
 func (h *OfficerHandler) OfficerDiagnosisDetailPage(c *gin.Context) {
 	data := gin.H{
 		"Title":        "AgriConnect AI - Review Diagnosis",

@@ -19,7 +19,6 @@
                             el.style.display = 'none';
                         }
                     });
-                    // Also update stat-card value on dashboard
                     var statValue = document.querySelector('.stat-card .stat-value');
                     if (statValue && statValue.parentElement && statValue.parentElement.querySelector('.stat-label') &&
                         statValue.parentElement.querySelector('.stat-label').textContent.indexOf('Unread') !== -1) {
@@ -28,6 +27,138 @@
                 })
                 .catch(function() {});
         }, 30000);
+
+        // ── Session timeout modal ──────────────────────────────────────────
+        (function() {
+            var WARN_BEFORE = 300000; // 5 minutes before expiry
+
+            var overlay = null;
+            var countdownId = null;
+            var warnTimerId = null;
+
+            function getJwtExpiry() {
+                var match = document.cookie.match(new RegExp('(^| )access_token=([^;]+)'));
+                if (!match) return null;
+                try {
+                    var parts = decodeURIComponent(match[2]).split('.');
+                    var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                    return payload.exp ? payload.exp * 1000 : null;
+                } catch(e) { return null; }
+            }
+
+            function createModal(secondsLeft) {
+                if (overlay && overlay.style.display === 'flex') return;
+
+                if (!overlay) {
+                    var overlayEl = document.createElement('div');
+                    overlayEl.id = 'session-timeout-overlay';
+                    overlayEl.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
+                    document.body.appendChild(overlayEl);
+
+                    var card = document.createElement('div');
+                    card.style.cssText = 'background:#fff;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,0.25);max-width:420px;width:90%;padding:32px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,sans-serif;';
+
+                    card.innerHTML =
+                        '<div style="margin-bottom:16px">' +
+                            '<div style="width:48px;height:48px;border-radius:50%;background:#FEF3C7;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">' +
+                                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+                            '</div>' +
+                            '<h2 style="font-size:16px;font-weight:600;color:#1F2937;margin:0 0 4px">Session expiring soon</h2>' +
+                            '<p style="font-size:14px;color:#6B7280;margin:0">Your session will expire in <strong id="session-countdown">5</strong> minutes. Do you want to continue?</p>' +
+                        '</div>' +
+                        '<div style="display:flex;gap:8px;justify-content:center;margin-top:20px">' +
+                            '<button id="session-logout-btn" style="padding:8px 20px;border-radius:8px;border:1px solid #D1D5DB;background:#fff;color:#1F2937;font-size:14px;font-weight:500;cursor:pointer">Log out</button>' +
+                            '<button id="session-continue-btn" style="padding:8px 20px;border-radius:8px;border:none;background:#2E7D32;color:#fff;font-size:14px;font-weight:500;cursor:pointer">Continue session</button>' +
+                        '</div>';
+
+                    overlayEl.appendChild(card);
+                    overlay = overlayEl;
+
+                    document.getElementById('session-logout-btn').addEventListener('click', function() {
+                        if (warnTimerId) clearTimeout(warnTimerId);
+                        if (countdownId) clearInterval(countdownId);
+                        fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin' })
+                            .catch(function() {})
+                            .finally(function() { window.location.href = '/login'; });
+                    });
+
+                    document.getElementById('session-continue-btn').addEventListener('click', function() {
+                        if (countdownId) clearInterval(countdownId);
+                        overlay.style.display = 'none';
+                        fetch('/api/v1/auth/refresh', { method: 'POST', credentials: 'same-origin' })
+                            .then(function(r) {
+                                if (!r.ok) throw new Error('refresh failed');
+                                return r.json();
+                            })
+                            .then(function() { scheduleWarning(); })
+                            .catch(function() { window.location.href = '/login'; });
+                    });
+                }
+
+                overlay.style.display = 'flex';
+                var countdownEl = document.getElementById('session-countdown');
+                if (countdownEl) countdownEl.textContent = Math.max(1, Math.ceil(secondsLeft / 60));
+
+                if (countdownId) clearInterval(countdownId);
+                var remaining = secondsLeft;
+                countdownId = setInterval(function() {
+                    remaining--;
+                    if (countdownEl) {
+                        var mins = Math.max(1, Math.ceil(remaining / 60));
+                        countdownEl.textContent = mins;
+                    }
+                    if (remaining <= 0) {
+                        clearInterval(countdownId);
+                        if (warnTimerId) clearTimeout(warnTimerId);
+                        fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin' })
+                            .catch(function() {})
+                            .finally(function() { window.location.href = '/login'; });
+                    }
+                }, 1000);
+            }
+
+            function scheduleWarning() {
+                if (warnTimerId) clearTimeout(warnTimerId);
+
+                var expMs = getJwtExpiry();
+                if (!expMs) return;
+
+                var timeLeft = expMs - Date.now();
+                if (timeLeft <= 0) return;
+
+                var warnAt = timeLeft - WARN_BEFORE;
+                if (warnAt <= 0) {
+                    // Already within 5-minute window — show immediately
+                    createModal(timeLeft / 1000);
+                } else {
+                    warnTimerId = setTimeout(function() {
+                        var left = expMs - Date.now();
+                        if (left > 0) createModal(left / 1000);
+                    }, warnAt);
+                }
+            }
+
+            // Start on page load if access token exists
+            if (document.cookie.indexOf('access_token=') !== -1) {
+                scheduleWarning();
+            }
+
+            // Re-check when tab becomes visible
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    var expMs = getJwtExpiry();
+                    if (!expMs) return;
+                    var timeLeft = expMs - Date.now();
+                    if (timeLeft > 0 && timeLeft < WARN_BEFORE + 10000) {
+                        if (!overlay || overlay.style.display === 'none') {
+                            createModal(timeLeft / 1000);
+                        }
+                    } else if (timeLeft > 0) {
+                        scheduleWarning();
+                    }
+                }
+            });
+        })();
     </script>
 </body>
 </html>
