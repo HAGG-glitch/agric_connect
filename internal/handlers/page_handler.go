@@ -101,8 +101,12 @@ func (h *PageHandler) AssistantPage(c *gin.Context) {
 		}
 	}
 
-	userIDStr, _ := c.Get("user_id")
-	userID, _ := uuid.Parse(userIDStr.(string))
+	userID, _ := uuid.Parse("00000000-0000-0000-0000-000000000000")
+	if idVal, exists := c.Get("user_id"); exists && idVal != nil {
+		if s, ok := idVal.(string); ok {
+			userID, _ = uuid.Parse(s)
+		}
+	}
 
 	userDistrict := ""
 	userName := ""

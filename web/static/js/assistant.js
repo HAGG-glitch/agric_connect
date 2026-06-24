@@ -17,7 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadConversations();
 
-  // Restore last state from sessionStorage
+  // Sync State.district with whatever the <select> currently shows
+  // (the HTML may have a server-side preselected option from UserDistrict)
+  var districtSel = document.getElementById('district-select');
+  if (districtSel && districtSel.value) State.district = districtSel.value;
+  var cropSel = document.getElementById('crop-select');
+  if (cropSel && cropSel.value) State.crop = cropSel.value;
+
+  // Restore last state from sessionStorage (overrides server default)
   const saved = sessionStorage.getItem('agri_state');
   if (saved) {
     try {
@@ -25,21 +32,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (s.language) setLanguage(s.language, false);
       if (s.district) {
         State.district = s.district;
-        document.getElementById('district-select').value = s.district;
+        if (districtSel) districtSel.value = s.district;
       }
       if (s.crop) {
         State.crop = s.crop;
-        document.getElementById('crop-select').value = s.crop;
+        if (cropSel) cropSel.value = s.crop;
       }
     } catch {}
   }
 
-  // Pre-fill district from user profile if not already set by session restore
-  const userDistrict = window.AGRI_CONFIG?.userDistrict;
-  if (userDistrict && !State.district) {
-    State.district = userDistrict;
-    const sel = document.getElementById('district-select');
-    if (sel) sel.value = userDistrict;
+  // If still no district, fall back to user profile
+  if (!State.district && window.AGRI_CONFIG?.userDistrict) {
+    State.district = window.AGRI_CONFIG.userDistrict;
+    if (districtSel) districtSel.value = window.AGRI_CONFIG.userDistrict;
     saveState();
   }
 
